@@ -1,0 +1,25 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/logo.png</file>
+        <file>images/open.png</file>
+        <file>images/new.png</file>
+        <file>images/save.png</file>
+        <file>images/rotate_left.png</file>
+        <file>images/rotate_right.png</file>
+        <file>images/mirror.png</file>
+        <file>images/close.png</file>
+        <file>images/next.png</file>
+        <file>images/previous.png</file>
+        <file>images/zoom_in.png</file>
+        <file>images/zoom_out.png</file>
+        <file>images/zoom_reset.png</file>
+        <file>images/delete.png</file>
+        <file>images/fit_size.png</file>
+        <file>images/full_screen.png</file>
+        <file>images/over_num.png</file>
+        <file>images/usages_num.png</file>
+        <file>images/available_num.png</file>
+        <file>images/back.png</file>
+        <file>images/loading.gif</file>
+    </qresource>
+</RCC>
