@@ -75,7 +75,7 @@ protected:
     void paintEvent(QPaintEvent *event);
 
     void setIndexLabel(int index, QLabel *lable, QPoint pos = QPoint(0, 0));
-    void setPictureLabel(const QString &picFile,
+    void setPictureLabel(/*const QString &picFile*/ const QPixmap &pix,
                          QSize scaledSize,
                          const QString &mimeType,
                          QWidget *parent,

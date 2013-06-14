@@ -19,14 +19,14 @@ DraggableLabel::DraggableLabel(QSize size, const QString &mimeType, QWidget *par
     }
 }
 
-DraggableLabel::DraggableLabel(const QString &file, QSize size, const QString &mimeType, QWidget *parent):
+DraggableLabel::DraggableLabel(/*const QString &file*/ const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent):
     QLabel(parent),
     m_mimeType(mimeType)
 {
     resize(size);
     setAlignment(Qt::AlignCenter);
 
-    QPixmap pix(file);
+    //QPixmap pix(file);
     if (pix.isNull())
     {
         setStyleSheet("color: rgb(255, 0, 0)");

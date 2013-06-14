@@ -10,6 +10,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Album
 TEMPLATE = app
+DEFINES += FROM_PACKAGE
 #TRANSLATIONS ＋＝ ./temp/zh_CN.ts
 
 SOURCES += main.cpp\
@@ -61,8 +62,7 @@ FORMS    += \
     child/AlbumChildWidget.ui \
     page/TemplatePageWidget.ui \
     page/TaskPageWidget.ui \
-    page/EditPageWidget.ui \
-    child/RegulableWidget.ui
+    page/EditPageWidget.ui
 
 RESOURCES += \
     images.qrc

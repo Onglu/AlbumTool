@@ -30,7 +30,7 @@ int FileParser::importFiles(const QString &dirKey,
     }
     else
     {
-        QString fileName = QFileDialog::getOpenFileName(m_parent, caption, dirName + fileNames.first(), filter);
+        QString fileName = QFileDialog::getOpenFileName(m_parent, caption, dirName /*+ fileNames.first()*/, filter);
         if (!fileName.isEmpty())
         {
             fileNames.clear();

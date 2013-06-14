@@ -16,7 +16,7 @@ class DraggableLabel : public QLabel
 public:
     explicit DraggableLabel(QWidget *parent = 0): QLabel(parent){}
     DraggableLabel(QSize size, const QString &mimeType, QWidget *parent = 0);
-    DraggableLabel(const QString &file, QSize size, const QString &mimeType, QWidget *parent = 0);
+    DraggableLabel(/*const QString &file*/ const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent = 0);
 
     bool hasPicture(void) const;
     bool meetDragDrop(const QString &mimeType) const;

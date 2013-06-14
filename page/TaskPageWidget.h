@@ -43,6 +43,10 @@ public:
 
     const TemplateChildWidget *getTemplateWidget(const QString &tmplFile);
 
+    static void showProcess(bool show,
+                            QRect global = QRect(0, 0, 0, 0),
+                            const QString &info = QString());
+
 signals:
     void changed(int index);
     void maxShow(bool max);

@@ -55,7 +55,7 @@ void PictureChildWidget::setIndex(int index)
     }
 }
 
-void PictureChildWidget::setPictureLabel(const QString &picFile,
+void PictureChildWidget::setPictureLabel(/*const QString &picFile*/ const QPixmap &pix,
                                          QSize scaledSize,
                                          const QString &mimeType,
                                          QWidget *parent,
@@ -66,7 +66,7 @@ void PictureChildWidget::setPictureLabel(const QString &picFile,
         return;
     }
 
-    m_picLabel = new DraggableLabel(picFile, scaledSize, mimeType, parent);
+    m_picLabel = new DraggableLabel(/*picFile*/ pix, scaledSize, mimeType, parent);
     m_picLabel->installEventFilter(this);
     connect(m_picLabel, SIGNAL(hasAccepted(int)), SLOT(onAccept(int)));
 

@@ -15,7 +15,7 @@ ThumbChildWidget::ThumbChildWidget(int index,
     PictureChildWidget(QSize(162, 142), true, parent)
 {
     setIndexLabel(index, NULL, QPoint(11, 4));
-    setPictureLabel(file, QSize(141, 96), mimeType, this, QPoint(11, 22));
+    setPictureLabel(QPixmap(file), QSize(141, 96), mimeType, this, QPoint(11, 22));
 
     QPixmap pix = m_picLabel->getPicture();
     if (!pix.isNull() && (angle || Qt::ZAxis != axis))

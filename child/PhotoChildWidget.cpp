@@ -18,7 +18,7 @@ PhotoChildWidget::PhotoChildWidget(int index,
 
     setIndexLabel(index, ui->indexLabel);
 
-    setPictureLabel(file, QSize(141, 96), DRAGGABLE_PHOTO, ui->pixmapLabel);
+    setPictureLabel(/*file*/ QPixmap(file), QSize(141, 96), DRAGGABLE_PHOTO, ui->pixmapLabel);
 
     if (!m_picLabel->hasPicture())
     {

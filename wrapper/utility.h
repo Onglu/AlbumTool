@@ -4,9 +4,12 @@
 #include <QVector>
 #include <QStringList>
 #include <QVariant>
+#include <QProcess>
 #include <QThread>
 #include <QWaitCondition>
 #include <QMutex>
+
+#define MAKER_NAME  "tmaker.exe"
 
 class Converter
 {
@@ -40,6 +43,7 @@ enum ViewType{ViewType_Photo, ViewType_Template, ViewType_Album};
 class LoaderThread : public QThread
 {
     Q_OBJECT
+
 public:
     LoaderThread(ViewType view) : m_running(false), m_suspended(false), m_viewType(view){}
     LoaderThread(const LoaderThread &loader) : m_running(false), m_suspended(false), m_viewType(loader.m_viewType){}
@@ -106,6 +110,40 @@ private:
     QVariantList m_recordsList;
     QStringList m_existingsList, m_filesList;
     ViewType m_viewType;
+};
+
+class CryptThread : public QThread
+{
+    Q_OBJECT
+
+public:
+    CryptThread() : m_decrypt(false){}
+
+//    CryptThread &operator =(const CryptThread &ct)
+//    {
+//        m_decrypt = ct.m_decrypt;
+//        m_pkgFile = ct.m_pkgFile;
+//        m_arg = ct.m_arg;
+//    }
+
+    void crypt(bool decrypt, const QString &pkgFile, const QString &arg)
+    {
+        m_decrypt = decrypt;
+        m_pkgFile = pkgFile;
+        m_arg = arg;
+    }
+
+    const QString &getPkgFile(void) const {return m_pkgFile;}
+
+signals:
+    void done(const QString &pkgFile);
+
+protected:
+    void run();
+
+private:
+    bool m_decrypt;
+    QString m_pkgFile, m_arg;
 };
 
 #endif // UTILITY_H

@@ -268,40 +268,58 @@ void TaskPageWidget::updateViews()
 
     if (m_pPhotosLoader->isActive() || m_pTemplatesLoader->isActive() || m_pAlbumsLoader->isActive())
     {
-        if (!m_pLoadingDlg)
+        showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), "正在加载...");
+    }
+}
+
+void TaskPageWidget::showProcess(bool show, QRect global, const QString &info)
+{
+    static QLabel *textLabel = NULL;
+
+    if (!m_pLoadingDlg)
+    {
+        m_pLoadingDlg = new QDialog(0, Qt::FramelessWindowHint);
+        QVBoxLayout *vbl = new QVBoxLayout;
+
+        QLabel *movieLabel = new QLabel(m_pLoadingDlg);
+        movieLabel->setFixedSize(126, 22);
+
+        QMovie *movie = new QMovie(":/images/loading.gif");
+        movie->setSpeed(100);
+        movie->start();
+        movieLabel->setMovie(movie);
+
+        textLabel = new QLabel(m_pLoadingDlg);
+        QFont font = textLabel->font();
+        font.setBold(true);
+        textLabel->setFixedHeight(16);
+        textLabel->setFont(font);
+        textLabel->setStyleSheet("color:blue;");
+
+        vbl->addWidget(movieLabel);
+        vbl->addWidget(textLabel);
+        vbl->setMargin(0);
+
+        m_pLoadingDlg->setFixedSize(126, 38);
+        m_pLoadingDlg->setLayout(vbl);
+        m_pLoadingDlg->setAttribute(Qt::WA_TranslucentBackground);
+    }
+
+    if (m_pLoadingDlg->isHidden() && show)
+    {
+        if (textLabel)
         {
-            m_pLoadingDlg = new QDialog(0, Qt::FramelessWindowHint);
-            QVBoxLayout *vbl = new QVBoxLayout;
-
-            QLabel *movieLabel = new QLabel(m_pLoadingDlg);
-            movieLabel->setFixedSize(126, 22);
-
-            QMovie *movie = new QMovie(":/images/loading.gif");
-            movie->setSpeed(100);
-            movie->start();
-            movieLabel->setMovie(movie);
-
-            QLabel *textLabel = new QLabel(m_pLoadingDlg);
-            QFont font = textLabel->font();
-            font.setBold(true);
-            textLabel->setFixedHeight(16);
-            textLabel->setFont(font);
-            textLabel->setText("正在加载...");
-            textLabel->setStyleSheet("color:blue;");
-
-            vbl->addWidget(movieLabel);
-            vbl->addWidget(textLabel);
-            vbl->setMargin(0);
-
-            m_pLoadingDlg->setFixedSize(126, 38);
-            m_pLoadingDlg->setLayout(vbl);
-            m_pLoadingDlg->setAttribute(Qt::WA_TranslucentBackground);
+            textLabel->setText(info);
         }
 
-        QPoint pos((width() - m_pLoadingDlg->width()) / 2, (height() - m_pLoadingDlg->height()) / 2);
-        QPoint globalPoint(this->mapToGlobal(QPoint(0, 0)));
-        m_pLoadingDlg->move(globalPoint + pos);
+        QPoint pos((global.width() - m_pLoadingDlg->width()) / 2, (global.height() - m_pLoadingDlg->height()) / 2);
+        m_pLoadingDlg->move(global.topLeft() + pos);
         m_pLoadingDlg->exec();
+    }
+
+    if (m_pLoadingDlg->isVisible() && !show)
+    {
+        m_pLoadingDlg->accept();
     }
 }
 
@@ -697,39 +715,40 @@ void TaskPageWidget::on_importPhotosPushButton_clicked()
 
 void TaskPageWidget::importTemplate()
 {
+#ifdef FROM_PACKAGE
+    QStringList fileNames;
+#else
     QStringList fileNames("page.dat");
+#endif
+
     FileParser fp(this);
 
-    if (1 == fp.importFiles("templates_dir", tr("导入模板"), tr("模板文件(*.dat)"), fileNames, false))
+    if (1 <= fp.importFiles("templates_dir", tr("导入模板"), tr("相册模板(*.xcmb)"), fileNames/*, false*/))
     {
-//        if (MAX_DELAY_TEMPLATES_NUMBER >= fileNames.size())
-//        {
-//            foreach (const QString &file, fileNames)
-//            {
-//                if (m_pTemplatesScene->filesList().contains(file, Qt::CaseInsensitive))
-//                {
-//                    continue;
-//                }
+#ifdef FROM_PACKAGE
+        foreach (const QString &file, fileNames)
+        {
+            if (m_pTemplatesScene->filesList().contains(file, Qt::CaseInsensitive))
+            {
+                continue;
+            }
 
-//                int index = m_pTemplatesScene->items().size() + 1;
-//                m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(new TemplateChildWidget(index, file, 4, this)), file);
-//                m_pTemplatesScene->adjustItemPos();
-//                noticeChanged();
-//            }
-//        }
-//        else
-//        {
-//            m_pTemplatesLoader->loadList(m_pTemplatesScene->filesList(), fileNames);
-//            m_pTemplatesLoader->begin();
-//        }
+            int index = m_pTemplatesScene->items().size() + 1;
+            m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(new TemplateChildWidget(index, file, 4, this)), file);
+            m_pTemplatesScene->adjustItemPos();
+            noticeChanged();
+        }
+#else
+        m_pTemplatesLoader->loadList(m_pTemplatesScene->filesList(), fileNames);
+        m_pTemplatesLoader->begin();
+#endif
 
-
-        int index = m_pTemplatesScene->items().size() + 1;
-        QString fileName = QDir::toNativeSeparators(fileNames.first());
-        TemplateChildWidget *childWidget = new TemplateChildWidget(index, fileName, 0, this);
-        m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(childWidget), fileName);
-        m_pTemplatesScene->adjustItemPos();
-        noticeChanged();
+//        int index = m_pTemplatesScene->items().size() + 1;
+//        QString fileName = QDir::toNativeSeparators(fileNames.first());
+//        TemplateChildWidget *childWidget = new TemplateChildWidget(index, fileName, 0, this);
+//        m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(childWidget), fileName);
+//        m_pTemplatesScene->adjustItemPos();
+        //noticeChanged();
 
 #if 0
         QString tmplFile = QDir::toNativeSeparators(fileNames.first());
