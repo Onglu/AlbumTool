@@ -3,13 +3,18 @@
 #include <QDebug>
 #include <QDragEnterEvent>
 #include "wrapper/DraggableLabel.h"
+#include "page/TaskPageWidget.h"
 
-TemplatePageWidget::TemplatePageWidget(bool previewable, QWidget *parent) :
+TemplatePageWidget::TemplatePageWidget(bool previewable, /*QWidget*/TaskPageWidget *parent) :
     QWidget(parent),
     ui(new Ui::TemplatePageWidget),
+    m_container(parent),
     m_tmplSize(QSize(270, 390))
 {
+    Q_ASSERT(m_container);
+
     ui->setupUi(this);
+
     setPreviewable(previewable);
 }
 
@@ -137,6 +142,200 @@ inline void TemplatePageWidget::addTag(const QCheckBox *cb)
     {
         m_tagsMap.remove(name);
     }
+
+    if (ui->searchCheckBox->isChecked())
+    {
+        on_searchPushButton_clicked();
+    }
+}
+
+void TemplatePageWidget::setTag(int type, bool checked, const QString &name)
+{
+    if (checked && name.isEmpty())
+    {
+        return;
+    }
+
+    if (1 == type)
+    {
+        if (!checked)
+        {
+            ui->typeChildrenCheckBox->setChecked(checked);
+            ui->typePictorialCheckBox->setChecked(checked);
+            ui->typeWeddingCheckBox->setChecked(checked);
+        }
+        else
+        {
+            if (name == ui->typeChildrenCheckBox->text())
+            {
+                ui->typeChildrenCheckBox->setChecked(checked);
+            }
+            else if (name == ui->typePictorialCheckBox->text())
+            {
+                ui->typePictorialCheckBox->setChecked(checked);
+            }
+            else if (name == ui->typeWeddingCheckBox->text())
+            {
+                ui->typeWeddingCheckBox->setChecked(checked);
+            }
+        }
+    }
+    else if (2 == type)
+    {
+        if (!checked)
+        {
+            ui->styleFramelessCheckBox->setChecked(checked);
+            ui->styleFrameCheckBox->setChecked(checked);
+            ui->styleNonmaskCheckBox->setChecked(checked);
+            ui->styleMaskCheckBox->setChecked(checked);
+        }
+        else
+        {
+            if (name == ui->styleFramelessCheckBox->text())
+            {
+                ui->styleFramelessCheckBox->setChecked(checked);
+            }
+            else if (name == ui->styleFrameCheckBox->text())
+            {
+                ui->styleFrameCheckBox->setChecked(checked);
+            }
+            else if (name == ui->styleNonmaskCheckBox->text())
+            {
+                ui->styleNonmaskCheckBox->setChecked(checked);
+            }
+            else if (name == ui->styleMaskCheckBox->text())
+            {
+                ui->styleMaskCheckBox->setChecked(checked);
+            }
+        }
+    }
+    else if (3 == type)
+    {
+        if (!checked)
+        {
+            ui->colorBlackCheckBox->setChecked(checked);
+            ui->colorWhiteCheckBox->setChecked(checked);
+            ui->colorGrayCheckBox->setChecked(checked);
+            ui->colorCoffeeCheckBox->setChecked(checked);
+            ui->colorRedCheckBox->setChecked(checked);
+            ui->colorPinkCheckBox->setChecked(checked);
+            ui->colorOrangeCheckBox->setChecked(checked);
+            ui->colorYellowCheckBox->setChecked(checked);
+            ui->colorCyanCheckBox->setChecked(checked);
+            ui->colorGreenCheckBox->setChecked(checked);
+            ui->colorBlueCheckBox->setChecked(checked);
+            ui->colorPurpleCheckBox->setChecked(checked);
+        }
+        else
+        {
+            if (name == ui->colorBlackCheckBox->text())
+            {
+                ui->colorBlackCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorWhiteCheckBox->text())
+            {
+                ui->colorWhiteCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorGrayCheckBox->text())
+            {
+                ui->colorGrayCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorCoffeeCheckBox->text())
+            {
+                ui->colorCoffeeCheckBox->setChecked(checked);
+            }
+            if (name == ui->colorRedCheckBox->text())
+            {
+                ui->colorRedCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorPinkCheckBox->text())
+            {
+                ui->colorPinkCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorOrangeCheckBox->text())
+            {
+                ui->colorOrangeCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorYellowCheckBox->text())
+            {
+                ui->colorYellowCheckBox->setChecked(checked);
+            }
+            if (name == ui->colorCyanCheckBox->text())
+            {
+                ui->colorCyanCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorGreenCheckBox->text())
+            {
+                ui->colorGreenCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorBlueCheckBox->text())
+            {
+                ui->colorBlueCheckBox->setChecked(checked);
+            }
+            else if (name == ui->colorPurpleCheckBox->text())
+            {
+                ui->colorPurpleCheckBox->setChecked(checked);
+            }
+        }
+    }
+}
+
+void TemplatePageWidget::updateTags(bool immediate, const QVariantMap &tags)
+{
+    QVariantMap::const_iterator iter = tags.constBegin();
+
+    m_tagsMap = tags;
+
+    ui->searchCheckBox->setChecked(immediate);
+    if (!immediate)
+    {
+        ui->searchPushButton->setEnabled(true);
+    }
+
+    ui->styleLineEdit->clear();
+
+    setTag(1, false);
+    setTag(2, false);
+    setTag(3, false);
+
+    while (iter != tags.constEnd())
+    {
+        //qDebug() << __FILE__ << __LINE__ << iter.key() << ":" << iter.value().toString();
+
+        if ("pagetype" == iter.key())
+        {
+            if (iter.value().toInt())
+            {
+                ui->wpCoverRadioButton->setChecked(true);
+            }
+            else
+            {
+                ui->wpPageRadioButton->setChecked(true);
+            }
+        }
+        else
+        {
+            QString tag = iter.value().toString();
+            if ("种类" == tag)
+            {
+                setTag(1, true, iter.key());
+            }
+            else if ("板式" == tag)
+            {
+                setTag(2, true, iter.key());
+            }
+            else if ("色系" == tag)
+            {
+                setTag(3, true, iter.key());
+            }
+            else if ("风格" == iter.key())
+            {
+                ui->styleLineEdit->setText(tag);
+            }
+        }
+
+        ++iter;
+    }
 }
 
 void TemplatePageWidget::on_typeChildrenCheckBox_clicked()
@@ -236,29 +435,48 @@ void TemplatePageWidget::on_colorPurpleCheckBox_clicked()
 
 void TemplatePageWidget::on_searchPushButton_clicked()
 {
-    int cover = ui->wpCoverRadioButton->isChecked() ? 1 : 0;
-    qDebug() << __FILE__ << __LINE__ << "pagetype:" << cover;
+    m_tagsMap.insert("pagetype", ui->wpCoverRadioButton->isChecked() ? 1 : 0);
 
-    QVariantList tagsList;
-    QVariantMap::const_iterator iter = m_tagsMap.constBegin();
+    //qDebug() << __FILE__ << __LINE__ << "风格 :" << style;
 
-    while (iter != m_tagsMap.constEnd())
+    m_tagsMap.insert("风格", ui->styleLineEdit->text());
+
+    m_container->onSearch(ui->searchCheckBox->isChecked(), ui->templateLabel->isVisible(), m_tagsMap);
+}
+
+void TemplatePageWidget::on_searchCheckBox_clicked(bool checked)
+{
+    ui->searchPushButton->setEnabled(!checked);
+    if (checked)
     {
-        QVariantMap tagMap;
-        tagMap.insert("name", iter.key());
-        tagMap.insert("type", iter.value());
-        tagsList << tagMap;
-        qDebug() << __FILE__ << __LINE__ << iter.key() << ":" << iter.value().toString();
-        ++iter;
+        on_searchPushButton_clicked();
+    }
+}
+
+void TemplatePageWidget::on_resetPushButton_clicked()
+{
+    if (!m_tagsMap.isEmpty())
+    {
+        return;
     }
 
-    QString style = ui->styleLineEdit->text();
-    qDebug() << __FILE__ << __LINE__ << "风格 :" << style;
-//    if (!style.isEmpty())
-//    {
-//        QVariantMap tagMap;
-//        tagMap.insert("name", style);
-//        tagMap.insert("type", tr("风格"));
-//        tagsList << tagMap;
-//    }
+    m_tagsMap.clear();
+
+    ui->wpCoverRadioButton->setChecked(true);
+    ui->wpPageRadioButton->setChecked(false);
+    ui->styleLineEdit->clear();
+    ui->searchCheckBox->setChecked(false);
+    ui->searchPushButton->setEnabled(true);
+
+    setTag(1, false);
+    setTag(2, false);
+    setTag(3, false);
+
+    m_container->onSearch(false, ui->templateLabel->isVisible(), m_tagsMap);
+}
+
+void TemplatePageWidget::on_styleLineEdit_textChanged(const QString &arg1)
+{
+    //ui->styleLineEdit->setText(arg1);
+    //qDebug() << __FILE__ << __LINE__ << "风格 :" << arg1;
 }

@@ -38,7 +38,7 @@ TaskPageWidget::TaskPageWidget(int tabId, const QString &taskFile, QWidget *pare
                                               this);
     m_scensVector.insert(PictureGraphicsScene::SceneType_Photos, m_pPhotosScene);
 
-    m_pTemplatePage = new TemplatePageWidget(false);
+    m_pTemplatePage = new TemplatePageWidget(false, this);
     ui->rightVerticalLayout->addWidget(m_pTemplatePage);
 
     m_pTemplatesScene = new PictureGraphicsScene(Qt::gray,
@@ -65,8 +65,15 @@ TaskPageWidget::TaskPageWidget(int tabId, const QString &taskFile, QWidget *pare
 
     connect(m_pPhotosLoader, SIGNAL(itemAdded(int,QString,qreal,Qt::Axis,int)),
             SLOT(addItem(int,QString,qreal,Qt::Axis,int)), Qt::BlockingQueuedConnection);
+
+#ifndef FROM_PACKAGE
     connect(m_pTemplatesLoader, SIGNAL(itemAdded(int,QString,int)),
             SLOT(addItem(int,QString,int)), Qt::BlockingQueuedConnection);
+#else
+    connect(m_pTemplatesLoader, SIGNAL(itemAdded(int,QString,QVariantMap)),
+            SLOT(addItem(int,QString,QVariantMap)), Qt::BlockingQueuedConnection);
+#endif
+
     connect(m_pAlbumsLoader, SIGNAL(itemAdded(int,QStringList,QString)),
             SLOT(addItem(int,QStringList,QString)), Qt::BlockingQueuedConnection);
 
@@ -89,7 +96,11 @@ TaskPageWidget::~TaskPageWidget()
     m_pPhotosLoader->disconnect(SIGNAL(itemAdded(int,QString,qreal,Qt::Axis,int)));
     delete m_pPhotosLoader;
 
+#ifndef FROM_PACKAGE
     m_pTemplatesLoader->disconnect(SIGNAL(itemAdded(int,QString,int)));
+#else
+    m_pTemplatesLoader->disconnect(SIGNAL(itemAdded(int,QString,QVariantMap)));
+#endif
     delete m_pTemplatesLoader;
 
     m_pAlbumsLoader->disconnect(SIGNAL(itemAdded(int,QStringList,QString)));
@@ -246,11 +257,11 @@ void TaskPageWidget::updateViews()
         m_pPhotosLoader->begin();
     }
 
-    if (MAX_DELAY_TEMPLATES_NUMBER > m_templatesList.size())
-    {
-        loadViewItems(m_templatesList, ViewType_Template);
-    }
-    else
+//    if (MAX_DELAY_TEMPLATES_NUMBER > m_templatesList.size())
+//    {
+//        loadViewItems(m_templatesList, ViewType_Template);
+//    }
+//    else
     {
         m_pTemplatesLoader->loadList(m_templatesList);
         m_pTemplatesLoader->begin();
@@ -331,6 +342,7 @@ void TaskPageWidget::addItem(int index, const QString &file, qreal angle, Qt::Ax
     //qDebug() << __FILE__ << __LINE__ << "Photo:" << index << file << angle << axis << usedTimes;
 }
 
+#ifndef FROM_PACKAGE
 void TaskPageWidget::addItem(int index, const QString &file, int usedTimes)
 {
     TemplateChildWidget *childWidget = new TemplateChildWidget(index, file, usedTimes, this);
@@ -338,6 +350,20 @@ void TaskPageWidget::addItem(int index, const QString &file, int usedTimes)
     m_pTemplatesScene->autoAdjust();
     //qDebug() << __FILE__ << __LINE__ << "Template:" << index << file;
 }
+#else
+void TaskPageWidget::addItem(int index, const QString &file, QVariantMap records)
+{
+    if (records.isEmpty())
+    {
+        qDebug() << __FILE__ << __LINE__ << "nothing of template!";
+        return;
+    }
+
+    TemplateChildWidget *childWidget = new TemplateChildWidget(index, file, records, this);
+    m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(childWidget), file);
+    m_pTemplatesScene->autoAdjust();
+}
+#endif
 
 void TaskPageWidget::addItem(int index, const QStringList &filesList, const QString &file)
 {
@@ -358,8 +384,8 @@ void TaskPageWidget::finishLoad(int from)
         if (m_pLoadingDlg && !m_pPhotosLoader->isActive() && !m_pTemplatesLoader->isActive() && !m_pAlbumsLoader->isActive())
         {
             m_pLoadingDlg->accept();
-            m_pPhotosScene->setLoadFromDisk(true);
-            m_pTemplatesScene->setLoadFromDisk(true);
+            m_pPhotosScene->finishLoaded(true);
+            m_pTemplatesScene->finishLoaded(true);
         }
     }
 }
@@ -394,7 +420,7 @@ void TaskPageWidget::loadViewItems(const QVariantList &recordsList, ViewType vie
                 //QString kind = records["search_kind"].toString();
                 //QString style = records["search_style"].toString();
                 //qDebug() << __FILE__ << __LINE__ << "Template >" << ":" << file << locations;
-                addItem(index, file, usedTimes);
+                //addItem(index, file, usedTimes);
             }
         }
         else
@@ -834,6 +860,30 @@ void TaskPageWidget::onEdit(const ChildWidgetsMap &albumsMap, int current)
     m_pEditPage->updateViews(albumsMap, current);
 }
 
+void TaskPageWidget::enterEdit(bool enter)
+{
+    if (enter)
+    {
+        ui->collapsePushButton->hide();
+        ui->photosGroupBox->hide();
+        ui->templatesGroupBox->hide();
+        ui->albumsGroupBox->hide();
+        emit maxShow(true);
+        m_pEditPage->show();
+        m_pEditPage->adjustViewLayout();
+    }
+    else
+    {
+        emit maxShow(false);
+        ui->collapsePushButton->show();
+        ui->photosGroupBox->show();
+        ui->templatesGroupBox->show();
+        ui->albumsGroupBox->show();
+        m_pEditPage->hide();
+        adjustSize();
+    }
+}
+
 bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
                              const QString &current,
                              const QString &replaced)
@@ -842,7 +892,7 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
 
     if (PictureGraphicsScene::SceneType_Albums > type && current != replaced)
     {
-        ProxyWidgetsMap &proxyWidgets = m_scensVector[type]->getProxyWidgetsMap();
+        ProxyWidgetsMap &proxyWidgets = m_scensVector[type]->getProxyWidgets();
         foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
         {
             DraggableLabel *picLabel = proxyWidget->getChildWidget().getPictureLabel();
@@ -879,40 +929,59 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
 const TemplateChildWidget *TaskPageWidget::getTemplateWidget(const QString &tmplFile)
 {
     TemplateChildWidget *childWidget = NULL;
-    ProxyWidgetsMap &proxyWidgets = m_scensVector[PictureGraphicsScene::SceneType_Templates]->getProxyWidgetsMap();
+    ProxyWidgetsMap &proxyWidgets = m_scensVector[PictureGraphicsScene::SceneType_Templates]->getProxyWidgets();
 
-    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
-    {
-        if ((childWidget = static_cast<TemplateChildWidget *>(proxyWidget->getChildWidgetPtr())) &&
-            tmplFile == childWidget->getTmplFile())
-        {
-            return childWidget;
-        }
-    }
+//    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
+//    {
+//        if ((childWidget = static_cast<TemplateChildWidget *>(proxyWidget->getChildWidgetPtr())) &&
+//            tmplFile == childWidget->getTmplFile())
+//        {
+//            return childWidget;
+//        }
+//    }
 
     return childWidget;
 }
 
-void TaskPageWidget::enterEdit(bool enter)
+void TaskPageWidget::onSearch(bool immediate, bool inner, const QVariantMap &tags)
 {
-    if (enter)
+    int width = 0;
+
+    if (inner)
     {
-        ui->collapsePushButton->hide();
-        ui->photosGroupBox->hide();
-        ui->templatesGroupBox->hide();
-        ui->albumsGroupBox->hide();
-        emit maxShow(true);
-        m_pEditPage->show();
-        m_pEditPage->adjustViewLayout();
+        m_pTemplatePage->updateTags(immediate, tags);
+        width = m_pEditPage->m_pTemplatePage->getView()->width();
     }
     else
     {
-        emit maxShow(false);
-        ui->collapsePushButton->show();
-        ui->photosGroupBox->show();
-        ui->templatesGroupBox->show();
-        ui->albumsGroupBox->show();
-        m_pEditPage->hide();
-        adjustSize();
+        m_pEditPage->m_pTemplatePage->updateTags(immediate, tags);
+        width = m_pTemplatePage->getView()->width();
     }
+
+    //qDebug() << __FILE__ << __LINE__ << "pagetype:" << cover;
+//    QVariantMap::const_iterator iter = tags.constBegin();
+//    while (iter != tags.constEnd())
+//    {
+//        qDebug() << __FILE__ << __LINE__ << iter.key() << ":" << iter.value().toString();
+//        ++iter;
+//    }
+
+    int index = 0;
+    TemplateChildWidget *childWidget = NULL;
+    ProxyWidgetsMap proxyWidgets = m_scensVector[PictureGraphicsScene::SceneType_Templates]->getProxyWidgets() /*getResultWidgets()*/;
+
+    m_scensVector[PictureGraphicsScene::SceneType_Templates]->clearProxyWidgets();
+    //m_scensVector[PictureGraphicsScene::SceneType_Templates]->getResultWidgets().clear();
+
+    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
+    {
+        if ((childWidget = static_cast<TemplateChildWidget *>(proxyWidget->getChildWidgetPtr()))
+            && childWidget->match(tags))
+        {
+            m_scensVector[PictureGraphicsScene::SceneType_Templates]->addProxyWidget(++index, proxyWidget);
+            qDebug() << __FILE__ << __LINE__ << "find" << index;
+        }
+    }
+
+    m_scensVector[PictureGraphicsScene::SceneType_Templates]->adjustViewLayout(width, true);
 }

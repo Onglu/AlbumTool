@@ -20,8 +20,6 @@ TemplateChildWidget::TemplateChildWidget(int index,
 
     setIndexLabel(index, NULL, QPoint(9, 3));
 
-    memset(m_locations, 0, 2);
-
 #ifndef FROM_PACKAGE
     FileParser fp(tmplFile);
     if (fp.openTemplate(m_bases, m_size, m_tags, m_layers))
@@ -49,12 +47,40 @@ TemplateChildWidget::TemplateChildWidget(int index,
     //qDebug() << __FILE__ << __LINE__ << &m_parser << m_parser.isRunning() << m_tmplFile;
 
     TaskPageWidget::showProcess(true, QRect(parent->mapToGlobal(QPoint(0, 0)), parent->size()), "正在解析相册模板...");
+
+    //m_belongings.insert("used_times", usedTimes);
 #endif
 
-    m_picAttrMap.insert("template_file", m_tmplFile);
-    m_picAttrMap.insert("used_times", usedTimes);
+    m_records.insert("template_file", m_tmplFile);
+    m_records.insert("used_times", usedTimes);
 
     //qDebug() << __FILE__ << __LINE__ << index << m_picLabel->getBelongings();
+}
+
+TemplateChildWidget::TemplateChildWidget(int index,
+                                         const QString &tmplFile,
+                                         const QVariantMap &records,
+                                         TaskPageWidget *parent) :
+    PictureChildWidget(QSize(90, 130), true, parent),
+    m_tmplFile(tmplFile)
+{
+    setToolTip(tr("鼠标点中以拖放"));
+
+    setIndexLabel(index, NULL, QPoint(9, 3));
+
+    m_records = records;
+    if (!m_records.isEmpty())
+    {
+        m_tmplPic = m_records["template_picture"].toString();
+        m_data = m_records["data"].toMap();
+        m_pictures = m_records["pictures"].toMap();
+
+        QPixmap pix;
+        if (pix.loadFromData(m_pictures[m_tmplPic].toByteArray()))
+        {
+            setPictureLabel(pix, QSize(72, 100), DRAGGABLE_TEMPLATE, this, QPoint(9, 21));
+        }
+    }
 }
 
 TemplateChildWidget::~TemplateChildWidget()
@@ -81,9 +107,13 @@ void TemplateChildWidget::setTemplate(DraggableLabel &label,
 
 const QVariantMap &TemplateChildWidget::getChanges(void)
 {
+#ifndef FROM_PACKAGE
     QVariantMap belongings = m_picLabel->getBelongings();
-    m_picAttrMap.insert("used_times", belongings["used_times"].toInt());
+    m_records.insert("used_times", belongings["used_times"].toInt());
     return PictureChildWidget::getChanges();
+#else
+    return m_records;
+#endif
 }
 
 void TemplateChildWidget::ok(const QString &pkgFile)
@@ -93,7 +123,13 @@ void TemplateChildWidget::ok(const QString &pkgFile)
     if (m_tmplFile == pkgFile)
     {
         TaskPageWidget::showProcess(false);
+
         useZip(ZipUsageRead, m_tmplFile + " page.dat");
+
+        if (m_picLabel)
+        {
+            m_picLabel->setBelongings(m_records);
+        }
     }
 }
 
@@ -192,6 +228,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
                 return;
             }
 
+            m_records.insert("data", m_data);
 #if 0
             QVariantMap::const_iterator iter = page.constBegin();
             while (iter != page.constEnd())
@@ -237,6 +274,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 
             m_currFile = m_tmplPic = QString("%1.psd.png").arg(m_data["name"].toString());
             useZip(ZipUsageRead, m_tmplFile + " " + m_tmplPic);
+
             loadPictures();
         }
 
@@ -244,22 +282,21 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
         {
             QString name = content.mid(8);
             QPixmap pix(name);
-            qDebug() << __FILE__ << __LINE__ << m_currFile << pix.isNull();
+            //qDebug() << __FILE__ << __LINE__ << m_currFile << pix.isNull();
 
-                //QPixmap pixe;
-                //if (pixe.loadFromData(m_pictures[m_currFile].toByteArray()))
+            //QPixmap pixe;
+            //if (pixe.loadFromData(m_pictures[m_currFile].toByteArray()))
 
             if (m_tmplPic == m_currFile)
             {
                 setPictureLabel(pix, QSize(72, 100), DRAGGABLE_TEMPLATE, this, QPoint(9, 21));
+                m_records.insert("template_picture", m_tmplPic);
             }
-            else
+
+            QFile file(name);
+            if (!pix.isNull() && file.open(QIODevice::ReadOnly))
             {
-                QFile fd(name);
-                if (!pix.isNull() && fd.open(QIODevice::ReadOnly))
-                {
-                    m_pictures.insert(m_currFile, fd.readAll());
-                }
+                m_pictures.insert(m_currFile, file.readAll());
             }
 
             QFile::remove(name);
@@ -307,13 +344,8 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 
 void TemplateChildWidget::loadPictures()
 {
-    m_layers = m_data["layers"].toList();
-    if (m_layers.isEmpty())
-    {
-        return;
-    }
-
-    foreach (const QVariant &layer, m_layers)
+    QVariantList layers = m_data["layers"].toList();
+    foreach (const QVariant &layer, layers)
     {
         QVariantMap data = layer.toMap();
         m_currFile = data["id"].toString() + ".png";
@@ -321,5 +353,66 @@ void TemplateChildWidget::loadPictures()
         //qDebug() << __FILE__ << __LINE__ << filename;
     }
 
-    m_belongings.insert("pictures", m_pictures);
+    m_records.insert("pictures", m_pictures);
+}
+
+bool TemplateChildWidget::match(QVariantMap cond)
+{
+    if (m_data["pagetype"].toInt() != cond["pagetype"].toInt())
+    {
+        return false;
+    }
+
+    QVariantList tags = m_data["tags"].toList();
+    int n = 1;
+    bool sensitive = false;
+    QString style, text = cond["风格"].toString();
+
+    if (2 == cond.size() && text.isEmpty())
+    {
+        return true;
+    }
+
+    foreach (const QVariant &tag, tags)
+    {
+        QVariantMap data = tag.toMap();
+        QString type = data["type"].toString();
+
+        if ("风格" == type)
+        {
+            style = data["name"].toString();
+        }
+
+        if (!style.isEmpty() && !text.isEmpty())
+        {
+            sensitive = style.contains(text, Qt::CaseInsensitive) || text.contains(style, Qt::CaseInsensitive);
+            //qDebug() << __FILE__ << __LINE__ << style << text << sensitive;
+        }
+
+        QVariantMap::iterator iter = cond.begin();
+        while (iter != cond.end())
+        {
+            qDebug() << __FILE__ << __LINE__ << data["name"].toString() << type << iter.key() << ":" << iter.value().toString() << m_tmplFile;
+
+            if (sensitive || (data["name"].toString() == iter.key() && type == iter.value().toString()))
+            {
+                //qDebug() << __FILE__ << __LINE__ << iter.key() << ":" << iter.value().toString() << m_tmplFile;
+                qDebug() << __FILE__ << __LINE__ <<sensitive << style << text;
+                cond.erase(iter);
+                n++;
+                break;
+            }
+
+            ++iter;
+        }
+    }
+
+    if (!style.isEmpty() && !text.isEmpty() && !sensitive)
+    {
+        n = 0;
+    }
+
+    qDebug() << __FILE__ << __LINE__ <<sensitive << style << text << sensitive << n;
+
+    return (1 < n);
 }

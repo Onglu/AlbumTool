@@ -48,7 +48,7 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
 
     ui->photosGraphicsView->setScene(m_container->m_pPhotosScene);
 
-    m_pTemplatePage = new TemplatePageWidget(true);
+    m_pTemplatePage = new TemplatePageWidget(true, m_container);
     m_pTemplatePage->getView()->setScene(m_container->m_pTemplatesScene);
     ui->mainHorizontalLayout->addWidget(m_pTemplatePage);
 
@@ -146,7 +146,7 @@ inline void EditPageWidget::adjustThumbsHeight()
 {
     int height = 162;
 
-    if (PHOTOS_NUMBER == m_pThumbsScene->getProxyWidgetsMap().size() && 1072 > ui->mainFrame->width())
+    if (PHOTOS_NUMBER == m_pThumbsScene->getProxyWidgets().size() && 1072 > ui->mainFrame->width())
     {
         height = 178;
     }
@@ -207,7 +207,7 @@ void EditPageWidget::removeThumbs(const QString &picFile)
     }
 
     DraggableLabel *thumbLabel = NULL;
-    ProxyWidgetsMap &proxyWidgets = m_pThumbsScene->getProxyWidgetsMap();
+    ProxyWidgetsMap &proxyWidgets = m_pThumbsScene->getProxyWidgets();
 
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
@@ -237,7 +237,7 @@ void EditPageWidget::updateAlbum()
     AlbumPhotos photosVector(PHOTOS_NUMBER);
     QStringList &photosList = m_pAlbumWidget->getPhotosList();
     DraggableLabels &photoLabels = m_pAlbumWidget->getPhotoLabels();
-    ProxyWidgetsMap &thumbWidgetsMap = m_pThumbsScene->getProxyWidgetsMap();
+    ProxyWidgetsMap &thumbWidgetsMap = m_pThumbsScene->getProxyWidgets();
 
     /* Empty photos list */
     photosList.clear();
@@ -415,7 +415,8 @@ bool EditPageWidget::swicth(int index)
     }
 
     m_pThumbsScene->removeProxyWidgets(true);
-    m_pThumbsScene->clearProxyWidgetsMap();
+    //m_pThumbsScene->clearProxyWidgetsMap();
+    m_pThumbsScene->getProxyWidgets().clear();
 
     m_bgdPic.clear();
     m_photoLayers.clear();

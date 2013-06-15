@@ -116,9 +116,6 @@ bool LoaderThread::loadRecords()
 
     foreach (QVariant list, m_recordsList)
     {
-        QVariantMap recordsMap = list.toMap();
-        int index = recordsMap["index"].toInt();
-
         //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "View" << m_viewType << ": go on loop the list...";
 
         while (!m_loadMutex.tryLock());
@@ -142,6 +139,9 @@ bool LoaderThread::loadRecords()
             break;
         }
 
+        QVariantMap recordsMap = list.toMap();
+        int index = recordsMap["index"].toInt();
+
         if (ViewType_Album != m_viewType)
         {
             QString file = ViewType_Photo == m_viewType ? recordsMap["picture_file"].toString() : recordsMap["template_file"].toString();
@@ -158,7 +158,11 @@ bool LoaderThread::loadRecords()
                 }
                 else
                 {
+#ifndef FROM_PACKAGE
                     emit itemAdded(index, file, usedTimes);
+#else
+                    emit itemAdded(index, file, recordsMap);
+#endif
                 }
             }
         }
@@ -236,7 +240,7 @@ bool LoaderThread::loadFiles()
 
             if (ViewType_Template == m_viewType)
             {
-                emit itemAdded(index, file, 0);
+                //emit itemAdded(index, file, 0);
             }
 
             loaded = true;

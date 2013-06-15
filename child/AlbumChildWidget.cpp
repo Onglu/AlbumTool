@@ -178,8 +178,8 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList, const QString
     ui->innerHorizontalLayout->setAlignment(Qt::AlignLeft);
     changeBanners();
 
-    m_picAttrMap.insert("photos_list", photosList);
-    m_picAttrMap.insert("template_file", m_tmplFile);
+    m_records.insert("photos_list", photosList);
+    m_records.insert("template_file", m_tmplFile);
 }
 
 inline void AlbumChildWidget::changeBanners()
@@ -522,8 +522,8 @@ const QVariantMap &AlbumChildWidget::getChanges()
     QStringList photosList;
 
     Converter::v2s(m_photosVector, photosList);
-    m_picAttrMap.insert("photos_list", photosList);
-    m_picAttrMap.insert("template_file", m_tmplFile);
+    m_records.insert("photos_list", photosList);
+    m_records.insert("template_file", m_tmplFile);
 
     return PictureChildWidget::getChanges();
 }

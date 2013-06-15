@@ -30,7 +30,7 @@ PhotoChildWidget::PhotoChildWidget(int index,
     }
 
     setPhoto(*m_picLabel, file, angle, axis, usedTimes);
-    m_picAttrMap = m_picLabel->getBelongings();
+    m_records = m_picLabel->getBelongings();
 
     if (usedTimes)
     {
@@ -55,7 +55,7 @@ inline void PhotoChildWidget::showButtons(bool bVisible)
 
 const QVariantMap &PhotoChildWidget::getChanges()
 {
-    m_picAttrMap = m_picLabel->getBelongings();
+    m_records = m_picLabel->getBelongings();
     return PictureChildWidget::getChanges();
 }
 

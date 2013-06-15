@@ -90,8 +90,15 @@ public:
 
 signals:
     void itemAdded(int index, const QString &file, qreal angle, Qt::Axis axis, int usedTimes);
+
+#ifndef FROM_PACKAGE
     void itemAdded(int index, const QString &file, int usedTimes);
+#else
+    void itemAdded(int index, const QString &file, QVariantMap records);
+#endif
+
     void itemAdded(int index, const QStringList &filesList, const QString &file/* Template data file */);
+
     void loadFinished(int from/* 0: load from the task file, 1: load from the local disk */);
 
 protected:

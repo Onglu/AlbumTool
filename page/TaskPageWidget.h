@@ -31,6 +31,7 @@ public:
 
     void onPreview(const QStringList &pictures, int current);
     void onEdit(const ChildWidgetsMap &albumsMap, int current);
+    void onSearch(bool immediate, bool inner, const QVariantMap &tags);
 
     bool hasChanged(void) const {return m_bChanged;}
     char *saveFile(uchar mode);
@@ -70,8 +71,15 @@ private slots:
     void enterEdit(bool enter);
 
     void addItem(int index, const QString &file, qreal angle, Qt::Axis axis, int usedTimes);
+
+#ifndef FROM_PACKAGE
     void addItem(int index, const QString &file, int usedTimes);
+#else
+    void addItem(int index, const QString &file, QVariantMap records);
+#endif
+
     void addItem(int index, const QStringList &filesList, const QString &file);
+
     void finishLoad(int from);
 
 private:

@@ -28,21 +28,24 @@ public:
 
     bool isEmpty(void) const {return (0 >= this->items().size());}
 
+    void addProxyWidget(int index, PictureProxyWidget *proxyWidget);
+
     void insertProxyWidget(int index,
                            PictureProxyWidget *proxyWidget,
                            QString file = "");
 
-    void removeProxyWidget(int index){removeProxyWidget(m_proxyWidgetsMap[index]);}
+    void removeProxyWidget(int index){removeProxyWidget(m_proxyWidgets[index]);}
     void removeProxyWidget(PictureProxyWidget *proxyWidget);
     void removeProxyWidgets(bool all, EditPageWidget *pEditPage = NULL);
 
     void clearFocusSelection(bool all);
+    void clearProxyWidgets();
 
-    void setLoadFromDisk(bool loadFromDisk){m_loadFromDisk = loadFromDisk;}
+    void finishLoaded(bool loadFinished){m_loadFinished = loadFinished;}
 
     void autoAdjust(void)
     {
-        if (!m_loadFromDisk)
+        if (!m_loadFinished)
         {
             adjustViewLayout();
         }
@@ -53,13 +56,15 @@ public:
     }
 
     void adjustItemPos(void);
-    void adjustViewLayout(int viewWidth = 0/* Indicates that the default width value will be used */);
+    void adjustViewLayout(int viewWidth = 0/* Indicates that the default width value will be used */,
+                          bool partial = false);
 
-    const GraphicsItemsList &m2l(void);
-    const ProxyWidgetsMap &l2m(void);
+    const GraphicsItemsList &m2l(const ProxyWidgetsMap &proxyWidgets);
+    const ProxyWidgetsMap &l2m(ProxyWidgetsMap &proxyWidgets);
 
-    ProxyWidgetsMap &getProxyWidgetsMap(void){return m_proxyWidgetsMap;}
-    void clearProxyWidgetsMap(void){m_proxyWidgetsMap.clear();}
+    ProxyWidgetsMap &getProxyWidgets(void){return m_proxyWidgets;}
+
+    ProxyWidgetsMap &getResultWidgets(void){return m_resultsWidgets;}
 
     const QStringList &filesList(void){return m_filesList;}
 
@@ -74,10 +79,10 @@ private:
     const SceneType m_type;
 
     GraphicsScenesVector m_scensVector;
-    ProxyWidgetsMap m_proxyWidgetsMap;
+    ProxyWidgetsMap m_proxyWidgets, m_resultsWidgets;
     GraphicsItemsList m_itemsList;  // Just only used for m2l() convertion
     QStringList m_filesList;
-    bool m_loadFromDisk;
+    bool m_loadFinished;
     QGraphicsView *m_pView;
 };
 

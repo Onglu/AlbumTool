@@ -49,7 +49,7 @@ void PictureChildWidget::setIndex(int index)
 {
     if (0 < index && m_index != index && m_indexLabel)
     {
-        m_picAttrMap.insert("index", index);
+        m_records.insert("index", index);
         m_indexLabel->setText(tr("%1").arg(index));
         m_index = index;
     }

@@ -10,7 +10,11 @@ PictureGraphicsScene::PictureGraphicsScene(const QBrush &bkclr,
                                            SceneType type,
                                            QGraphicsView *view,
                                            QObject *parent) :
-    QGraphicsScene(parent), m_layout(layout), m_type(type), m_loadFromDisk(false), m_pView(view)
+    QGraphicsScene(parent),
+    m_layout(layout),
+    m_type(type),
+    m_loadFinished(false),
+    m_pView(view)
 {
     Q_ASSERT(SceneType_End > type);
     Q_ASSERT(m_pView);
@@ -23,6 +27,17 @@ PictureGraphicsScene::PictureGraphicsScene(const QBrush &bkclr,
     }
 
     m_pView->setScene(this);
+}
+
+void PictureGraphicsScene::addProxyWidget(int index, PictureProxyWidget *proxyWidget)
+{
+    if (0 >= index || !proxyWidget)
+    {
+        return;
+    }
+
+    addItem(proxyWidget);
+    m_resultsWidgets.insert(index, proxyWidget);
 }
 
 void PictureGraphicsScene::insertProxyWidget(int index,
@@ -41,14 +56,19 @@ void PictureGraphicsScene::insertProxyWidget(int index,
         m_filesList.append(file);
     }
 
-    m_proxyWidgetsMap.insert(index, proxyWidget);
+    m_proxyWidgets.insert(index, proxyWidget);
+
+//    if (SceneType_Templates == m_type)
+//    {
+//        m_resultsWidgets.insert(index, proxyWidget);
+//    }
 }
 
 inline int PictureGraphicsScene::getViewWidth() const
 {
     if (LayoutMode_Horizontality == m_layout)
     {
-        return (m_proxyWidgetsMap.size() * items().last()->boundingRect().width());
+        return (m_proxyWidgets.size() * items().last()->boundingRect().width());
     }
 
     return m_pView->width();
@@ -56,7 +76,7 @@ inline int PictureGraphicsScene::getViewWidth() const
 
 void PictureGraphicsScene::adjustItemPos()
 {
-    const int count = m_proxyWidgetsMap.size();
+    const int count = m_proxyWidgets.size();
     if (!count)
     {
         return;
@@ -87,13 +107,13 @@ void PictureGraphicsScene::adjustItemPos()
 //    qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "viewWidth:" << viewWidth << ", itemWidth:" << rect.width()
 //             << "count:" << count << ", index:" << index << ", ix: " << ix << ", iy: " << iy << left << top;
 
-    m_proxyWidgetsMap[count]->setPos(left, top);
+    m_proxyWidgets[count]->setPos(left, top);
     setSceneRect(itemsBoundingRect());
 }
 
-void PictureGraphicsScene::adjustViewLayout(int viewWidth)
+void PictureGraphicsScene::adjustViewLayout(int viewWidth, bool partial)
 {
-    const GraphicsItemsList itemsList = m2l();
+    const GraphicsItemsList itemsList = !partial && SceneType_Templates == m_type ? m2l(m_proxyWidgets) : m2l(l2m(m_resultsWidgets));
     const int count = itemsList.size();
     if (!count)
     {
@@ -160,11 +180,11 @@ void PictureGraphicsScene::adjustViewLayout(int viewWidth)
     setSceneRect(itemsBoundingRect());
 }
 
-const GraphicsItemsList &PictureGraphicsScene::m2l()
+const GraphicsItemsList &PictureGraphicsScene::m2l(const ProxyWidgetsMap &proxyWidgets)
 {
     m_itemsList.clear();
 
-    foreach (PictureProxyWidget *proxyWidget, m_proxyWidgetsMap)
+    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
         m_itemsList.append(proxyWidget);
     }
@@ -172,7 +192,7 @@ const GraphicsItemsList &PictureGraphicsScene::m2l()
     return m_itemsList;
 }
 
-const ProxyWidgetsMap &PictureGraphicsScene::l2m()
+const ProxyWidgetsMap &PictureGraphicsScene::l2m(ProxyWidgetsMap &proxyWidgets)
 {
     int index = 0;
     ProxyWidgetsMap tmpMap;
@@ -187,24 +207,35 @@ const ProxyWidgetsMap &PictureGraphicsScene::l2m()
         }
     }
 
-    m_proxyWidgetsMap.clear();
+    proxyWidgets.clear();
     foreach (PictureProxyWidget *proxyWidget, tmpMap)
     {
         proxyWidget->getChildWidget().setIndex(++index);
-        m_proxyWidgetsMap.insert(index, proxyWidget);
+        proxyWidgets.insert(index, proxyWidget);
     }
 
-    return m_proxyWidgetsMap;
+    return proxyWidgets;
 }
 
 void PictureGraphicsScene::removeProxyWidget(PictureProxyWidget *proxyWidget)
 {
     if (proxyWidget)
     {
+//        if (SceneType_Templates == m_type)
+//        {
+//            foreach (PictureProxyWidget *resultsWidget, m_resultsWidgets)
+//            {
+//                if (resultsWidget == proxyWidget)
+//                {
+//                    m_resultsWidgets.remove(resultsWidget->getChildWidget().getIndex());
+//                }
+//            }
+//        }
+
         removeItem(proxyWidget);
         delete proxyWidget;
         proxyWidget = NULL;
-        l2m();
+        l2m(m_proxyWidgets);
     }
 }
 
@@ -231,7 +262,7 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                 if (SceneType_Albums > m_type && (picLabel = childWidget.getPictureLabel()))
                 {
                     bool empty = false;
-                    ProxyWidgetsMap &albumProxyWidgets = m_scensVector.at(SceneType_Albums)->getProxyWidgetsMap();
+                    ProxyWidgetsMap &albumProxyWidgets = m_scensVector.at(SceneType_Albums)->getProxyWidgets();
 
                     picFile = picLabel->getPictureFile();
 
@@ -243,13 +274,13 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
 
                     if (empty) // Clear all ?
                     {
-                        ProxyWidgetsMap &photoProxyWidgets = m_scensVector.at(SceneType_Photos)->getProxyWidgetsMap();
+                        ProxyWidgetsMap &photoProxyWidgets = m_scensVector.at(SceneType_Photos)->getProxyWidgets();
                         foreach (PictureProxyWidget *photoProxyWidget, photoProxyWidgets)
                         {
                             photoProxyWidget->clearTimes();
                         }
 
-                        ProxyWidgetsMap &tmplProxyWidgets = m_scensVector.at(SceneType_Templates)->getProxyWidgetsMap();
+                        ProxyWidgetsMap &tmplProxyWidgets = m_scensVector.at(SceneType_Templates)->getProxyWidgets();
                         foreach (PictureProxyWidget *tmplProxyWidget, tmplProxyWidgets)
                         {
                             tmplProxyWidget->clearTimes();
@@ -288,7 +319,7 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                     excludeItems(SceneType_Templates, tmplsList);
                 }
 
-                m_proxyWidgetsMap.remove(childWidget.getIndex());
+                m_proxyWidgets.remove(childWidget.getIndex());
             }
 
             removeItem(item);
@@ -298,7 +329,7 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
         }
     }
 
-    l2m();
+    l2m(m_proxyWidgets);
 }
 
 void PictureGraphicsScene::excludeItems(SceneType type, const QStringList &filesList)
@@ -307,7 +338,7 @@ void PictureGraphicsScene::excludeItems(SceneType type, const QStringList &files
     {
         foreach (const QString &file, filesList)
         {
-            ProxyWidgetsMap &proxyWidgets = m_scensVector.at(type)->getProxyWidgetsMap();
+            ProxyWidgetsMap &proxyWidgets = m_scensVector.at(type)->getProxyWidgets();
             foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
             {
                 if (proxyWidget->excludeItem(file))
@@ -336,6 +367,27 @@ void PictureGraphicsScene::clearFocusSelection(bool all)
 
         clearFocus();
         clearSelection();
+    }
+}
+
+void PictureGraphicsScene::clearProxyWidgets()
+{
+    PictureProxyWidget *proxyWidget = NULL;
+    GraphicsItemsList itemsList = items();
+
+    foreach (QGraphicsItem *item, itemsList)
+    {
+        if ((proxyWidget = static_cast<PictureProxyWidget *>(item)))
+        {
+            proxyWidget->getChildWidget().updateBorder(false);
+        }
+
+        removeItem(item);
+    }
+
+    //if (SceneType_Templates == type)
+    {
+        m_resultsWidgets.clear();
     }
 }
 

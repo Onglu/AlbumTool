@@ -28,8 +28,8 @@ public:
 
     virtual const QVariantMap &getChanges(void)
     {
-        m_picAttrMap.insert("index", m_index);
-        return m_picAttrMap;
+        m_records.insert("index", m_index);
+        return m_records;
     }
 
     void updateBorder(bool bSelected)
@@ -87,7 +87,7 @@ protected:
     TaskPageWidget *m_container;
     QLabel *m_indexLabel;
     DraggableLabel *m_picLabel;
-    QVariantMap m_picAttrMap;
+    QVariantMap m_records;
 
 private:
     QBrush m_borderColor;
