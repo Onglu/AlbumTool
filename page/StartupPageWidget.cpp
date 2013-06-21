@@ -6,6 +6,8 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QDebug>
+#include <QtSql>
+#include "wrapper/utility.h"    // for test
 
 MainWindow *StartupPageWidget::m_pMW = NULL;
 
@@ -42,6 +44,21 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
     setLayout(hbl);
 
     initTaskDir();
+
+
+//    QSqlQuery query;
+    //QString sql = tr("select id from tproperty where ptype='种类' and name='婚纱'");
+    //QString sql = tr("delete template, template_property from template left join template_property on template_property.templateid=template.id where template.id=1");
+    //QString sql = tr("delete from template inner join template_property on template_property.templateid=template.id where template.id=1");
+    //QString sql = tr("delete from template where id=1");
+    //query.exec(sql);
+//    while (query.next())
+//    {
+//        int pid = query.value(0).toInt();
+//        qDebug() << __FILE__ << __LINE__ << "find:" << pid;
+//        sql = tr("insert into template_property values(%1,%2)").arg(1).arg(pid);
+//        query.exec(sql);
+//    }
 }
 
 StartupPageWidget::~StartupPageWidget()
@@ -77,7 +94,7 @@ const QString &StartupPageWidget::getTaskFile(uchar mode, QString &taskFile, QSt
         taskFile = QFileDialog::getOpenFileName(parentWidget(), tr("打开任务"), m_taskDir, tr("相册任务(*.xcrw)"));
     }
 
-    if (Task_Saveas == mode)
+    if (Task_SaveAs == mode)
     {
         srcFile = taskFile;
         taskFile = QFileDialog::getSaveFileName(parentWidget(), tr("另存为..."), srcFile, tr("相册任务(*.xcrw)"));

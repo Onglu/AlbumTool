@@ -55,9 +55,8 @@ public:
         }
     }
 
-    void adjustItemPos(void);
-    void adjustViewLayout(int viewWidth = 0/* Indicates that the default width value will be used */,
-                          bool partial = false);
+    void adjustItemPos(bool partial = false);
+    void adjustViewLayout(int viewWidth = 0/* Indicates that the default width value will be used */);
 
     const GraphicsItemsList &m2l(const ProxyWidgetsMap &proxyWidgets);
     const ProxyWidgetsMap &l2m(ProxyWidgetsMap &proxyWidgets);
@@ -68,7 +67,7 @@ public:
 
     const QStringList &filesList(void){return m_filesList;}
 
-    void checkChanges(QVariantList &changesList);
+    void getChanges(QVariantList &changesList);
 
 private:
     int getViewWidth(void) const;

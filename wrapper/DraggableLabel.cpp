@@ -19,14 +19,14 @@ DraggableLabel::DraggableLabel(QSize size, const QString &mimeType, QWidget *par
     }
 }
 
-DraggableLabel::DraggableLabel(/*const QString &file*/ const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent):
+DraggableLabel::DraggableLabel(const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent):
     QLabel(parent),
+    m_pix(pix),
     m_mimeType(mimeType)
 {
     resize(size);
     setAlignment(Qt::AlignCenter);
 
-    //QPixmap pix(file);
     if (pix.isNull())
     {
         setStyleSheet("color: rgb(255, 0, 0)");
@@ -34,12 +34,11 @@ DraggableLabel::DraggableLabel(/*const QString &file*/ const QPixmap &pix, QSize
     }
     else
     {
-        scaledPixmap(m_pix = pix, size, size);
-        setPixmap(m_pix);
+        setPixmap(pix.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     }
 }
 
-void DraggableLabel::scaledPixmap(QPixmap &pix, QSize mini, QSize &optimal)
+const QPixmap &DraggableLabel::scaledPixmap(const QPixmap &pix, QSize mini, QSize &optimal)
 {
     if (!pix.isNull() && (optimal.width() < pix.width() || optimal.height() < pix.height()))
     {
@@ -48,8 +47,10 @@ void DraggableLabel::scaledPixmap(QPixmap &pix, QSize mini, QSize &optimal)
             optimal = mini;
         }
 
-        pix = pix.scaled(optimal, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        return pix.scaled(optimal, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
+
+    return pix;
 }
 
 bool DraggableLabel::hasPicture() const

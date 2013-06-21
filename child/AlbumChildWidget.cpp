@@ -237,7 +237,7 @@ void AlbumChildWidget::clearBanners()
     }
 }
 
-void AlbumChildWidget::changeTemplate(const QString &tmplFile, const QVariantMap &data)
+void AlbumChildWidget::changeTemplate(const QString &tmplFile, const QPixmap &tmplPic, const QVariantMap &belongings)
 {
     if (m_tmplFile == tmplFile)
     {
@@ -253,6 +253,7 @@ void AlbumChildWidget::changeTemplate(const QString &tmplFile, const QVariantMap
     }
     else
     {
+#if 0
         QString tmplPic;
         QPixmap pix(readTmplData(tmplFile, tmplPic));
 
@@ -270,6 +271,12 @@ void AlbumChildWidget::changeTemplate(const QString &tmplFile, const QVariantMap
 
         changeBanners();
         m_container->noticeChanged();
+#endif
+
+
+        m_tmplLabel->setPixmap(tmplPic.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        m_tmplLabel->clearMimeType();
+        m_tmplLabel->setBelongings(belongings);
     }
 }
 
@@ -440,7 +447,8 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
                 picLabel->accept();
             }
 
-            changeTemplate(tmplFile, picLabel->getBelongings());
+            //changeTemplate(tmplFile, picLabel->getBelongings());
+            changeTemplate(tmplFile, picLabel->getPicture(false), /*belongings["page_data"].toMap()*/ belongings);
             //qDebug() << __FILE__ << __LINE__ << m_tmplLabel->getBelongings();
         }
 

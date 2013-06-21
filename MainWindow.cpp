@@ -227,7 +227,7 @@ void MainWindow::on_saveasAction_triggered()
     char *pTaskName = NULL;
     TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->currentWidget());
 
-    if (taskPage && (pTaskName = taskPage->saveFile(Task_Saveas)))
+    if (taskPage && (pTaskName = taskPage->saveFile(Task_SaveAs)))
     {
         ui->tabWidget->setTabText(ui->tabWidget->currentIndex(), tr("%1").arg(pTaskName));
         delete [] pTaskName;

@@ -31,7 +31,8 @@ public:
 
     /* If tmplFile is empty, so it indicates that is a delete operation */
     void changeTemplate(const QString &tmplFile = QString(),
-                        const QVariantMap &data = QVariantMap());
+                        const QPixmap &tmplPic = QPixmap(),
+                        const QVariantMap &belongings = QVariantMap());
 
     void setViewsList(const AlbumPhotos &photosVector,
                       const QString &tmplFile = QString("")/* Default indicates that doesn't change the current template */);

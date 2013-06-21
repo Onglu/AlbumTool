@@ -231,7 +231,7 @@
            <item>
             <widget class="QLabel" name="label_4">
              <property name="text">
-              <string>板式：</string>
+              <string>版式：</string>
              </property>
             </widget>
            </item>
@@ -749,7 +749,7 @@
         <item>
          <widget class="QPushButton" name="resetPushButton">
           <property name="text">
-           <string>重置所有</string>
+           <string>全部显示</string>
           </property>
          </widget>
         </item>

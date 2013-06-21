@@ -1,6 +1,8 @@
 #include "PictureGraphicsScene.h"
 #include "child/AlbumChildWidget.h"
+#include "child/TemplateChildWidget.h"
 #include "page/EditPageWidget.h"
+#include "defines.h"
 #include <QtCore/qmath.h>
 #include <QDebug>
 #include <QGraphicsView>
@@ -37,6 +39,7 @@ void PictureGraphicsScene::addProxyWidget(int index, PictureProxyWidget *proxyWi
     }
 
     addItem(proxyWidget);
+    proxyWidget->getChildWidget().setIndex(index);
     m_resultsWidgets.insert(index, proxyWidget);
 }
 
@@ -57,11 +60,6 @@ void PictureGraphicsScene::insertProxyWidget(int index,
     }
 
     m_proxyWidgets.insert(index, proxyWidget);
-
-//    if (SceneType_Templates == m_type)
-//    {
-//        m_resultsWidgets.insert(index, proxyWidget);
-//    }
 }
 
 inline int PictureGraphicsScene::getViewWidth() const
@@ -74,9 +72,9 @@ inline int PictureGraphicsScene::getViewWidth() const
     return m_pView->width();
 }
 
-void PictureGraphicsScene::adjustItemPos()
+void PictureGraphicsScene::adjustItemPos(bool partial)
 {
-    const int count = m_proxyWidgets.size();
+    const int count = items().size();
     if (!count)
     {
         return;
@@ -107,14 +105,24 @@ void PictureGraphicsScene::adjustItemPos()
 //    qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "viewWidth:" << viewWidth << ", itemWidth:" << rect.width()
 //             << "count:" << count << ", index:" << index << ", ix: " << ix << ", iy: " << iy << left << top;
 
-    m_proxyWidgets[count]->setPos(left, top);
+    if (partial && SceneType_Templates == m_type)
+    {
+        m_resultsWidgets[count]->setPos(left, top);
+    }
+    else
+    {
+        m_proxyWidgets[count]->setPos(left, top);
+    }
+
     setSceneRect(itemsBoundingRect());
 }
 
-void PictureGraphicsScene::adjustViewLayout(int viewWidth, bool partial)
+void PictureGraphicsScene::adjustViewLayout(int viewWidth)
 {
-    const GraphicsItemsList itemsList = !partial && SceneType_Templates == m_type ? m2l(m_proxyWidgets) : m2l(l2m(m_resultsWidgets));
+    const GraphicsItemsList itemsList = m2l(m_proxyWidgets);
     const int count = itemsList.size();
+
+    qDebug() << __FILE__ << __LINE__ << count << m_resultsWidgets.size();
     if (!count)
     {
         return;
@@ -253,7 +261,6 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
             {
                 PictureChildWidget &childWidget = proxyWidget->getChildWidget();
                 DraggableLabel *picLabel = NULL;
-                QString picFile;
 
                 /***
                  * If delete a photo or a template from the photos scene or the templates scene, we should update
@@ -262,9 +269,8 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                 if (SceneType_Albums > m_type && (picLabel = childWidget.getPictureLabel()))
                 {
                     bool empty = false;
+                    QString picFile = picLabel->getPictureFile();
                     ProxyWidgetsMap &albumProxyWidgets = m_scensVector.at(SceneType_Albums)->getProxyWidgets();
-
-                    picFile = picLabel->getPictureFile();
 
                     foreach (PictureProxyWidget *albumProxyWidget, albumProxyWidgets)
                     {
@@ -290,6 +296,15 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                     if (pEditPage)
                     {
                         pEditPage->removeThumbs(picFile);
+                    }
+
+                    if (SceneType_Templates == m_type)
+                    {
+                        int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
+                        if (-1 != pos)
+                        {
+                            picFile = picFile.replace(pos, 4, PKG_FMT);
+                        }
                     }
 
                     m_filesList.removeOne(picFile);
@@ -320,6 +335,7 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                 }
 
                 m_proxyWidgets.remove(childWidget.getIndex());
+                childWidget.remove();
             }
 
             removeItem(item);
@@ -385,13 +401,10 @@ void PictureGraphicsScene::clearProxyWidgets()
         removeItem(item);
     }
 
-    //if (SceneType_Templates == type)
-    {
-        m_resultsWidgets.clear();
-    }
+    m_resultsWidgets.clear();
 }
 
-void PictureGraphicsScene::checkChanges(QVariantList &changesList)
+void PictureGraphicsScene::getChanges(QVariantList &changesList)
 {
     PictureProxyWidget *proxyWidget = NULL;
     GraphicsItemsList itemsList = items();

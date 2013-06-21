@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -32,7 +32,8 @@ SOURCES += main.cpp\
     wrapper/DraggableLabel.cpp \
     wrapper/PictureGraphicsScene.cpp \
     wrapper/PictureLabel.cpp \
-    wrapper/PhotoLayer.cpp
+    wrapper/PhotoLayer.cpp \
+    SqlEngine.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -53,7 +54,10 @@ HEADERS  += \
     wrapper/DraggableLabel.h \
     wrapper/PictureGraphicsScene.h \
     wrapper/PictureLabel.h \
-    wrapper/PhotoLayer.h
+    wrapper/PhotoLayer.h \
+    defines.h \
+    events.h \
+    SqlEngine.h
 
 FORMS    += \
     MainWindow.ui \

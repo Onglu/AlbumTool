@@ -55,7 +55,7 @@ void PictureChildWidget::setIndex(int index)
     }
 }
 
-void PictureChildWidget::setPictureLabel(/*const QString &picFile*/ const QPixmap &pix,
+void PictureChildWidget::setPictureLabel(const QPixmap &pix,
                                          QSize scaledSize,
                                          const QString &mimeType,
                                          QWidget *parent,
@@ -66,7 +66,7 @@ void PictureChildWidget::setPictureLabel(/*const QString &picFile*/ const QPixma
         return;
     }
 
-    m_picLabel = new DraggableLabel(/*picFile*/ pix, scaledSize, mimeType, parent);
+    m_picLabel = new DraggableLabel(pix, scaledSize, mimeType, parent);
     m_picLabel->installEventFilter(this);
     connect(m_picLabel, SIGNAL(hasAccepted(int)), SLOT(onAccept(int)));
 
@@ -187,7 +187,7 @@ void PictureChildWidget::dropEvent(QDropEvent *event)
         QPixmap pix;
         QPoint offset;
 
-        //qDebug() << __FILE__ << __LINE__ << event->mimeData()->text() << ", m_picLabel:" << m_picLabel->getPictureFile();
+        qDebug() << __FILE__ << __LINE__ << picLabel->getPictureFile() << m_picLabel->getPictureFile();
 
         if (children().contains(picLabel))
         {

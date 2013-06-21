@@ -8,7 +8,7 @@
 #define Task_New    1
 #define Task_Open   2
 #define Task_Save   3
-#define Task_Saveas 4
+#define Task_SaveAs 4
 
 class FileParser: public QFile
 {

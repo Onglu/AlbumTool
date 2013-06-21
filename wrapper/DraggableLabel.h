@@ -16,21 +16,23 @@ class DraggableLabel : public QLabel
 public:
     explicit DraggableLabel(QWidget *parent = 0): QLabel(parent){}
     DraggableLabel(QSize size, const QString &mimeType, QWidget *parent = 0);
-    DraggableLabel(/*const QString &file*/ const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent = 0);
+    DraggableLabel(const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent = 0);
 
     bool hasPicture(void) const;
     bool meetDragDrop(const QString &mimeType) const;
 
-    QPixmap getPicture(void) const
+    QPixmap getPicture(bool scaled = true) const
     {
-        const QPixmap *pix = pixmap();
-
-        if (pix)
+        if (scaled)
         {
-            return *pix;
+            const QPixmap *pix = pixmap();
+            if (pix)
+            {
+                return *pix;
+            }
         }
 
-        return QPixmap();
+        return m_pix;
     }
 
     QString getPictureFile(void) const
@@ -43,7 +45,9 @@ public:
         return "";
     }
 
-    static void scaledPixmap(QPixmap &pix, QSize mini, QSize &optimal);
+    QPixmap &picture(){return m_pix;}
+
+    static const QPixmap &scaledPixmap(const QPixmap &pix, QSize mini, QSize &optimal);
 
     QString getMimeType(void) const {return m_mimeType;}
     bool hasMimeType(void) const {return !m_mimeType.isEmpty();}
@@ -70,7 +74,7 @@ private:
     bool meetDragDrop(void) const;
 
     QBrush m_bgdColor;
-    QPixmap m_pix;  // scaled pixmap
+    QPixmap m_pix;  // original pixmap
     QString m_mimeType;
     QPoint m_startPos;
     QVariantMap m_belongings;

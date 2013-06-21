@@ -3,10 +3,7 @@
 
 #include <QGraphicsProxyWidget>
 #include <QTimeLine>
-
-const QEvent::Type CustomEvent_Item_Selected = (QEvent::Type)(QEvent::User + 1);
-const QEvent::Type CustomEvent_Item_Detached = (QEvent::Type)(QEvent::User + 2);
-//const QEvent::Type CustomEvent_Load_Finished = (QEvent::Type)(QEvent::User + 3);
+#include "events.h"
 
 class PictureChildWidget;
 

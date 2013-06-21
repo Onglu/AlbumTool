@@ -1,10 +1,8 @@
 #include "utility.h"
-#include "child/TemplateChildWidget.h"
+#include "defines.h"
+//#include "child/TemplateChildWidget.h"
 #include <QDebug>
-
-Converter::Converter()
-{
-}
+#include <QtSql>
 
 const QStringList &Converter::v2s(const QVector<QString> strVector, QStringList &strList)
 {
@@ -33,6 +31,49 @@ int Converter::num(const QStringList &strList, bool empty)
     }
 
     return n;
+}
+
+bool SqlHelper::connectDb()
+{
+    static bool connected = false;
+
+    if (!connected)
+    {
+        QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+        db.setDatabaseName(BACKEND_DB);
+        if (!(connected = db.open()))
+        {
+            m_error = "connect database failed";
+            return false;
+        }
+    }
+
+    return connected;
+}
+
+int SqlHelper::getId(const QString &sql)
+{
+    QSqlQuery query;
+    query.exec(sql);
+    while (query.next())
+    {
+        return query.value(0).toInt();
+    }
+
+    return 0;
+}
+
+int SqlHelper::getLastRowId(const QString &table)
+{
+    QSqlQuery query;
+    QString sql = QString("select id from %1 where id=(select max(id) from %2)").arg(table).arg(table);
+    query.exec(sql);
+    while (query.next())
+    {
+        return query.value(0).toInt();
+    }
+
+    return 0;
 }
 
 void LoaderThread::end()
@@ -158,11 +199,7 @@ bool LoaderThread::loadRecords()
                 }
                 else
                 {
-#ifndef FROM_PACKAGE
                     emit itemAdded(index, file, usedTimes);
-#else
-                    emit itemAdded(index, file, recordsMap);
-#endif
                 }
             }
         }
@@ -194,7 +231,7 @@ bool LoaderThread::loadRecords()
     if (loaded)
     {
         reset();
-        emit loadFinished(0);
+        emit loadFinished(LOAD_RECORDS);
     }
 
     return true;
@@ -233,6 +270,12 @@ bool LoaderThread::loadFiles()
 
             //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "View" << m_viewType << ": load file" << file;
 
+            if (!loaded)
+            {
+                loaded = true;
+                emit loadFinished(LOAD_NEW);
+            }
+
             if (ViewType_Photo == m_viewType)
             {
                 emit itemAdded(index, file, 0, Qt::ZAxis, 0);
@@ -240,10 +283,8 @@ bool LoaderThread::loadFiles()
 
             if (ViewType_Template == m_viewType)
             {
-                //emit itemAdded(index, file, 0);
+                emit itemAdded(index, file, 0);
             }
-
-            loaded = true;
         }
 
         m_loadMutex.unlock();
@@ -254,7 +295,7 @@ bool LoaderThread::loadFiles()
     if (loaded)
     {
         reset();
-        emit loadFinished(1);
+        emit loadFinished(LOAD_FILES);
     }
 
     return true;
@@ -267,17 +308,17 @@ void CryptThread::run()
 
     if (m_decrypt && !m_arg.isEmpty())
     {
-        TemplateChildWidget::useZip(TemplateChildWidget::ZipUsageDecrypt,
-                                    args,
-                                    true);
-        emit done(m_pkgFile);
+//        TemplateChildWidget::useZip(TemplateChildWidget::ZipUsageDecrypt,
+//                                    args,
+//                                    true);
+//        emit done(m_pkgFile);
 
-        TemplateChildWidget::useZip(TemplateChildWidget::ZipUsageEncrypt,
-                                    args,
-                                    true);
+//        TemplateChildWidget::useZip(TemplateChildWidget::ZipUsageEncrypt,
+//                                    args,
+//                                    true);
 
-        m_decrypt = false;
-        m_arg.clear();
-        emit finished();
+//        m_decrypt = false;
+//        m_arg.clear();
+//        emit finished();
     }
 }

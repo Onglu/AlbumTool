@@ -15,7 +15,8 @@ class TemplatePageWidget;
 
 class TemplatePageWidget : public QWidget
 {
-    Q_OBJECT   
+    Q_OBJECT
+
 public:
     explicit TemplatePageWidget(bool previewable, /*QWidget*/TaskPageWidget *parent = 0);
     ~TemplatePageWidget();

@@ -121,7 +121,7 @@ inline void TemplatePageWidget::addTag(const QCheckBox *cb)
     }
     else if (name.startsWith("style"))
     {
-        value = tr("板式");
+        value = tr("版式");
     }
     else if (name.startsWith("color"))
     {
@@ -316,19 +316,19 @@ void TemplatePageWidget::updateTags(bool immediate, const QVariantMap &tags)
         else
         {
             QString tag = iter.value().toString();
-            if ("种类" == tag)
+            if (tr("种类") == tag)
             {
                 setTag(1, true, iter.key());
             }
-            else if ("板式" == tag)
+            else if (tr("版式") == tag)
             {
                 setTag(2, true, iter.key());
             }
-            else if ("色系" == tag)
+            else if (tr("色系") == tag)
             {
                 setTag(3, true, iter.key());
             }
-            else if ("风格" == iter.key())
+            else if (tr("风格") == iter.key())
             {
                 ui->styleLineEdit->setText(tag);
             }
@@ -436,11 +436,8 @@ void TemplatePageWidget::on_colorPurpleCheckBox_clicked()
 void TemplatePageWidget::on_searchPushButton_clicked()
 {
     m_tagsMap.insert("pagetype", ui->wpCoverRadioButton->isChecked() ? 1 : 0);
-
     //qDebug() << __FILE__ << __LINE__ << "风格 :" << style;
-
-    m_tagsMap.insert("风格", ui->styleLineEdit->text());
-
+    m_tagsMap.insert(tr("风格"), ui->styleLineEdit->text());
     m_container->onSearch(ui->searchCheckBox->isChecked(), ui->templateLabel->isVisible(), m_tagsMap);
 }
 

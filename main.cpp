@@ -15,14 +15,14 @@ int main(int argc, char *argv[])
 
     QTextCodec *codec = QTextCodec::codecForName("utf-8"); // utf-8, GB18030
     QTextCodec::setCodecForTr(codec);
-    QTextCodec::setCodecForLocale(codec);
-    QTextCodec::setCodecForCStrings(codec);
+    QTextCodec::setCodecForLocale(/*codec*/ QTextCodec::codecForLocale());
+    QTextCodec::setCodecForCStrings(/*codec*/ QTextCodec::codecForLocale());
 
     g_appRect = QApplication::desktop()->availableGeometry();
     //g_rcDesktop = app.desktop()->availableGeometry();
 
     StartupPageWidget s(Qt::FramelessWindowHint, QSize(320, 200));
     s.show();
-    
+
     return app.exec();
 }

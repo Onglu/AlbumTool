@@ -5,13 +5,39 @@
 #include "proxy/PictureProxyWidget.h"
 #include "wrapper/utility.h"
 
-#define TEMP_FILE       "/DDECF6B7F103CFC11B2.png"
-#define PKG_FMT         ".xcmb"
-#define PKG_PASSWORD    "123123"
-
 typedef PictureProxyWidget TemplateProxyWidget;
+class TemplateChildWidget;
 
-class TemplateChildWidget : public PictureChildWidget
+namespace TemplatesSql
+{
+    class SqlThread : public QThread
+    {
+        Q_OBJECT
+
+    public:
+        SqlThread(TemplateChildWidget *widget = 0) : m_search(false), m_widget(widget){}
+
+        void bindData(const QVariantMap &data, bool search = false)
+        {
+            m_data = data;
+            m_search = search;
+        }
+
+    signals:
+
+    protected:
+        void run();
+
+    private:
+        bool existing(void);
+
+        bool m_search;
+        QVariantMap m_data;
+        TemplateChildWidget *m_widget;
+    };
+}
+
+class TemplateChildWidget : public PictureChildWidget/*, public SqlHelper*/
 {
     Q_OBJECT
 
@@ -21,20 +47,17 @@ public:
                                  int usedTimes = 0,
                                  TaskPageWidget *parent = 0);
 
-    TemplateChildWidget(int index,
-                        const QString &tmplFile,
-                        const QVariantMap &records,
-                        TaskPageWidget *parent = 0);
-
-    virtual ~TemplateChildWidget();
-
     static void setTemplate(DraggableLabel &label,
                             const QString &tmplPic,
                             const QString &tmplFile,
                             int cover = 0,
-                            int used_times = 0);
+                            int usedTimes = 0);
 
     const QVariantMap &getChanges(void);
+
+    bool getTmplFile(QString &tmplFile, bool pkgFile = true);
+
+    static bool moveTo(QString &fileName, QString dirName, bool overwrite = true);
 
     //const QString &getTmplFile(void){return m_tmplFile;}
 
@@ -84,7 +107,10 @@ public:
                   ZipUsageDecrypt
                  };
 
-    static void useZip(ZipUsage usage, const QString &arguments, bool block = false);
+    static void useZip(QProcess &tmaker,
+                       ZipUsage usage,
+                       const QString &arguments,
+                       bool block = false);
 
     //static void parse(const QVariantMap &data);
 
@@ -94,22 +120,30 @@ public:
 
     bool match(QVariantMap tags);
 
-private slots:
-    void ok(const QString &pkgFile);
+    void remove(void){remove(getId());}
 
+private slots:
     void processFinished(int, QProcess::ExitStatus);
 
 private:
+    void loadPicture(QVariantMap &data, QString tmplPic = QString());
+
     void loadPictures();
 
-    CryptThread m_parser;
-    static QProcess m_tmaker;
-    static ZipUsage m_usage;
+    int getId(void){return SqlHelper::getId(tr("select id from template where fileurl='%1'").arg(m_tmplPic));}
 
-    QString m_tmplFile, m_tmplPic, m_tmplDir, m_currFile;
+    void remove(int tid);
+
+    CryptThread m_parser;
+    QProcess m_tmaker;
+
+    QString m_tmplFile, m_tmplPic, m_currFile;
     QVariantMap m_data, m_pictures, /*m_belongings, m_bases, m_size*/;
     //QVariantList m_tags/*, m_layers*/;
     uchar m_locations[2];   // 0: landscape(Hori), 1: portrait(Verti)
+
+    TemplatesSql::SqlThread m_sql;
+    friend class TemplatesSql::SqlThread;
 };
 
 

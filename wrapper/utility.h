@@ -14,7 +14,7 @@
 class Converter
 {
 public:
-    Converter();
+    Converter(){}
 
     static const QStringList &v2s(const QVector<QString> strVector, QStringList &strList);
     static int num(const QStringList &strList, bool empty = false/* equal with its size */);
@@ -37,6 +37,27 @@ public:
         return current;
     }
 };
+
+class SqlHelper
+{
+public:
+    SqlHelper(){}
+
+    bool connectDb(void);
+
+    static int getId(const QString &sql);
+
+    static int getLastRowId(const QString &table);
+
+    const QString &getError(void) const {return m_error;}
+
+private:
+    QString m_error;
+};
+
+#define LOAD_NEW        0
+#define LOAD_RECORDS    1
+#define LOAD_FILES      2
 
 enum ViewType{ViewType_Photo, ViewType_Template, ViewType_Album};
 
@@ -91,15 +112,11 @@ public:
 signals:
     void itemAdded(int index, const QString &file, qreal angle, Qt::Axis axis, int usedTimes);
 
-#ifndef FROM_PACKAGE
     void itemAdded(int index, const QString &file, int usedTimes);
-#else
-    void itemAdded(int index, const QString &file, QVariantMap records);
-#endif
 
     void itemAdded(int index, const QStringList &filesList, const QString &file/* Template data file */);
 
-    void loadFinished(int from/* 0: load from the task file, 1: load from the local disk */);
+    void loadFinished(uchar state);
 
 protected:
     void run();

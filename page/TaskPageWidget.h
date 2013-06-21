@@ -72,15 +72,13 @@ private slots:
 
     void addItem(int index, const QString &file, qreal angle, Qt::Axis axis, int usedTimes);
 
-#ifndef FROM_PACKAGE
     void addItem(int index, const QString &file, int usedTimes);
-#else
-    void addItem(int index, const QString &file, QVariantMap records);
-#endif
 
     void addItem(int index, const QStringList &filesList, const QString &file);
 
-    void finishLoad(int from);
+    void loadingItem(void){showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));}
+
+    void finishLoaded(uchar state);
 
 private:
     void loadViewItems(const QVariantList &recordsList, ViewType view);

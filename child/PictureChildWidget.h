@@ -52,6 +52,7 @@ public:
 
     virtual void open(ChildWidgetsMap &widgetsMap);
     virtual void swap(DraggableLabel &dragger);
+    virtual void remove(void){}
 
     void unselectSelf(void){emit itemUnselected();}
 
