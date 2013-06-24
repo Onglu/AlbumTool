@@ -18,13 +18,9 @@ PhotoChildWidget::PhotoChildWidget(int index,
 
     setIndexLabel(index, ui->indexLabel);
 
-    setPictureLabel(/*file*/ QPixmap(file), QSize(141, 96), DRAGGABLE_PHOTO, ui->pixmapLabel);
+    setPictureLabel(QPixmap(file), QSize(141, 96), DRAGGABLE_PHOTO, this, QPoint(11, 21));
 
-    if (!m_picLabel->hasPicture())
-    {
-        ui->pixmapLabel->setText(tr("无法显示"));
-    }
-    else
+    if (m_picLabel->hasPicture())
     {
         rotate(angle, axis, false);
     }
@@ -117,8 +113,10 @@ void PhotoChildWidget::on_deletePushButton_clicked()
     emit itemDetached();
 }
 
-void PhotoChildWidget::onAccept(int usedTimes)
+void PhotoChildWidget::onAccept(const QVariantMap &belongings)
 {
+    int usedTimes = belongings["used_times"].toInt();
+
     if (usedTimes)
     {
         ui->timesLabel->setNum(usedTimes);
@@ -129,7 +127,7 @@ void PhotoChildWidget::onAccept(int usedTimes)
         ui->timesLabel->clear();
     }
 
-    PictureChildWidget::onAccept(usedTimes);
+    PictureChildWidget::onAccept(belongings);
 }
 
 PhotoProxyWidget::PhotoProxyWidget(PhotoChildWidget *photoWidget) :

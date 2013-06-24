@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QCursor>
 #include <QPainter>
+#include <QTime>
 
 DraggableLabel::DraggableLabel(QSize size, const QString &mimeType, QWidget *parent):
     QLabel(parent),
@@ -21,11 +22,22 @@ DraggableLabel::DraggableLabel(QSize size, const QString &mimeType, QWidget *par
 
 DraggableLabel::DraggableLabel(const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent):
     QLabel(parent),
-    m_pix(pix),
     m_mimeType(mimeType)
 {
     resize(size);
     setAlignment(Qt::AlignCenter);
+    setPicture(pix, size);
+}
+
+//DraggableLabel &DraggableLabel::operator =(const QLabel &label)
+//{
+//    resize(label.size());
+//    setAlignment(Qt::AlignCenter);
+//}
+
+void DraggableLabel::setPicture(const QPixmap &pix, QSize size)
+{
+    m_pix = pix;
 
     if (pix.isNull())
     {
@@ -34,23 +46,25 @@ DraggableLabel::DraggableLabel(const QPixmap &pix, QSize size, const QString &mi
     }
     else
     {
-        setPixmap(pix.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        if (size.width() && size.height())
+        {
+            setPixmap(pix.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        }
     }
 }
 
-const QPixmap &DraggableLabel::scaledPixmap(const QPixmap &pix, QSize mini, QSize &optimal)
+QPixmap DraggableLabel::getPicture(bool scaled) const
 {
-    if (!pix.isNull() && (optimal.width() < pix.width() || optimal.height() < pix.height()))
+    if (scaled)
     {
-        if (QSize(0, 0) == optimal || (mini.width() < optimal.width() || mini.height() < optimal.height()))
+        const QPixmap *pix = pixmap();
+        if (pix)
         {
-            optimal = mini;
+            return *pix;
         }
-
-        return pix.scaled(optimal, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
-    return pix;
+    return m_pix;
 }
 
 bool DraggableLabel::hasPicture() const
@@ -198,5 +212,5 @@ void DraggableLabel::accept(bool inner)
         setPixmap(pix);
     }
 
-    emit hasAccepted(usedTimes);
+    emit hasAccepted(m_belongings);
 }

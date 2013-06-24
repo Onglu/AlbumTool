@@ -4,6 +4,7 @@
 #include "page/StartupPageWidget.h"
 #include "page/TaskPageWidget.h"
 #include "page/EditPageWidget.h"
+#include "defines.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QCloseEvent>
@@ -29,7 +30,7 @@ MainWindow::MainWindow(const QString &taskFile, const QString &taskName, QWidget
     ui->statusBar->hide();
 
     /* Support for the minimumsize resolution of 10.1 inches notebook */
-    setMinimumSize(1024, 560);
+    setMinimumSize(MINI_WIDTH, MINI_HEIGHT);
 
     m_Settings.beginGroup("MainWindow");
     QRect rect = m_Settings.value("geometry").toRect();
@@ -69,7 +70,7 @@ void MainWindow::showMax(bool max)
     }
     else
     {
-        setMinimumSize(0, 0);
+        setMinimumSize(MINI_WIDTH, MINI_HEIGHT);
         setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         setGeometry(rect);
     }
@@ -183,15 +184,25 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
 {
     closePage(index);
 
-    TaskPageWidget *taskPage = NULL;
-    int count = ui->tabWidget->count();
-
+    int count = ui->tabWidget->count(), n = 0;
     for (int i = 0; i < count; i++)
     {
-        if ((taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i))))
+        TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i));
+        if (taskPage)
         {
             taskPage->setTabId(i);
+            if (!taskPage->isEditing())
+            {
+                n++;
+            }
         }
+    }
+
+    if (!count || n == count - 1)
+    {
+        setMinimumSize(MINI_WIDTH, MINI_HEIGHT);
+        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        setGeometry(this->geometry());
     }
 }
 

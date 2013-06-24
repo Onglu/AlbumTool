@@ -2,7 +2,6 @@
 #include "ui_EditPageWidget.h"
 #include "TaskPageWidget.h"
 #include "child/ThumbChildWidget.h"
-#include "child/RegulableWidget.h"
 #include "wrapper/PhotoLayer.h"
 #include <QDebug>
 #include <QMessageBox>
@@ -124,12 +123,12 @@ int EditPageWidget::getViewWidth() const
 
 inline void EditPageWidget::adjustViewLayout()
 {
-    if (m_bgdLabel->isVisible() && m_bgdLabel->hasPicture())
-    {
-        m_bgdLabel->setPixmap(QPixmap(m_bgdPic).scaled(m_bgdLabel->size(),
-                                                       Qt::KeepAspectRatio,
-                                                       Qt::SmoothTransformation));
-    }
+//    if (m_bgdLabel->isVisible() && m_bgdLabel->hasPicture())
+//    {
+//        m_bgdLabel->setPixmap(QPixmap(m_bgdPic).scaled(m_bgdLabel->size(),
+//                                                       Qt::KeepAspectRatio,
+//                                                       Qt::SmoothTransformation));
+//    }
 
     if (ui->photosGraphicsView->isVisible())
     {
@@ -302,43 +301,56 @@ void EditPageWidget::updateLayers()
 {
     Q_ASSERT(m_pAlbumWidget);
 
-    QSize bgdSize = m_pAlbumWidget->getCanvasSize();
-    QString tmplDir = m_tmplPic.left(m_tmplPic.lastIndexOf(QDir::separator()) + 1);
-    QString maskfile, filename;
-    QVariantMap photoLayer, maskLayer;
-    QVariantList photoLayers, maskLayers, &layers = m_pAlbumWidget->getLayersList();
+    //qDebug() << __FILE__ << __LINE__ << m_pAlbumWidget->getTmplFile();
+    TemplateChildWidget *tmplWidget = m_container->getTemplateWidget(m_pAlbumWidget->getTmplFile());
+    if (!tmplWidget)
+    {
+        return;
+    }
+
+    QVariantMap belongings = tmplWidget->getPictureLabel()->getBelongings();
+    QVariantMap data = belongings["page_data"].toMap();
+    //qDebug() << __FILE__ << __LINE__ << belongings;
+
+    QSize bgdSize = tmplWidget->getSize(data);
+    //QString tmplDir;// = m_tmplPic.left(m_tmplPic.lastIndexOf(QDir::separator()) + 1);
+    QString bgdPic, maskfile;
+    QVariantMap photoLayer, maskLayer, pictures = tmplWidget->loadPictures();
+    QVariantList photoLayers, maskLayers, /*&layers = m_pAlbumWidget->getLayersList()*/ layers = tmplWidget->getLayers(data);
 
     foreach (const QVariant &layer, layers)
     {
-        qreal opacity = 1, angle = 0;
         QVariantMap embellishLayer, data = layer.toMap();
         QVariantMap frame = data["frame"].toMap();
         int width = frame["width"].toInt();
         int height = frame["height"].toInt();
         int x = frame["x"].toInt();
         int y = frame["y"].toInt();
-        int type;
 
-        filename = tmplDir + data["id"].toString() + ".png";
+        QString filename = data["id"].toString() + ".png";
+        QByteArray ba = pictures[filename].toByteArray();
+        qDebug() << __FILE__ << __LINE__ << filename;
 
         if (bgdSize.width() == width && bgdSize.height() == height && x == width / 2 && y == height / 2)
         {
-            QPixmap bgdPix(m_bgdPic = filename);
-            if (!bgdPix.isNull())
+            QPixmap bgdPix;
+            if (bgdPix.loadFromData(ba))
             {
                 m_bgdLabel->setRealSize(bgdSize);
-                bgdSize = m_bgdLabel->loadPixmap(filename);
+                m_bgdLabel->loadPixmap(bgdPix);
+                bgdSize = m_bgdLabel->getSize();
+                bgdPic = filename;
             }
         }
 
-        maskfile = tmplDir + data["maskLayer"].toString() + ".png";
-        opacity = data["opacity"].toReal();
-        angle = data["rotation"].toReal();
-        type = data["type"].toInt();
+        maskfile = data["maskLayer"].toString() + ".png";
+        qreal opacity = data["opacity"].toReal();
+        qreal angle = data["rotation"].toReal();
+        int type = data["type"].toInt();
 
-        if (0 == type && m_bgdPic != filename)
+        if (0 == type)
         {
-            if (m_bgdPic == filename)
+            if (bgdPic == filename)
             {
                 m_bgdLabel->setAngle(angle);
                 m_bgdLabel->setOpacity(opacity);
@@ -347,17 +359,19 @@ void EditPageWidget::updateLayers()
             {
                 embellishLayer.insert("frame", frame);
                 embellishLayer.insert("filename", filename);
+                embellishLayer.insert("picture", ba);
                 embellishLayer.insert("opacity", opacity);
                 embellishLayer.insert("rotation", angle);
-                photoLayer.insert("type", type);
+                embellishLayer.insert("type", type);
                 m_layers << embellishLayer;
             }
         }
 
-        if (1 == type)
+        if (1 == type)  // Picture layer
         {
             photoLayer.insert("frame", frame);
             photoLayer.insert("filename", filename);
+            photoLayer.insert("picture", ba);
             photoLayer.insert("maskfile", maskfile);
             photoLayer.insert("opacity", opacity);
             photoLayer.insert("rotation", angle);
@@ -366,17 +380,18 @@ void EditPageWidget::updateLayers()
             m_layers << photoLayer;
         }
 
-        if (3 == type)
+        if (3 == type)  // Mask layer
         {
             maskLayer.insert("frame", frame);
             maskLayer.insert("filename", filename);
+            maskLayer.insert("picture", ba);
             maskLayer.insert("opacity", opacity);
             maskLayer.insert("rotation", angle);
             maskLayers << maskLayer;
         }
     }
 
-    //qDebug() << __FILE__ << __LINE__ << photoLayers << maskLayers;
+    //qDebug() << __FILE__ << __LINE__ << photoLayers;
 
     foreach (const QVariant &layer, photoLayers)
     {
@@ -393,6 +408,9 @@ void EditPageWidget::updateLayers()
             }
         }
     }
+
+    //QVariantMap pl = m_photoLayers.first().toMap();
+    //qDebug() << __FILE__ << __LINE__ << pl["filename"].toString();
 
     //QPoint bgdPos = ui->bgdLayerLabel->mapTo(this, QPoint(0, 0));
     //QPoint bgdPos = ui->mainFrame->pos();
@@ -415,10 +433,9 @@ bool EditPageWidget::swicth(int index)
     }
 
     m_pThumbsScene->removeProxyWidgets(true);
-    //m_pThumbsScene->clearProxyWidgetsMap();
     m_pThumbsScene->getProxyWidgets().clear();
 
-    m_bgdPic.clear();
+    //m_bgdPic.clear();
     m_photoLayers.clear();
     m_bgdLabel->flush();
 
@@ -430,12 +447,13 @@ bool EditPageWidget::swicth(int index)
         AlbumPhotos photosVector;
 
         m_pAlbumWidget->getViewsList(photosVector, m_tmplPic);
+
         updateLayers();
 
         for (int i = 0; i < PHOTOS_NUMBER; i++)
         {
             QStringList photoInfo = photosVector[i].split(TEXT_SEP);
-            if (4 != photoInfo.size())
+            if (PHOTO_ATTRIBUTES != photoInfo.size())
             {
                 continue;
             }
@@ -456,7 +474,7 @@ bool EditPageWidget::swicth(int index)
 //                }
 //            }
 
-            if (/*!loaded && */index < m_photoLayers.size())
+            if (/*!loaded && */ index < m_photoLayers.size())
             {
                 QImage img = m_layerLabels[index]->loadPhoto(//m_photoLayers.first().toMap()
                                                   //m_photoLayers.last().toMap()

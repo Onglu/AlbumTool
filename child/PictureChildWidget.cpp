@@ -68,7 +68,7 @@ void PictureChildWidget::setPictureLabel(const QPixmap &pix,
 
     m_picLabel = new DraggableLabel(pix, scaledSize, mimeType, parent);
     m_picLabel->installEventFilter(this);
-    connect(m_picLabel, SIGNAL(hasAccepted(int)), SLOT(onAccept(int)));
+    connect(m_picLabel, SIGNAL(hasAccepted(QVariantMap)), SLOT(onAccept(QVariantMap)));
 
     if (QPoint(0, 0) != pos)
     {
@@ -76,11 +76,11 @@ void PictureChildWidget::setPictureLabel(const QPixmap &pix,
     }
 }
 
-void PictureChildWidget::onAccept(int usedTimes)
+void PictureChildWidget::onAccept(const QVariantMap &belongings)
 {
     QPalette pal;
 
-    if (usedTimes)
+    if (belongings["used_times"].toInt())
     {
         pal.setColor(QPalette::Window, Qt::lightGray);
     }
@@ -187,7 +187,7 @@ void PictureChildWidget::dropEvent(QDropEvent *event)
         QPixmap pix;
         QPoint offset;
 
-        qDebug() << __FILE__ << __LINE__ << picLabel->getPictureFile() << m_picLabel->getPictureFile();
+        //qDebug() << __FILE__ << __LINE__ << picLabel->getPictureFile() << m_picLabel->getPictureFile();
 
         if (children().contains(picLabel))
         {

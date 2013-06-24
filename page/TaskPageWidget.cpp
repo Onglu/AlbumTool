@@ -200,8 +200,8 @@ void TaskPageWidget::saveChanges()
     m_pTemplatesScene->getChanges(templates);
     m_pAlbumsScene->getChanges(albums);
 
-    qDebug() << __FILE__ << __LINE__ << templates;
-    qDebug() << __FILE__ << __LINE__ << m_templatesList;
+    //qDebug() << __FILE__ << __LINE__ << templates;
+    //qDebug() << __FILE__ << __LINE__ << m_templatesList;
 
     if (m_photosList != photos || m_templatesList != templates || m_albumsList != albums)
     {
@@ -332,7 +332,7 @@ void TaskPageWidget::addItem(int index, const QString &file, int usedTimes)
     TemplateChildWidget *childWidget = new TemplateChildWidget(index, file, usedTimes, this);
     m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(childWidget), file);
     m_pTemplatesScene->autoAdjust();
-    //qDebug() << __FILE__ << __LINE__ << "Template:" << index << file;
+    //qDebug() << __FILE__ << __LINE__ << "Template:" << index << file << usedTimes;
 }
 
 void TaskPageWidget::addItem(int index, const QStringList &filesList, const QString &file)
@@ -818,6 +818,8 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
 {
     bool ok = false;
 
+    //qDebug() << __FILE__ << __LINE__ << current << replaced;
+
     if (PictureGraphicsScene::SceneType_Albums > type && current != replaced)
     {
         ProxyWidgetsMap &proxyWidgets = m_scensVector[type]->getProxyWidgets();
@@ -834,12 +836,14 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
             QString file = belongings["picture_file"].toString();
             int usedTimes = belongings["used_times"].toInt();
 
+            //qDebug() << __FILE__ << __LINE__ << file << usedTimes;
+
             if (current == file && 0 < usedTimes)
             {
                 belongings["used_times"] = usedTimes - 1;
             }
 
-            if (replaced == file || replaced == belongings["template_file"].toString())
+            if (replaced == file/* || replaced == belongings["template_file"].toString()*/)
             {
                 belongings["used_times"] = usedTimes + 1;
             }
@@ -848,25 +852,27 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
             {
                 picLabel->accept(ok = true);
             }
+
+            //qDebug() << __FILE__ << __LINE__ << file << usedTimes;
         }
     }
 
     return ok;
 }
 
-const TemplateChildWidget *TaskPageWidget::getTemplateWidget(const QString &tmplFile)
+TemplateChildWidget *TaskPageWidget::getTemplateWidget(const QString &tmplFile) const
 {
     TemplateChildWidget *childWidget = NULL;
-    ProxyWidgetsMap &proxyWidgets = m_scensVector[PictureGraphicsScene::SceneType_Templates]->getProxyWidgets();
+    ProxyWidgetsMap &proxyWidgets = m_pTemplatesScene->getProxyWidgets();
 
-//    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
-//    {
-//        if ((childWidget = static_cast<TemplateChildWidget *>(proxyWidget->getChildWidgetPtr())) &&
-//            tmplFile == childWidget->getTmplFile())
-//        {
-//            return childWidget;
-//        }
-//    }
+    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
+    {
+        if ((childWidget = static_cast<TemplateChildWidget *>(proxyWidget->getChildWidgetPtr())) &&
+            tmplFile == childWidget->getTmplFile())
+        {
+            return childWidget;
+        }
+    }
 
     return childWidget;
 }

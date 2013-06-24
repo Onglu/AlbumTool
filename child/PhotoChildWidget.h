@@ -34,7 +34,7 @@ public:
                          int usedTimes = 0);
 
 protected slots:
-    void onAccept(int usedTimes);
+    void onAccept(const QVariantMap &belongings);
 
 private slots:
     void on_leftRotationPushButton_clicked();

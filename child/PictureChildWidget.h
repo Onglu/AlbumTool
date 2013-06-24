@@ -15,9 +15,11 @@ class PictureChildWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit PictureChildWidget(QSize fixedSize,
-                                bool droppable = true,
-                                TaskPageWidget *container = 0);
+    explicit PictureChildWidget(QWidget *parent = 0) : QWidget(parent){}
+
+    PictureChildWidget(QSize fixedSize,
+                       bool droppable = true,
+                       TaskPageWidget *container = 0);
 
     TaskPageWidget *getOwner(void) const {return m_container;}
 
@@ -63,7 +65,7 @@ signals:
     void itemDetached(void);
 
 protected slots:
-    virtual void onAccept(int usedTimes);
+    virtual void onAccept(const QVariantMap &belongings);
 
 protected:
     virtual bool meetDragDrop(QDropEvent *event);

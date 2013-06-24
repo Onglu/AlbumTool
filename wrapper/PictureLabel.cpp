@@ -6,9 +6,9 @@ PictureLabel::PictureLabel(QWidget *parent) : QLabel(parent), m_angle(0), m_opac
 {
 }
 
-bool PictureLabel::loadPicture(const QString &fileName, QSize size)
+bool PictureLabel::loadPicture(/*const QString &fileName*/ const QPixmap &pix, QSize size)
 {
-    m_ori = QPixmap(m_fileName = fileName);
+    m_ori = /*QPixmap(m_fileName = fileName)*/ pix;
     if (m_ori.isNull())
     {
         m_size = size;
@@ -19,6 +19,7 @@ bool PictureLabel::loadPicture(const QString &fileName, QSize size)
     m_size = m_bk.size();
     setFixedSize(m_size);
     setPixmap(m_bk);
+
     return true;
 }
 

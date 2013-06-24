@@ -122,7 +122,7 @@ void PictureGraphicsScene::adjustViewLayout(int viewWidth)
     const GraphicsItemsList itemsList = m2l(m_proxyWidgets);
     const int count = itemsList.size();
 
-    qDebug() << __FILE__ << __LINE__ << count << m_resultsWidgets.size();
+    //qDebug() << __FILE__ << __LINE__ << count << m_resultsWidgets.size();
     if (!count)
     {
         return;

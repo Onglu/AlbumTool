@@ -47,55 +47,44 @@ public:
                                  int usedTimes = 0,
                                  TaskPageWidget *parent = 0);
 
-    static void setTemplate(DraggableLabel &label,
-                            const QString &tmplPic,
-                            const QString &tmplFile,
-                            int cover = 0,
-                            int usedTimes = 0);
+    TemplateChildWidget(const QString &tmplFile, DraggableLabel *label);
 
     const QVariantMap &getChanges(void);
 
-    bool getTmplFile(QString &tmplFile, bool pkgFile = true);
+    const QString &getTmplFile(void){return m_tmplFile;}
 
-    static bool moveTo(QString &fileName, QString dirName, bool overwrite = true);
+    const QString &getTmplPic(void){return m_tmplPic;}
 
-    //const QString &getTmplFile(void){return m_tmplFile;}
-
-    //const QString &getTmplPic(void){return m_tmplPic;}
-
-    //const QString &getTmplDir(void){return m_tmplDir;}
-
-    //const QVariantMap &getBases(void){return m_bases;}
-
-    QSize getSize(void) const
+    static QSize getSize(const QVariantMap &data)
     {
-        //return m_size.size() ? QSize(m_size["width"].toInt(), m_size["height"].toInt()) : QSize();
-        QVariantMap size = m_data["size"].toMap();
+        QVariantMap size = data["size"].toMap();
         return QSize(size["width"].toInt(), size["height"].toInt());
     }
 
     //uchar getPageType(void){return (uchar)m_bases["pagetype"].toInt();}
 
-    const QVariantList &getTags(void) const {return m_data["tags"].toList();}
+    //const QVariantList &getTags(void) const {return m_data["tags"].toList();}
 
-    //const QVariantList &getLayers(void){return m_layers;}
+    static const QVariantList &getLayers(const QVariantMap &data){return data["layers"].toList();}
 
-    const uchar *getLocations(void)
+    static const uchar *getLocations(const QVariantMap &data, uchar locations[])
     {
-        memset(m_locations, 2, 0);
+        memset(locations, 2, 0);
 
-        if (m_data.contains("landscapeCount"))
+        if (data.contains("landscapeCount"))
         {
-            m_locations[0] = (uchar)m_data["landscapeCount"].toUInt();
+            locations[0] = (uchar)data["landscapeCount"].toUInt();
         }
 
-        if (m_data.contains("portraitCount"))
+        if (data.contains("portraitCount"))
         {
-            m_locations[1] = (uchar)m_data["portraitCount"].toUInt();
+            locations[1] = (uchar)data["portraitCount"].toUInt();
         }
 
-        return m_locations;
+        return locations;
     }
+
+    //const QVariantMap &getData(void) const {return m_data;}
 
     enum ZipUsage{ZipUsageCompress,
                   ZipUsageAppend,
@@ -112,23 +101,26 @@ public:
                        const QString &arguments,
                        bool block = false);
 
-    //static void parse(const QVariantMap &data);
+    static bool moveTo(QString &fileName, QString dirName, bool overwrite = true);
 
-    const QVariantMap &getData(void) const {return m_data;}
+    static void parseTest(const QVariantMap &data);
 
-    bool isCover(void) const {return 1 == m_data["pagetype"].toInt();}
-
-    bool match(QVariantMap tags);
+    //bool isCover(void) const {return 1 == m_data["pagetype"].toInt();}
 
     void remove(void){remove(getId());}
+
+    const QVariantMap &loadPictures(void);
+
+protected slots:
+    void onAccept(const QVariantMap &belongings);
 
 private slots:
     void processFinished(int, QProcess::ExitStatus);
 
 private:
-    void loadPicture(QVariantMap &data, QString tmplPic = QString());
+    bool getTmplPic(QString &tmplPic);
 
-    void loadPictures();
+    void loadPicture(QVariantMap &data, QString tmplPic = QString());
 
     int getId(void){return SqlHelper::getId(tr("select id from template where fileurl='%1'").arg(m_tmplPic));}
 
@@ -138,8 +130,7 @@ private:
     QProcess m_tmaker;
 
     QString m_tmplFile, m_tmplPic, m_currFile;
-    QVariantMap m_data, m_pictures, /*m_belongings, m_bases, m_size*/;
-    //QVariantList m_tags/*, m_layers*/;
+    QVariantMap m_pictures;
     uchar m_locations[2];   // 0: landscape(Hori), 1: portrait(Verti)
 
     TemplatesSql::SqlThread m_sql;

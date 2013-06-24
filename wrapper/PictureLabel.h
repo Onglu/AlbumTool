@@ -8,7 +8,7 @@ class PictureLabel : public QLabel
 public:
     explicit PictureLabel(QWidget *parent = 0);
     
-    bool loadPicture(const QString &fileName, QSize size);
+    bool loadPicture(/*const QString &fileName*/ const QPixmap &pix, QSize size);
 
     bool hasPicture(void) const {return !m_ori.isNull();}
 

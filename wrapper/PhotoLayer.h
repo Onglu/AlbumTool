@@ -112,18 +112,18 @@ public:
     void setAngle(qreal angle){m_angle = angle;}
     void setOpacity(qreal opacity){m_opacity = opacity;}
 
-    /* get the scaled size */
-    QSize loadPixmap(const QString &fileName)
+    /* get the scaled size after loaded picture */
+    /*QSize*/void loadPixmap(/*const QString &fileName*/ const QPixmap &pix)
     {
-        if (loadPicture(fileName, size()))
+        if (loadPicture(/*fileName*/ pix, size()))
         {
             m_bgdImg = m_bk.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
             m_ratioSize.setWidth((qreal)m_size.width() / m_realSize.width());
             m_ratioSize.setHeight((qreal)m_size.height() / m_realSize.height());
-            return m_size;
+            //return m_size;
         }
 
-        return QSize(0, 0);
+        //return QSize(0, 0);
     }
 
     void enterCopiedRect(bool enter,

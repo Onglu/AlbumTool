@@ -11,20 +11,29 @@ const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
     int width = 0, height = 0, cx = 0, cy = 0;
     QSize maskSize;
     QPoint maskPos;
-    QString maskFile;
+    //QString maskFile;
     QVariantMap frame, maskLayer;
+    QImage maskImg(maskSize, QImage::Format_ARGB32);
 
-    if (photoLayer.isEmpty() || m_fileName == photoLayer["filename"].toString() ||
-        (!replaced.isEmpty() && m_fileName == replaced))
+    if (photoLayer.isEmpty())
     {
         return m_visiableImg;
     }
 
-    m_fileName = replaced.isEmpty() ? photoLayer["filename"].toString() : replaced;
+    m_fileName = photoLayer["filename"].toString();
+    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_fileName /*<< photoLayer*/;
+
+    QPixmap pix;
+    if (/*m_fileName.isEmpty() || */!pix.loadFromData(photoLayer["picture"].toByteArray()))
+    {
+        return m_visiableImg;
+    }
+
+    //m_fileName = replaced.isEmpty() ? photoLayer["filename"].toString() : replaced;
     m_ratioSize = ratioSize;
     m_bgdRect = bgdRect;
 
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_ratioSize << bgdRect << m_picFile;
+    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_ratioSize << bgdRect << m_fileName;
 
     frame = photoLayer["frame"].toMap();
     width = frame["width"].toInt() * ratioSize.width();
@@ -38,7 +47,7 @@ const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
     maskSize = QSize(frame["width"].toInt() * ratioSize.width(), frame["height"].toInt() * ratioSize.height());
     maskPos.rx() = bgdRect.x() + frame["x"].toInt() * ratioSize.width() - maskSize.width() / 2;
     maskPos.ry() = bgdRect.y() + frame["y"].toInt() * ratioSize.height() - maskSize.height() / 2;
-    maskFile = maskLayer["filename"].toString();
+    //maskFile = maskLayer["filename"].toString();
 
     //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_picFile << maskFile << maskSize;
     //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << maskSize << maskPos << bgdRect;
@@ -46,7 +55,7 @@ const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
     m_opacity = photoLayer["opacity"].toReal();
     m_angle = photoLayer["rotation"].toReal();
 
-    if (loadPicture(m_fileName, QSize(width, height)))
+    if (loadPicture(/*m_fileName*/ pix, QSize(width, height)) && maskImg.loadFromData(maskLayer["picture"].toByteArray()))
     {
 //        setOpacity(m_opacity);
 //        rotate(m_angle);
@@ -58,8 +67,8 @@ const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
         setGeometry(QRect(topLeft, m_size));
         //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << geometry();
 
-        QImage maskImg(maskSize, QImage::Format_ARGB32);
-        maskImg.load(maskFile);
+        //QImage maskImg(maskSize, QImage::Format_ARGB32);
+        //maskImg.load(maskFile);
         m_maskImg = maskImg.scaled(maskSize, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         m_maskRect = QRect(maskPos, maskSize);
 
@@ -348,7 +357,7 @@ void BgdLayer::compose(const QVariantList &layers, const QVector<PhotoLayer *> l
     {
         qreal opacity = 1, angle = 0;
         QVariantMap data = layer.toMap();
-        QString filename = data["filename"].toString();
+        //QString filename = data["filename"].toString();
         int type = data["type"].toInt();
 
         if (1 == type)
@@ -372,8 +381,15 @@ void BgdLayer::compose(const QVariantList &layers, const QVector<PhotoLayer *> l
             int x = pos.x() - size.width() / 2;
             int y = pos.y() - size.height() / 2;
 
-            QImage img(size, QImage::Format_ARGB32_Premultiplied);
-            img.load(filename);
+            //QImage img(size, QImage::Format_ARGB32_Premultiplied);
+            //img.load(filename);
+
+            QImage img(size, QImage::Format_ARGB32);
+            if (!img.loadFromData(data["picture"].toByteArray()))
+            {
+                continue;
+            }
+
             img = img.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
             opacity = data["opacity"].toReal();

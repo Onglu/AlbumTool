@@ -4,7 +4,8 @@
 #include "child/PictureChildWidget.h"
 #include "proxy/PictureProxyWidget.h"
 
-#define PHOTOS_NUMBER  6
+#define PHOTOS_NUMBER       6
+#define PHOTO_ATTRIBUTES    4
 
 typedef QVector<QString> AlbumPhotos;
 typedef QList<DraggableLabel *> DraggableLabels;
@@ -27,7 +28,9 @@ public:
 
     DraggableLabel &getTmplLabel(void){return *m_tmplLabel;}
     DraggableLabels &getPhotoLabels(void){return m_photoLabels;}
+
     QStringList &getPhotosList(void){return m_photosList;}
+    const QString &getTmplFile(void){return m_tmplFile;}
 
     /* If tmplFile is empty, so it indicates that is a delete operation */
     void changeTemplate(const QString &tmplFile = QString(),
@@ -38,11 +41,11 @@ public:
                       const QString &tmplFile = QString("")/* Default indicates that doesn't change the current template */);
     void getViewsList(AlbumPhotos &photosVector,
                       QString &tmpl,
-                      bool pic = true/* true: get template picture file name, otherwise get its data file name */);
+                      bool pic = true/* true: get template picture file name, otherwise get its template file name */);
 
-    QVariantList &getLayersList(void){return m_layers;}
+    //QVariantList &getLayersList(void){return m_layers;}
 
-    QSize getCanvasSize(void) const {return m_canvasSize;}    // returns the real size about the current canvas
+    //QSize getCanvasSize(void) const {return m_canvasSize;}    // returns the real size about the current canvas
 
     void switchView(bool enter);
 
@@ -64,13 +67,12 @@ protected:
     bool eventFilter(QObject *watched, QEvent *event);
 
 private:
-    const QString &readTmplData(const QString &tmplFile, QString &tmplPic); // returns the template picture file name
-
     void changeBanners(void);
     void addBanner(QString banner, QString tip);
     void addBanners(int count, QString banner, QString tip);
 
-    void setupWidgets(const QStringList &photosList = QStringList(), const QString &tmplPic = QString());
+    void setupWidgets(const QStringList &photosList = QStringList(),
+                      const QString &tmplFile = QString());
     void showPhotosView(bool visible);
 
     Ui::AlbumChildWidget *ui;
@@ -80,14 +82,14 @@ private:
     DraggableLabels m_photoLabels;
     DraggableLabel *m_tmplLabel;
 
-    QStringList m_photosList;       // item format: file, doesn't contain empty items
+    QStringList m_photosList;       // item format: filename with path, doesn't contain empty items
     AlbumPhotos m_photosVector;     // value format: file|angle|axis, contains empty items
+    QVariantMap m_photosMap;
 
     /* Tempalte data */
     QString m_tmplFile;
-    QVariantMap m_bases;
-    QSize m_canvasSize;
-    QVariantList m_tags, m_layers;
+    //QSize m_canvasSize;
+    //QVariantList m_tags, m_layers;
     uchar m_locations[2];   // 0: landscape(Hori), 1: portrait(Verti)
 };
 

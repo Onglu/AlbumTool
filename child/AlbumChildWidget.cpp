@@ -12,8 +12,11 @@ AlbumChildWidget::AlbumChildWidget(int index, TaskPageWidget *parent) :
     m_locked(false)
 {
     ui->setupUi(this);
+
     setIndexLabel(index, ui->indexLabel);
+
     memset(m_locations, 0, 2);
+
     setupWidgets();
 }
 
@@ -24,6 +27,7 @@ AlbumChildWidget::AlbumChildWidget(int index,
     PictureChildWidget(QSize(118, 190), true, parent),
     ui(new Ui::AlbumChildWidget),
     m_photosVector(photosList.toVector()),
+    m_tmplFile(tmplFile),
     m_tmplVisible(false),
     m_locked(false)
 {
@@ -33,8 +37,7 @@ AlbumChildWidget::AlbumChildWidget(int index,
 
     memset(m_locations, 0, 2);
 
-    QString tmplPic;
-    setupWidgets(photosList, readTmplData(tmplFile, tmplPic));
+    setupWidgets(photosList, tmplFile);
 
     int photosNum = m_photosList.size();
     if (photosNum /*|| locations*/)
@@ -49,60 +52,7 @@ AlbumChildWidget::~AlbumChildWidget()
     delete ui;
 }
 
-const QString &AlbumChildWidget::readTmplData(const QString &tmplFile, QString &tmplPic)
-{
-    QVariantMap canvas;
-    FileParser fp(tmplFile);
-
-    if (tmplFile.isEmpty() || m_tmplFile == tmplFile || !fp.openTemplate(m_bases, canvas, m_tags, m_layers))
-    {
-        return tmplPic;
-    }
-
-    m_tmplFile = tmplFile;
-
-    m_canvasSize = QSize(canvas["width"].toInt(), canvas["height"].toInt());
-
-    QString tmplDir = tmplFile.left(tmplFile.lastIndexOf(QDir::separator()) + 1);
-    tmplPic = QString("%1%2.psd.png").arg(tmplDir).arg(/*iter.value()*/ m_bases["name"].toString());
-
-    m_locations[0] = (uchar)m_bases["landscapeCount"].toUInt();
-    m_locations[1] = (uchar)m_bases["portraitCount"].toUInt();
-
-    //qDebug() << __FILE__ << __LINE__ << m_locations[0] + m_locations[1];
-
-//    qDebug() << __FILE__ << __LINE__ << "size:" << size["width"] << "x" << size["height"];
-
-//    foreach (const QVariant &tag, tags)
-//    {
-//        attr = tag.toMap();
-//        qDebug() << __FILE__ << __LINE__ << "tag:" << attr["name"] << "," << attr["type"];
-//    }
-
-//    foreach (const QVariant &layer, layers)
-//    {
-//        attr = layer.toMap();
-//        QVariantMap::const_iterator nested = attr.constBegin();
-//        while (nested != attr.constEnd())
-//        {
-//            if ("frame" == nested.key())
-//            {
-//                QVariantMap frame = nested.value().toMap();
-//                qDebug() << __FILE__ << __LINE__ << "frame:" << frame["height"] << "," << frame["width"] << "," << frame["x"]<< "," << frame["y"];
-//            }
-//            else
-//            {
-//                qDebug() << __FILE__ << __LINE__ << "frame:" << nested.key() << "=" << nested.value();
-//            }
-
-//            ++nested;
-//        }
-//    }
-
-    return tmplPic;
-}
-
-void AlbumChildWidget::setupWidgets(const QStringList &photosList, const QString &tmplPic)
+void AlbumChildWidget::setupWidgets(const QStringList &photosList, const QString &tmplFile)
 {
     QPixmap pix;
     QSize photoSize(48, 48), tmplSize(96, 144);
@@ -161,16 +111,14 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList, const QString
     m_picLabel = m_photoLabels.last();
     m_tmplLabel = new DraggableLabel(tmplSize, DRAGGABLE_TEMPLATE, ui->templateLabel);
 
+    TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel);
+    QString tmplPic = tmplWidget.getTmplPic();
     if (!tmplPic.isEmpty())
     {
-        /* Initialize the template that is at the back of photos list */
-        pix = QPixmap(tmplPic).scaled(QSize(92, 142), Qt::KeepAspectRatio, Qt::SmoothTransformation);
         m_tmplLabel->setContentsMargins(1, 1, 2, 2);
-        m_tmplLabel->setPixmap(pix);
+        m_tmplLabel->setPicture(QPixmap(tmplPic), QSize(92, 142));
+        //qDebug() << __FILE__ << __LINE__ << m_tmplLabel->getBelongings();
     }
-
-    TemplateChildWidget::setTemplate(*m_tmplLabel, tmplPic, m_tmplFile);
-    //qDebug() << __FILE__ << __LINE__ << m_tmplLabel->getBelongings();
 
     m_tmplLabel->setVisible(false);
     m_tmplLabel->installEventFilter(this);
@@ -244,6 +192,8 @@ void AlbumChildWidget::changeTemplate(const QString &tmplFile, const QPixmap &tm
         return;
     }
 
+    m_tmplFile = tmplFile;
+
     if (tmplFile.isEmpty())
     {
         m_tmplFile.clear();
@@ -253,30 +203,15 @@ void AlbumChildWidget::changeTemplate(const QString &tmplFile, const QPixmap &tm
     }
     else
     {
-#if 0
-        QString tmplPic;
-        QPixmap pix(readTmplData(tmplFile, tmplPic));
-
-        m_tmplLabel->setPixmap(pix.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        m_tmplLabel->clearMimeType();
-
-        if (data.isEmpty())
-        {
-            TemplateChildWidget::setTemplate(*m_tmplLabel, tmplPic, tmplFile);
-        }
-        else
-        {
-            m_tmplLabel->setBelongings(data);
-        }
-
-        changeBanners();
-        m_container->noticeChanged();
-#endif
-
-
         m_tmplLabel->setPixmap(tmplPic.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation));
         m_tmplLabel->clearMimeType();
         m_tmplLabel->setBelongings(belongings);
+
+        TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
+        //qDebug() << __FILE__ << __LINE__ << m_locations[0] << m_locations[1];
+
+        changeBanners();
+        m_container->noticeChanged();
     }
 }
 
@@ -386,16 +321,19 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
     if (picLabel && picLabel->hasPicture() && meetDragDrop(event))
     {
         QVariantMap belongings = picLabel->getBelongings();
-
-        //qDebug() << __FILE__ << __LINE__ << picFile;
+        QString picFile = belongings["picture_file"].toString();
+        //qDebug() << __FILE__ << __LINE__ << picFile << picLabel->getPictureFile();
+        QPixmap pix(picFile);
+        if (pix.isNull())
+        {
+            return;
+        }
 
         m_tmplVisible = m_tmplLabel != m_picLabel ? false : true;
 
         if (!m_tmplVisible)
         {
-            QString picFile = belongings["picture_file"].toString();
-            QPixmap pix(picFile);
-            if (pix.isNull() || m_photosList.contains(picFile, Qt::CaseInsensitive))
+            if (m_photosList.contains(picFile, Qt::CaseInsensitive))
             {
                 return;
             }
@@ -430,26 +368,24 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
         else
         {
             QString tmplFile = belongings["template_file"].toString();
-            belongings = m_tmplLabel->getBelongings();
-            if (tmplFile == belongings["template_file"].toString())
+            //qDebug() << __FILE__ << __LINE__ << tmplFile << m_tmplLabel->getPictureFile() << m_picLabel->getPictureFile();
+
+            if (picFile == m_tmplLabel->getPictureFile())
             {
                 return;
             }
 
             if (m_picLabel->hasPicture())
             {
-                m_container->replace(PictureGraphicsScene::SceneType_Templates,
-                                     m_picLabel->getPictureFile(),
-                                     tmplFile);
+                m_container->replace(PictureGraphicsScene::SceneType_Templates, m_picLabel->getPictureFile(), picFile);
             }
             else
             {
                 picLabel->accept();
             }
 
-            //changeTemplate(tmplFile, picLabel->getBelongings());
-            changeTemplate(tmplFile, picLabel->getPicture(false), /*belongings["page_data"].toMap()*/ belongings);
-            //qDebug() << __FILE__ << __LINE__ << m_tmplLabel->getBelongings();
+            changeTemplate(tmplFile, pix, belongings);
+            //qDebug() << __FILE__ << __LINE__ << tmplFile;
         }
 
         showPhotosView(!m_tmplVisible);
@@ -532,6 +468,7 @@ const QVariantMap &AlbumChildWidget::getChanges()
     Converter::v2s(m_photosVector, photosList);
     m_records.insert("photos_list", photosList);
     m_records.insert("template_file", m_tmplFile);
+    qDebug() << __FILE__ << __LINE__ << m_tmplFile;
 
     return PictureChildWidget::getChanges();
 }
@@ -541,16 +478,16 @@ void AlbumChildWidget::setViewsList(const AlbumPhotos &photosVector, const QStri
     m_photosVector = photosVector;
 
     QString tmplPic;
-    if (!readTmplData(tmplFile, tmplPic).isEmpty())
-    {
-        QPixmap pix(tmplPic);
-        if (!pix.isNull())
-        {
-            m_tmplLabel->setPixmap(pix.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        }
+//    if (!readTmplData(tmplFile, tmplPic).isEmpty())
+//    {
+//        QPixmap pix(tmplPic);
+//        if (!pix.isNull())
+//        {
+//            m_tmplLabel->setPixmap(pix.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+//        }
 
-        TemplateChildWidget::setTemplate(*m_tmplLabel, tmplPic, tmplFile);
-    }
+//        TemplateChildWidget::setTemplate(*m_tmplLabel, tmplPic, tmplFile);
+//    }
 
     changeBanners();
 }
@@ -581,7 +518,7 @@ bool AlbumProxyWidget::excludeItem(const QString &picFile)
     if (picFile == m_pChildWidget->getTmplLabel().getPictureFile())
     {
         ok = true;
-        m_pChildWidget->changeTemplate();// clear template
+        m_pChildWidget->changeTemplate();
     }
     else
     {

@@ -24,7 +24,8 @@ public:
     ~TaskPageWidget();
 
     bool isValid(void){return m_taskParser.isValid();}
-    bool hasOpened(const QString &taskFile){return (taskFile == m_taskParser.getParsingFile());}
+    bool hasOpened(const QString &taskFile) const {return (taskFile == m_taskParser.getParsingFile());}
+    bool isEditing(void) const {return m_pEditPage->isVisible();}
 
     void setTabId(int tabId){m_tabId = tabId;}
     void importTemplate(void);
@@ -42,7 +43,7 @@ public:
                  const QString &current,
                  const QString &replaced);
 
-    const TemplateChildWidget *getTemplateWidget(const QString &tmplFile);
+    TemplateChildWidget *getTemplateWidget(const QString &tmplFile) const;
 
     static void showProcess(bool show,
                             QRect global = QRect(0, 0, 0, 0),
