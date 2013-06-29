@@ -21,6 +21,15 @@ public:
 //        m_taskFile = fp.getTaskFile();
 //    }
 
+    bool openTask(QVariantList &photos, QVariantList &templates, QVariantList &albums);
+
+    /* Save an empty(note: its contents is not empty) album task */
+    void saveTask(void);
+
+    void saveTask(const QVariantList &photos,
+                  const QVariantList &templates,
+                  const QVariantList &albums);
+
     void clear(void)    // Clear task file content
     {
         if (isValid())
@@ -28,9 +37,6 @@ public:
             open(QIODevice::WriteOnly);
         }
     }
-
-    void setParsingFile(const QString &fileName){setFileName(m_fileName = fileName);}
-    QString getParsingFile(void) const {return m_fileName;}
 
     bool isValid(void)
     {
@@ -42,6 +48,11 @@ public:
         return false;
     }
 
+    void setParsingFile(const QString &fileName){setFileName(m_fileName = fileName);}
+    QString getParsingFile(void) const {return m_fileName;}
+
+    const QString &getPageId(void) const {return m_pageId;}
+
     /* File name format: "C:/path1/file.txt" */
     int importFiles(const QString &dirKey,
                     const QString &caption,
@@ -49,23 +60,10 @@ public:
                     QStringList &fileNames,
                     bool multiSel = true);
 
-    bool openTask(QVariantList &photos, QVariantList &templates, QVariantList &albums);
-
-    /* Save an empty(note: its contents is not empty) album task */
-    void saveTask(void);
-
-    void saveTask(const QVariantList &photos,
-                  const QVariantList &templates,
-                  const QVariantList &albums);
-
-    bool openTemplate(QVariantMap &bases, QVariantMap &size, QVariantList &tags, QVariantList &layers);
-
-    void printList(const QVariantMap &vm, const QString &section);
-
 private:
     QWidget *m_parent;
     QSettings m_Settings;
-    QString m_fileName;
+    QString m_fileName, m_pageId;
 };
 
 #endif // FILEPARSER_H

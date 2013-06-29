@@ -2,13 +2,9 @@
 #include "utility.h"
 #include <QPainter>
 
-PictureLabel::PictureLabel(QWidget *parent) : QLabel(parent), m_angle(0), m_opacity(1)
+bool PictureLabel::loadPicture(const QPixmap &pix, QSize size)
 {
-}
-
-bool PictureLabel::loadPicture(/*const QString &fileName*/ const QPixmap &pix, QSize size)
-{
-    m_ori = /*QPixmap(m_fileName = fileName)*/ pix;
+    m_ori = pix;
     if (m_ori.isNull())
     {
         m_size = size;

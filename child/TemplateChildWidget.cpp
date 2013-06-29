@@ -3,7 +3,6 @@
 #include "parser/FileParser.h"
 #include "page/TaskPageWidget.h"
 #include "defines.h"
-//#include "SqlEngine.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QtSql>
@@ -27,10 +26,21 @@ TemplateChildWidget::TemplateChildWidget(int index,
     m_records.insert("template_file", m_tmplFile);
     m_records.insert("used_times", usedTimes);
 
-    connect(&m_sql, SIGNAL(finished()), &m_sql, SLOT(quit()));
-    connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
-
-    useZip(m_tmaker, ZipUsageRead, m_tmplFile + " page.dat");
+    if (QFile::exists(m_tmplFile))
+    {
+        connect(&m_sql, SIGNAL(finished()), &m_sql, SLOT(quit()));
+        connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
+        useZip(m_tmaker, ZipUsageRead, m_tmplFile + " page.dat");
+    }
+    else
+    {
+        remove();
+        setPictureLabel(QPixmap(m_tmplPic), QSize(72, 100), DRAGGABLE_TEMPLATE, this, QPoint(9, 21));
+        QVariantMap &belongings = m_picLabel->getBelongings();
+        belongings["template_file"] = m_tmplFile;
+        belongings["picture_file"] = m_tmplPic;
+        belongings["used_times"] = usedTimes;
+    }
 }
 
 TemplateChildWidget::TemplateChildWidget(const QString &tmplFile, DraggableLabel *label) :
@@ -47,7 +57,6 @@ TemplateChildWidget::TemplateChildWidget(const QString &tmplFile, DraggableLabel
 const QVariantMap &TemplateChildWidget::getChanges(void)
 {
     QVariantMap belongings = m_picLabel->getBelongings();
-    m_tmplFile = belongings["template_file"].toString();
     m_records["template_file"] = belongings["template_file"];
     m_records["used_times"] = belongings["used_times"];
     //qDebug() << __FILE__ << __LINE__ << m_index << belongings["used_times"].toString() << m_picLabel->getPictureFile();
@@ -61,7 +70,7 @@ bool TemplateChildWidget::getTmplPic(QString &tmplPic)
 
     if (-1 != pos)
     {
-        tmplPic = fileName.replace(pos, strlen(PKG_FMT), ".png");
+        tmplPic = fileName.replace(pos, strlen(PKG_FMT), PIC_FMT);
         if (QFile::exists(tmplPic))
         {
             return true;
@@ -69,6 +78,17 @@ bool TemplateChildWidget::getTmplPic(QString &tmplPic)
     }
 
     return false;
+}
+
+int TemplateChildWidget::getId()
+{
+    if (m_tmplPic.isEmpty())
+    {
+        getTmplPic(m_tmplPic);
+    }
+
+    QString sql = tr("select id from template where fileurl='%1' and page_id='%2'").arg(m_tmplPic).arg(m_container->getPageId());
+    return SqlHelper::getId(sql);
 }
 
 void TemplateChildWidget::onAccept(const QVariantMap &belongings)
@@ -177,17 +197,11 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 //            deleteDir(content.mid(9));
     }
 
-//    if (ZipUsageAppend == m_usage /*&& !m_tmpFile.isEmpty()*/)
-//    {
-//        //qDebug() << __FILE__ << __LINE__ << m_tmpFile;
-//        //access();
-//    }
-
     if (content.startsWith("data:"))
     {
         bool ok;
         QString data = content.mid(5);
-        //qDebug() << __FILE__ << __LINE__ << data;
+        //qDebug() << __FILE__ << __LINE__ << m_tmplFile;
         results = QtJson::parse(data, ok).toMap();
         if (data.isEmpty() || !ok)
         {
@@ -197,7 +211,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 
         if (!getTmplPic(m_tmplPic))
         {
-            m_currFile = m_tmplPic = results["name"].toString() + ".psd.png";
+            m_currFile = m_tmplPic = results["name"].toString() + PIC_FMT;
             useZip(m_tmaker, ZipUsageRead, m_tmplFile + " " + m_tmplPic);
         }
         else
@@ -233,10 +247,11 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
     }
 }
 
-bool SqlThread::existing()
+bool SqlThread::existing(const QString &pageId)
 {
     QSqlQuery query;
-    QString sql = tr("select id from template where name='%1' and portrait_count=%2 and landscape_count=%3 and ver='%4' and fileurl='%5' and fileguid='%6' and page_type=%7").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt());
+    QString sql = tr("select id from template where name='%1' and portrait_count=%2 and landscape_count=%3 and ver='%4' and fileurl='%5' and fileguid='%6' and page_type=%7 and page_id='%8'").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt()).arg(pageId);
+
     query.exec(sql);
     while (query.next())
     {
@@ -260,17 +275,16 @@ void SqlThread::run()
 
     if (!m_search)
     {
-        if (existing())
+        QString pageId = m_widget->m_container->getPageId();
+        if (existing(pageId))
         {
             goto end;
-            //m_widget->remove(tid);
-            //qDebug() << __FILE__ << __LINE__ << "time costs:" << tm.elapsed();
         }
 
         QSqlQuery query;
-        int tid = 0, pid = 0;
-        QString sql = "insert into template(name,portrait_count,landscape_count,ver,fileurl,fileguid,page_type) ";
-        sql += tr("values('%1',%2,%3,'%4','%5','%6',%7)").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt());
+        int tid = 0;
+        QString sql = "insert into template(name,portrait_count,landscape_count,ver,fileurl,fileguid,page_type,page_id) ";
+        sql += tr("values('%1',%2,%3,'%4','%5','%6',%7,'%8')").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt()).arg(pageId);
         query.exec(sql);
         tid = query.lastInsertId().toInt();
         //qDebug() << __FILE__ << __LINE__ << "inserts one record costs:" << tm.elapsed();
@@ -279,11 +293,25 @@ void SqlThread::run()
         foreach (const QVariant &tag, tags)
         {
             QVariantMap property = tag.toMap();
-            sql = tr("select id from tproperty where ptype='%1' and name='%2'").arg(property["type"].toString()).arg(property["name"].toString());
+            QString name = property["name"].toString();
+            QString type = property["type"].toString();
+            int pid = 0;
+
+            sql = tr("select id from tproperty where ptype='%1' and name='%2'").arg(type).arg(name);
             query.exec(sql);
             while (query.next())
             {
                 pid = query.value(0).toInt();
+                sql = tr("insert into template_property values(%1,%2)").arg(tid).arg(pid);
+                query.exec(sql);
+            }
+
+            if (!pid)
+            {
+                sql = tr("insert into tproperty(ptype,name) values('%1','%2')").arg(type).arg(name);
+                query.exec(sql);
+                //qDebug() << __FILE__ << __LINE__ << sql << query.lastError().databaseText();
+                pid = query.lastInsertId().toInt();
                 sql = tr("insert into template_property values(%1,%2)").arg(tid).arg(pid);
                 query.exec(sql);
             }
@@ -395,7 +423,7 @@ void TemplateChildWidget::loadPicture(QVariantMap &data, QString tmplPic)
         return;
     }
 
-    if (!tmplPic.isEmpty() && QFile::exists(tmplPic))
+    if (!tmplPic.isEmpty() && QFile::exists(tmplPic))   // get the preview picture
     {
         QString tmplDir = m_tmplFile.left(m_tmplFile.lastIndexOf(QDir::separator()) + 1);
         moveTo(tmplPic, tmplDir);
@@ -438,7 +466,8 @@ const QVariantMap &TemplateChildWidget::loadPictures()
 
     if (!m_pictures.isEmpty())
     {
-        m_pictures.clear();
+        //m_pictures.clear();
+        return m_pictures;
     }
 
     QVariantMap belongings = m_picLabel->getBelongings();
@@ -451,13 +480,23 @@ const QVariantMap &TemplateChildWidget::loadPictures()
     foreach (const QVariant &layer, layers)
     {
         QVariantMap data = layer.toMap();
-        m_currFile = data["id"].toString() + ".png";
+
+        m_currFile = data["id"].toString();
+        if (LT_Photo == data["type"].toInt())
+        {
+            m_currFile += PIC_FMT;
+        }
+        else
+        {
+            m_currFile += ".png";
+        }
+
         useZip(m_tmaker, ZipUsageRead, m_tmplFile + " " + m_currFile);
         //qDebug() << __FILE__ << __LINE__ << m_currFile;
     }
 
-    qDebug() << __FILE__ << __LINE__ << "time costs:" << tm.elapsed();
-    //qDebug() << __FILE__ << __LINE__ << m_pictures.size();
+    qDebug() << __FILE__ << __LINE__ << m_tmplFile;
+    qDebug() << __FILE__ << __LINE__ << "time costs:" << tm.elapsed() << "after loaded" << m_pictures.size() << "pictures";
 
     return m_pictures;
 }

@@ -121,8 +121,6 @@ void PictureGraphicsScene::adjustViewLayout(int viewWidth)
 {
     const GraphicsItemsList itemsList = m2l(m_proxyWidgets);
     const int count = itemsList.size();
-
-    //qDebug() << __FILE__ << __LINE__ << count << m_resultsWidgets.size();
     if (!count)
     {
         return;
@@ -300,10 +298,10 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
 
                     if (SceneType_Templates == m_type)
                     {
-                        int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
+                        int pos = picFile.lastIndexOf(PIC_FMT, -1, Qt::CaseInsensitive);
                         if (-1 != pos)
                         {
-                            picFile = picFile.replace(pos, 4, PKG_FMT);
+                            picFile = picFile.replace(pos, strlen(PIC_FMT), PKG_FMT);
                         }
                     }
 

@@ -21,5 +21,6 @@
         <file>images/available_num.png</file>
         <file>images/back.png</file>
         <file>images/loading.gif</file>
+        <file>images/canvas.png</file>
     </qresource>
 </RCC>

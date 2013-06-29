@@ -29,12 +29,6 @@ DraggableLabel::DraggableLabel(const QPixmap &pix, QSize size, const QString &mi
     setPicture(pix, size);
 }
 
-//DraggableLabel &DraggableLabel::operator =(const QLabel &label)
-//{
-//    resize(label.size());
-//    setAlignment(Qt::AlignCenter);
-//}
-
 void DraggableLabel::setPicture(const QPixmap &pix, QSize size)
 {
     m_pix = pix;

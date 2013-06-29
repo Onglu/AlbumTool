@@ -33,6 +33,17 @@ int Converter::num(const QStringList &strList, bool empty)
     return n;
 }
 
+const QString &Converter::fileName(const QString &path, QString &name)
+{
+    int pos = path.lastIndexOf('.');
+    if (-1 != pos)
+    {
+        name = path.left(pos);
+    }
+
+    return name;
+}
+
 bool SqlHelper::connectDb()
 {
     static bool connected = false;
@@ -53,11 +64,17 @@ bool SqlHelper::connectDb()
 
 int SqlHelper::getId(const QString &sql)
 {
-    QSqlQuery query;
-    query.exec(sql);
-    while (query.next())
+    SqlHelper sh;
+
+    if (sh.connectDb())
     {
-        return query.value(0).toInt();
+        QSqlQuery query;
+
+        query.exec(sql);
+        while (query.next())
+        {
+            return query.value(0).toInt();
+        }
     }
 
     return 0;
@@ -67,6 +84,7 @@ int SqlHelper::getLastRowId(const QString &table)
 {
     QSqlQuery query;
     QString sql = QString("select id from %1 where id=(select max(id) from %2)").arg(table).arg(table);
+
     query.exec(sql);
     while (query.next())
     {
@@ -180,21 +198,21 @@ bool LoaderThread::loadRecords()
             break;
         }
 
-        QVariantMap recordsMap = list.toMap();
-        int index = recordsMap["index"].toInt();
+        QVariantMap records = list.toMap();
+        int index = records["index"].toInt();
 
         if (ViewType_Album != m_viewType)
         {
-            QString file = ViewType_Photo == m_viewType ? recordsMap["picture_file"].toString() : recordsMap["template_file"].toString();
+            QString file = ViewType_Photo == m_viewType ? records["picture_file"].toString() : records["template_file"].toString();
 
             if (!file.isEmpty())
             {
-                int usedTimes = recordsMap["used_times"].toInt();
+                int usedTimes = records["used_times"].toInt();
 
                 if (ViewType_Photo == m_viewType)
                 {
-                    qreal angle = recordsMap["rotation_angle"].toReal();
-                    Qt::Axis axis = (Qt::Axis)recordsMap["rotation_axis"].toInt();
+                    qreal angle = records["rotation_angle"].toReal();
+                    Qt::Axis axis = (Qt::Axis)records["rotation_axis"].toInt();
                     emit itemAdded(index, file, angle, axis, usedTimes);
                 }
                 else
@@ -205,9 +223,9 @@ bool LoaderThread::loadRecords()
         }
         else
         {
-            QStringList photosList = recordsMap["photos_list"].toStringList();
-            QString tmplFile = recordsMap["template_file"].toString();
-            emit itemAdded(index, photosList, tmplFile);
+            QStringList photosList = records["photos_list"].toStringList();
+            QString tmplFile = records["template_file"].toString();
+            emit itemAdded(index, photosList, tmplFile, records["photo_layers"].toList());
         }
 
         loaded = true;
@@ -246,6 +264,8 @@ bool LoaderThread::loadFiles()
 
     bool loaded = false;
     int index = m_existingsList.size();
+
+    qDebug() << __FILE__ << __LINE__ << index << m_existingsList;
 
     foreach (const QString &file, m_filesList)
     {

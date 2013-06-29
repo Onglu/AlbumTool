@@ -6,9 +6,9 @@
 class PictureLabel : public QLabel
 {
 public:
-    explicit PictureLabel(QWidget *parent = 0);
+    explicit PictureLabel(QWidget *parent = 0) : QLabel(parent), m_angle(0), m_opacity(1){}
     
-    bool loadPicture(/*const QString &fileName*/ const QPixmap &pix, QSize size);
+    bool loadPicture(const QPixmap &pix, QSize size);
 
     bool hasPicture(void) const {return !m_ori.isNull();}
 
@@ -19,6 +19,19 @@ public:
     const QPixmap &getPicture(bool bk = true){return bk ? m_bk : m_ori;}
 
     QSize getSize(void) const {return m_size;}
+
+    void setOpacity(qreal opacity){m_opacity = opacity;}
+    qreal getOpacity(void) const {return m_opacity;}
+
+    void setAngle(qreal angle){m_angle = angle;}
+    qreal getAngle(void) const {return m_angle;}
+
+    void clear(void)
+    {
+        m_angle = 0;
+        m_opacity = 1;
+        QLabel::clear();
+    }
 
 protected:
     /***
@@ -34,10 +47,9 @@ protected:
     QSize m_size, m_optimal;
     QString m_fileName;
     QPixmap m_ori, m_bk;
-    qreal m_angle, m_opacity;
 
 private:
-
+    qreal m_angle, m_opacity;
 };
 
 #endif // PICTURELABEL_H

@@ -42,6 +42,7 @@ public:
     void clearProxyWidgets();
 
     void finishLoaded(bool loadFinished){m_loadFinished = loadFinished;}
+    bool loadFinished(void) const {return m_loadFinished;}
 
     void autoAdjust(void)
     {

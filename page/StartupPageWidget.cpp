@@ -59,6 +59,7 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
 //        sql = tr("insert into template_property values(%1,%2)").arg(1).arg(pid);
 //        query.exec(sql);
 //    }
+
 }
 
 StartupPageWidget::~StartupPageWidget()

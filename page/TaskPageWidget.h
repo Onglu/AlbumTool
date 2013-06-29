@@ -28,7 +28,7 @@ public:
     bool isEditing(void) const {return m_pEditPage->isVisible();}
 
     void setTabId(int tabId){m_tabId = tabId;}
-    void importTemplate(void);
+    void importTemplates(void);
 
     void onPreview(const QStringList &pictures, int current);
     void onEdit(const ChildWidgetsMap &albumsMap, int current);
@@ -44,6 +44,8 @@ public:
                  const QString &replaced);
 
     TemplateChildWidget *getTemplateWidget(const QString &tmplFile) const;
+
+    const QString &getPageId(void) const {return m_taskParser.getPageId();}
 
     static void showProcess(bool show,
                             QRect global = QRect(0, 0, 0, 0),
@@ -75,7 +77,10 @@ private slots:
 
     void addItem(int index, const QString &file, int usedTimes);
 
-    void addItem(int index, const QStringList &filesList, const QString &file);
+    void addItem(int index,
+                 const QStringList &filesList,
+                 const QString &file,
+                 const QVariantList &changes);
 
     void loadingItem(void){showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));}
 
@@ -95,7 +100,7 @@ private:
     GraphicsScenesVector m_scensVector;
     PictureGraphicsScene *m_pPhotosScene, *m_pTemplatesScene, *m_pAlbumsScene, *m_pFocusScene;
 
-    /* Configurations list */
+    /* Configurations */
     QVariantList m_photosList, m_templatesList, m_albumsList;
 
     /* Child windows/widgets */

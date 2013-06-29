@@ -36,6 +36,8 @@ public:
 
         return current;
     }
+
+    static const QString &fileName(const QString &path, QString &name);
 };
 
 class SqlHelper
@@ -45,11 +47,11 @@ public:
 
     bool connectDb(void);
 
+    const QString &getError(void) const {return m_error;}
+
     static int getId(const QString &sql);
 
     static int getLastRowId(const QString &table);
-
-    const QString &getError(void) const {return m_error;}
 
 private:
     QString m_error;
@@ -79,14 +81,17 @@ public:
 
     void begin(void)
     {
-        if (!isRunning())
+        if (!m_recordsList.isEmpty() || !m_filesList.isEmpty())
         {
-            m_running = true;
-            start();
-        }
-        else
-        {
-            reset();    // resume it
+            if (!isRunning())
+            {
+                m_running = true;
+                start();
+            }
+            else
+            {
+                reset();    // resume it
+            }
         }
     }
 
@@ -114,7 +119,10 @@ signals:
 
     void itemAdded(int index, const QString &file, int usedTimes);
 
-    void itemAdded(int index, const QStringList &filesList, const QString &file/* Template data file */);
+    void itemAdded(int index,
+                   const QStringList &filesList,
+                   const QString &file/* Template data file */,
+                   const QVariantList &changes);
 
     void loadFinished(uchar state);
 

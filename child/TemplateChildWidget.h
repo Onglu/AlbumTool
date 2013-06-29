@@ -29,7 +29,7 @@ namespace TemplatesSql
         void run();
 
     private:
-        bool existing(void);
+        bool existing(const QString &pageId);
 
         bool m_search;
         QVariantMap m_data;
@@ -37,7 +37,7 @@ namespace TemplatesSql
     };
 }
 
-class TemplateChildWidget : public PictureChildWidget/*, public SqlHelper*/
+class TemplateChildWidget : public PictureChildWidget
 {
     Q_OBJECT
 
@@ -53,7 +53,7 @@ public:
 
     const QString &getTmplFile(void){return m_tmplFile;}
 
-    const QString &getTmplPic(void){return m_tmplPic;}
+    bool getTmplPic(QString &tmplPic);
 
     static QSize getSize(const QVariantMap &data)
     {
@@ -61,11 +61,7 @@ public:
         return QSize(size["width"].toInt(), size["height"].toInt());
     }
 
-    //uchar getPageType(void){return (uchar)m_bases["pagetype"].toInt();}
-
-    //const QVariantList &getTags(void) const {return m_data["tags"].toList();}
-
-    static const QVariantList &getLayers(const QVariantMap &data){return data["layers"].toList();}
+    //static const QVariantList &getLayers(const QVariantMap &data){return data["layers"].toList();}
 
     static const uchar *getLocations(const QVariantMap &data, uchar locations[])
     {
@@ -83,8 +79,6 @@ public:
 
         return locations;
     }
-
-    //const QVariantMap &getData(void) const {return m_data;}
 
     enum ZipUsage{ZipUsageCompress,
                   ZipUsageAppend,
@@ -105,8 +99,6 @@ public:
 
     static void parseTest(const QVariantMap &data);
 
-    //bool isCover(void) const {return 1 == m_data["pagetype"].toInt();}
-
     void remove(void){remove(getId());}
 
     const QVariantMap &loadPictures(void);
@@ -118,11 +110,10 @@ private slots:
     void processFinished(int, QProcess::ExitStatus);
 
 private:
-    bool getTmplPic(QString &tmplPic);
 
     void loadPicture(QVariantMap &data, QString tmplPic = QString());
 
-    int getId(void){return SqlHelper::getId(tr("select id from template where fileurl='%1'").arg(m_tmplPic));}
+    int getId(void);
 
     void remove(int tid);
 
@@ -131,7 +122,6 @@ private:
 
     QString m_tmplFile, m_tmplPic, m_currFile;
     QVariantMap m_pictures;
-    uchar m_locations[2];   // 0: landscape(Hori), 1: portrait(Verti)
 
     TemplatesSql::SqlThread m_sql;
     friend class TemplatesSql::SqlThread;

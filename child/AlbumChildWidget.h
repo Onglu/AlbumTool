@@ -23,8 +23,25 @@ public:
     AlbumChildWidget(int index,
                      const QStringList &photosList,
                      const QString &tmplFile,
+                     const QVariantList &photoLayers,
                      TaskPageWidget *parent = 0);
     ~AlbumChildWidget();
+
+    void switchView(bool enter);
+
+    void clearBanners(void);
+
+    void open(ChildWidgetsMap &widgetsMap);
+
+    /* If tmplFile is empty, so it indicates that is a delete operation */
+    void changeTmplFile(const QString &tmplFile = QString(),
+                        const QPixmap &tmplPic = QPixmap(),
+                        const QVariantMap &belongings = QVariantMap());
+
+    void changePhotoLayer(const QString &photoName,
+                          QRect rect,
+                          qreal opacity = 1,
+                          qreal angle = 0);
 
     DraggableLabel &getTmplLabel(void){return *m_tmplLabel;}
     DraggableLabels &getPhotoLabels(void){return m_photoLabels;}
@@ -32,30 +49,25 @@ public:
     QStringList &getPhotosList(void){return m_photosList;}
     const QString &getTmplFile(void){return m_tmplFile;}
 
-    /* If tmplFile is empty, so it indicates that is a delete operation */
-    void changeTemplate(const QString &tmplFile = QString(),
-                        const QPixmap &tmplPic = QPixmap(),
-                        const QVariantMap &belongings = QVariantMap());
-
     void setViewsList(const AlbumPhotos &photosVector,
                       const QString &tmplFile = QString("")/* Default indicates that doesn't change the current template */);
     void getViewsList(AlbumPhotos &photosVector,
                       QString &tmpl,
                       bool pic = true/* true: get template picture file name, otherwise get its template file name */);
 
-    //QVariantList &getLayersList(void){return m_layers;}
-
-    //QSize getCanvasSize(void) const {return m_canvasSize;}    // returns the real size about the current canvas
-
-    void switchView(bool enter);
-
-    void open(ChildWidgetsMap &widgetsMap);
-
     const QVariantMap &getChanges(void);
 
-    uchar getLocations(void) const {return m_locations[0] + m_locations[1];}
+    const QVariantMap &getData(void)
+    {
+        QVariantMap belongings = m_tmplLabel->getBelongings();
+        return belongings["page_data"].toMap();
+    }
 
-    void clearBanners(void);
+    QSize getSize(void);
+
+    const QVariantList &getLayers(void);
+
+    uchar getLocations(void) const {return m_locations[0] + m_locations[1];}
 
 signals:
 
@@ -72,7 +84,9 @@ private:
     void addBanners(int count, QString banner, QString tip);
 
     void setupWidgets(const QStringList &photosList = QStringList(),
-                      const QString &tmplFile = QString());
+                      const QString &tmplFile = QString(),
+                      const QVariantList &photoLayers = QVariantList());
+
     void showPhotosView(bool visible);
 
     Ui::AlbumChildWidget *ui;
@@ -82,14 +96,11 @@ private:
     DraggableLabels m_photoLabels;
     DraggableLabel *m_tmplLabel;
 
-    QStringList m_photosList;       // item format: filename with path, doesn't contain empty items
+    QStringList m_photosList;       // item format: filename with path, not contain empty items
     AlbumPhotos m_photosVector;     // value format: file|angle|axis, contains empty items
-    QVariantMap m_photosMap;
 
     /* Tempalte data */
     QString m_tmplFile;
-    //QSize m_canvasSize;
-    //QVariantList m_tags, m_layers;
     uchar m_locations[2];   // 0: landscape(Hori), 1: portrait(Verti)
 };
 

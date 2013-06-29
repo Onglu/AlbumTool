@@ -2,7 +2,9 @@
 #include "ui_EditPageWidget.h"
 #include "TaskPageWidget.h"
 #include "child/ThumbChildWidget.h"
-#include "wrapper/PhotoLayer.h"
+//#include "wrapper/PhotoLayer.h"
+//#include "wrapper/BgdLayer.h"
+#include "defines.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -18,7 +20,7 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
     m_x(0),
     m_y(0),
     m_thumbsSceneFocused(false),
-    m_layerLabels(LayerLabelsVector(PHOTOS_NUMBER)),
+    m_layerLabels(LabelsVector(PHOTOS_NUMBER)),
     m_layerLabel(NULL),
     m_bgdLabel(NULL)
 {
@@ -65,7 +67,7 @@ void EditPageWidget::labelClicked(PhotoLayer &label, QPoint pos)
 {
     if (label.isMoveable())
     {
-        m_bgdLabel->enterCopiedRect(true, label.visiableImg(), label.visiableRect(PhotoLayer::VisiableRectTypeFixed));
+        m_bgdLabel->enterCopiedRect(true, label.visiableRect(PhotoLayer::VisiableRectTypeFixed));
         m_layerLabel = &label;
         m_startPos = pos;
         //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_startPos << pos;
@@ -82,27 +84,38 @@ void EditPageWidget::mousePressEvent(QMouseEvent *event)
 
 void EditPageWidget::mouseMoveEvent(QMouseEvent *event)
 { 
-    if ((event->pos() - m_startPos).manhattanLength() >= QApplication::startDragDistance()
+    if (QApplication::startDragDistance() <= (event->pos() - m_startPos).manhattanLength()
             && m_layerLabel && m_layerLabel->isMoveable())
     {
+        //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << (event->pos() - m_startPos).manhattanLength();
         QPoint pos = m_layerLabel->geometry().topLeft();
         pos.rx() += event->pos().x() - m_startPos.x();
         pos.ry() += event->pos().y() - m_startPos.y();
         m_layerLabel->movePhoto(QPoint(event->pos().x() - m_startPos.x(), event->pos().y() - m_startPos.y()));
         m_startPos = event->pos();
-        //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_startPos;
     }
 }
 
 void EditPageWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (Qt::LeftButton == event->button() && m_layerLabel && m_layerLabel->isMoveable())
+    if (m_pAlbumWidget && Qt::LeftButton == event->button() && m_layerLabel && m_layerLabel->isMoveable())
     {
-        //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_layerLabel->pos();
-        m_bgdLabel->enterCopiedRect(false);
+        bool moved = m_layerLabel->hasMoved();
+
         m_layerLabel->setMoveable(false);
-        m_bgdLabel->compose(m_layers, m_layerLabels);
-        //m_layerLabel = NULL;
+        m_bgdLabel->enterCopiedRect(false);
+
+        if (moved)
+        {
+            m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
+
+            QString photoName;
+            //qDebug() << __FILE__ << __LINE__ << file << m_layerLabel->getFrame();
+            m_pAlbumWidget->changePhotoLayer(Converter::fileName(m_layerLabel->getPictureFile(), photoName),
+                                             m_layerLabel->getFrame(),
+                                             m_layerLabel->getOpacity(),
+                                             m_layerLabel->getAngle());
+        }
     }
 }
 
@@ -153,38 +166,6 @@ inline void EditPageWidget::adjustThumbsHeight()
     ui->thumbsGraphicsView->setMinimumHeight(height);
     ui->thumbsGraphicsView->setMaximumHeight(height);
 }
-
-#if 0
-void EditPageWidget::mousePressEvent(QMouseEvent *event)
-{
-    if (Qt::LeftButton & event->buttons())
-    {
-#if NOT_LOADED
-        //for (int i = 0; i < m_photoLayers.size(); i++)
-        for (int i = m_photoLayers.size() - 1; i > 0; i--)
-        {
-            if (m_photoWidgets[i]->hasLoaded())
-            {
-                QRect rect = m_photoWidgets[i]->visiableRect(VISIABLE_RECT_TYPE_CONTAINER);
-                //m_photoWidgets[i]->showButtons(rect.contains(event->pos()));
-
-                //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << event->pos() << ;
-
-                m_photoWidgets[i]->showButtons(false);
-
-                if (rect.x() < event->pos().x() && rect.y() < event->pos().y()
-                   && rect.right() > event->pos().x() && rect.bottom() > event->pos().y())
-                {
-                    m_photoWidgets[i]->showButtons(true);
-                    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << i;
-                    break;
-                }
-            }
-        }
-#endif
-    }
-}
-#endif
 
 void EditPageWidget::resizeEvent(QResizeEvent *event)
 {
@@ -292,7 +273,7 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
         else
         {
             m_container->replace(PictureGraphicsScene::SceneType_Templates, current, replaced);
-            m_pAlbumWidget->changeTemplate(replaced);
+            m_pAlbumWidget->changeTmplFile(replaced);
         }
     }
 }
@@ -305,18 +286,14 @@ void EditPageWidget::updateLayers()
     TemplateChildWidget *tmplWidget = m_container->getTemplateWidget(m_pAlbumWidget->getTmplFile());
     if (!tmplWidget)
     {
+        m_bgdLabel->loadPixmap(QPixmap(":/images/canvas.png"));
         return;
     }
 
-    QVariantMap belongings = tmplWidget->getPictureLabel()->getBelongings();
-    QVariantMap data = belongings["page_data"].toMap();
-    //qDebug() << __FILE__ << __LINE__ << belongings;
-
-    QSize bgdSize = tmplWidget->getSize(data);
-    //QString tmplDir;// = m_tmplPic.left(m_tmplPic.lastIndexOf(QDir::separator()) + 1);
-    QString bgdPic, maskfile;
+    QString bgdPic, maskFile;
+    QSize bgdSize = m_pAlbumWidget->getSize();
     QVariantMap photoLayer, maskLayer, pictures = tmplWidget->loadPictures();
-    QVariantList photoLayers, maskLayers, /*&layers = m_pAlbumWidget->getLayersList()*/ layers = tmplWidget->getLayers(data);
+    QVariantList photoLayers, maskLayers, layers = m_pAlbumWidget->getLayers();
 
     foreach (const QVariant &layer, layers)
     {
@@ -326,39 +303,48 @@ void EditPageWidget::updateLayers()
         int height = frame["height"].toInt();
         int x = frame["x"].toInt();
         int y = frame["y"].toInt();
-
-        QString filename = data["id"].toString() + ".png";
-        QByteArray ba = pictures[filename].toByteArray();
-        qDebug() << __FILE__ << __LINE__ << filename;
+        QString fileName = data["id"].toString() + ".png";
 
         if (bgdSize.width() == width && bgdSize.height() == height && x == width / 2 && y == height / 2)
         {
-            QPixmap bgdPix;
-            if (bgdPix.loadFromData(ba))
-            {
-                m_bgdLabel->setRealSize(bgdSize);
-                m_bgdLabel->loadPixmap(bgdPix);
-                bgdSize = m_bgdLabel->getSize();
-                bgdPic = filename;
-            }
+            bgdPic = fileName;
         }
 
-        maskfile = data["maskLayer"].toString() + ".png";
         qreal opacity = data["opacity"].toReal();
         qreal angle = data["rotation"].toReal();
         int type = data["type"].toInt();
 
+        if (LT_Photo == type)
+        {
+            int pos = fileName.lastIndexOf(".png");
+            fileName.replace(pos, 4, PIC_FMT);
+        }
+
+        QByteArray ba = pictures[fileName].toByteArray();
+//        QPixmap pix;
+//        bool ret = pix.loadFromData(ba);
+//        qDebug() << __FILE__ << __LINE__ << fileName << ret << pix.size();
+
         if (0 == type)
         {
-            if (bgdPic == filename)
+            if (bgdPic == fileName)
             {
+                QPixmap bgdPix;
+                if (!bgdPix.loadFromData(ba))
+                {
+                    continue;
+                }
+
+                m_bgdLabel->setActualSize(bgdSize);
+                m_bgdLabel->loadPixmap(bgdPix);
+                bgdSize = m_bgdLabel->getSize();
                 m_bgdLabel->setAngle(angle);
                 m_bgdLabel->setOpacity(opacity);
             }
             else
             {
                 embellishLayer.insert("frame", frame);
-                embellishLayer.insert("filename", filename);
+                embellishLayer.insert("filename", fileName);
                 embellishLayer.insert("picture", ba);
                 embellishLayer.insert("opacity", opacity);
                 embellishLayer.insert("rotation", angle);
@@ -370,9 +356,9 @@ void EditPageWidget::updateLayers()
         if (1 == type)  // Picture layer
         {
             photoLayer.insert("frame", frame);
-            photoLayer.insert("filename", filename);
+            photoLayer.insert("filename", fileName);
             photoLayer.insert("picture", ba);
-            photoLayer.insert("maskfile", maskfile);
+            photoLayer.insert("maskfile", data["maskLayer"].toString() + ".png");
             photoLayer.insert("opacity", opacity);
             photoLayer.insert("rotation", angle);
             photoLayer.insert("type", type);
@@ -383,7 +369,7 @@ void EditPageWidget::updateLayers()
         if (3 == type)  // Mask layer
         {
             maskLayer.insert("frame", frame);
-            maskLayer.insert("filename", filename);
+            maskLayer.insert("filename", fileName);
             maskLayer.insert("picture", ba);
             maskLayer.insert("opacity", opacity);
             maskLayer.insert("rotation", angle);
@@ -396,11 +382,11 @@ void EditPageWidget::updateLayers()
     foreach (const QVariant &layer, photoLayers)
     {
         photoLayer = layer.toMap();
-        maskfile = photoLayer["maskfile"].toString();
+        maskFile = photoLayer["maskfile"].toString();
         for (int j = 0; j < maskLayers.size(); j++)
         {
             maskLayer = maskLayers.at(j).toMap();
-            if (maskfile == maskLayer["filename"].toString())
+            if (maskFile == maskLayer["filename"].toString())
             {
                 photoLayer.insert("maskLayer", maskLayer);
                 m_photoLayers << photoLayer;
@@ -409,13 +395,6 @@ void EditPageWidget::updateLayers()
         }
     }
 
-    //QVariantMap pl = m_photoLayers.first().toMap();
-    //qDebug() << __FILE__ << __LINE__ << pl["filename"].toString();
-
-    //QPoint bgdPos = ui->bgdLayerLabel->mapTo(this, QPoint(0, 0));
-    //QPoint bgdPos = ui->mainFrame->pos();
-    //bgdPos.rx() += (ui->mainFrame->width() - bgdSize.width()) / 2;
-    //bgdPos.ry() = 0;
     QPoint bgdPos((ui->mainFrame->width() - bgdSize.width()) / 2, 0);
     m_bgdLabel->setRect(QRect(bgdPos, bgdSize));
 }
@@ -435,7 +414,7 @@ bool EditPageWidget::swicth(int index)
     m_pThumbsScene->removeProxyWidgets(true);
     m_pThumbsScene->getProxyWidgets().clear();
 
-    //m_bgdPic.clear();
+    m_layers.clear();
     m_photoLayers.clear();
     m_bgdLabel->flush();
 
@@ -443,7 +422,7 @@ bool EditPageWidget::swicth(int index)
 
     if ((m_pAlbumWidget = static_cast<AlbumChildWidget *>(m_albumsMap[index])))
     {
-        int index = 0;
+        int pid = 0, tid = 0;
         AlbumPhotos photosVector;
 
         m_pAlbumWidget->getViewsList(photosVector, m_tmplPic);
@@ -463,35 +442,21 @@ bool EditPageWidget::swicth(int index)
             Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
 
 #if NOT_LOADED
-//            bool loaded = false;
-
-//            for (int i = 0; i < m_photoLayers.size(); i++)
-//            {
-//                if (m_photoWidgets[i]->hasLoaded(photoFile))
-//                {
-//                    loaded = true;
-//                    break;
-//                }
-//            }
-
-            if (/*!loaded && */ index < m_photoLayers.size())
+            if (pid < m_photoLayers.size())
+            //if (!pid && pid < m_photoLayers.size()) // for test
             {
-                QImage img = m_layerLabels[index]->loadPhoto(//m_photoLayers.first().toMap()
-                                                  //m_photoLayers.last().toMap()
-                                                 m_photoLayers.at(index).toMap()
+                m_layerLabels[pid]->loadPhoto(//m_photoLayers.first().toMap()
+                                                //m_photoLayers.last().toMap()
+                                                m_photoLayers.at(pid).toMap()
                                                  ,
                                                  m_bgdLabel->getRatioSize(),
                                                  m_bgdLabel->getRect()
                                                  /*,photoFile*/);
-
-                //m_layerLabels[index]->hide();
-                //qDebug() << __FILE__ << __LINE__ << index << m_layerLabels[index]->visiableRect(VISIABLE_RECT_TYPE_CONTAINER);
-                //ui->bgdLayerLabel->setPixmap(QPixmap::fromImage(img));
-                //m_layerLabels[index]->setPixmap(QPixmap::fromImage(img));
+                pid++;
             }
 #endif
 
-            ThumbChildWidget *childWidget = new ThumbChildWidget(++index, DRAGGABLE_PHOTO, photoFile, angle, axis, m_container);
+            ThumbChildWidget *childWidget = new ThumbChildWidget(++tid, DRAGGABLE_PHOTO, photoFile, angle, axis, m_container);
             m_pThumbsScene->insertProxyWidget(i + 1, new ThumbProxyWidget(childWidget), photoFile);
             childWidget->setId(i);
 
@@ -501,7 +466,9 @@ bool EditPageWidget::swicth(int index)
             //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << i << index << photoFile << photoInfo.at(3);
         }
 
-        m_bgdLabel->compose(m_layers, m_layerLabels);
+        //qDebug() << __FILE__ << __LINE__ << pid;
+        m_bgdLabel->loadLayers(pid, m_layers, m_layerLabels);
+        m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
 
         QStringList photosList = m_pAlbumWidget->getPhotosList();
 
@@ -524,7 +491,6 @@ bool EditPageWidget::swicth(int index)
 void EditPageWidget::on_editPushButton_clicked()
 {
     ui->verticalLayout->setContentsMargins(9, 9, 9, 9);
-    //ui->mainHorizontalLayout->setContentsMargins(0, TOP_FRAME_HEIGHT, 0, TOP_FRAME_HEIGHT);
     ui->editPushButton->setCheckable(true);
     m_bgdLabel->show();
     ui->thumbsGraphicsView->show();
@@ -546,7 +512,6 @@ void EditPageWidget::on_photoPushButton_clicked()
 void EditPageWidget::on_templatePushButton_clicked()
 {
     ui->verticalLayout->setContentsMargins(9, 9, 9, 0);
-    //ui->mainHorizontalLayout->setMargin(0);
     ui->templatePushButton->setCheckable(true);
     m_bgdLabel->hide();
     ui->photosGraphicsView->hide();
@@ -680,6 +645,14 @@ void EditPageWidget::on_mirroredPushButton_clicked()
     {
         m_layerLabel->flipAction();
         m_layerLabel->updateRect();
-        m_bgdLabel->compose(m_layers, m_layerLabels);
+        m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
+    }
+}
+
+void EditPageWidget::on_resetPushButton_clicked()
+{
+    if (m_pAlbumWidget)
+    {
+        m_bgdLabel->compose(VISIABLE_IMG_ORIGINAL, "C:\\Users\\Onglu\\Desktop\\test\\Composed_Final.jpg");
     }
 }

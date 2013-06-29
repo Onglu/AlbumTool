@@ -33,7 +33,8 @@ SOURCES += main.cpp\
     wrapper/PictureGraphicsScene.cpp \
     wrapper/PictureLabel.cpp \
     wrapper/PhotoLayer.cpp \
-    SqlEngine.cpp
+    SqlEngine.cpp \
+    wrapper/BgdLayer.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -57,7 +58,8 @@ HEADERS  += \
     wrapper/PhotoLayer.h \
     defines.h \
     events.h \
-    SqlEngine.h
+    SqlEngine.h \
+    wrapper/BgdLayer.h
 
 FORMS    += \
     MainWindow.ui \

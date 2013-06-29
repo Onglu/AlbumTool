@@ -18,8 +18,6 @@ public:
     DraggableLabel(QSize size, const QString &mimeType, QWidget *parent = 0);
     DraggableLabel(const QPixmap &pix, QSize size, const QString &mimeType, QWidget *parent = 0);
 
-    //DraggableLabel &operator =(const QLabel &label);
-
     bool hasPicture(void) const;
     bool meetDragDrop(const QString &mimeType) const;
 

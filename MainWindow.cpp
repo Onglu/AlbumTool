@@ -251,7 +251,7 @@ void MainWindow::on_importTemplatesAction_triggered()
     TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->currentWidget());
     if (taskPage)
     {
-        taskPage->importTemplate();
+        taskPage->importTemplates();
     }
 }
 

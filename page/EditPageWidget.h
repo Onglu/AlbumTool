@@ -6,12 +6,10 @@
 #include "child/PhotoChildWidget.h"
 #include "child/AlbumChildWidget.h"
 #include "child/TemplateChildWidget.h"
+#include "wrapper/BgdLayer.h"
 
 class PictureGraphicsScene;
 class TaskPageWidget;
-class PhotoLayer;
-class BgdLayer;
-typedef QVector<PhotoLayer *> LayerLabelsVector;
 
 namespace Ui {
     class EditPageWidget;
@@ -73,6 +71,8 @@ private slots:
 
     void on_mirroredPushButton_clicked();
 
+    void on_resetPushButton_clicked();
+
 private:
     void updateLayers(void);
 
@@ -93,10 +93,10 @@ private:
     int m_current, m_x, m_y;
     QPoint m_startPos;
     ChildWidgetsMap m_albumsMap;
-    QString m_tmplPic, m_bgdPic;    /* Picture file name */
+    QString m_tmplPic;    /* Picture file name */
 
     QVariantList m_layers, m_photoLayers;
-    LayerLabelsVector m_layerLabels;
+    LabelsVector m_layerLabels;
     PhotoLayer *m_layerLabel;
     BgdLayer *m_bgdLabel;
 

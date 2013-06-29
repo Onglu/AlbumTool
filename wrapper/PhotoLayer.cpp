@@ -1,38 +1,45 @@
 #include "PhotoLayer.h"
 #include <QMouseEvent>
-#include <QPainter>
 #include <QDebug>
 
-const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
-                                    QSizeF ratioSize,
-                                    QRect bgdRect,
-                                    const QString &replaced)
+bool PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
+                           QSizeF ratioSize,
+                           QRect bgdRect,
+                           const QString &replaced)
 {
     int width = 0, height = 0, cx = 0, cy = 0;
     QSize maskSize;
     QPoint maskPos;
-    //QString maskFile;
     QVariantMap frame, maskLayer;
+    QPixmap pix;
     QImage maskImg(maskSize, QImage::Format_ARGB32);
+    bool ok = false;
 
     if (photoLayer.isEmpty())
     {
-        return m_visiableImg;
+        goto end;
     }
 
     m_fileName = photoLayer["filename"].toString();
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_fileName /*<< photoLayer*/;
-
-    QPixmap pix;
-    if (/*m_fileName.isEmpty() || */!pix.loadFromData(photoLayer["picture"].toByteArray()))
+    if (m_fileName.isEmpty() || !pix.loadFromData(photoLayer["picture"].toByteArray()))
     {
-        return m_visiableImg;
+        goto end;
     }
 
     //m_fileName = replaced.isEmpty() ? photoLayer["filename"].toString() : replaced;
+
+    if (!ratioSize.width())
+    {
+        ratioSize.setWidth(1);
+    }
+
+    if (!ratioSize.height())
+    {
+        ratioSize.setHeight(1);
+    }
+
     m_ratioSize = ratioSize;
     m_bgdRect = bgdRect;
-
     //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_ratioSize << bgdRect << m_fileName;
 
     frame = photoLayer["frame"].toMap();
@@ -47,15 +54,11 @@ const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
     maskSize = QSize(frame["width"].toInt() * ratioSize.width(), frame["height"].toInt() * ratioSize.height());
     maskPos.rx() = bgdRect.x() + frame["x"].toInt() * ratioSize.width() - maskSize.width() / 2;
     maskPos.ry() = bgdRect.y() + frame["y"].toInt() * ratioSize.height() - maskSize.height() / 2;
-    //maskFile = maskLayer["filename"].toString();
 
     //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_picFile << maskFile << maskSize;
     //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << maskSize << maskPos << bgdRect;
 
-    m_opacity = photoLayer["opacity"].toReal();
-    m_angle = photoLayer["rotation"].toReal();
-
-    if (loadPicture(/*m_fileName*/ pix, QSize(width, height)) && maskImg.loadFromData(maskLayer["picture"].toByteArray()))
+    if (loadPicture(pix, QSize(width, height)) && maskImg.loadFromData(maskLayer["picture"].toByteArray()))
     {
 //        setOpacity(m_opacity);
 //        rotate(m_angle);
@@ -67,16 +70,30 @@ const QImage &PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
         setGeometry(QRect(topLeft, m_size));
         //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << geometry();
 
-        //QImage maskImg(maskSize, QImage::Format_ARGB32);
-        //maskImg.load(maskFile);
-        m_maskImg = maskImg.scaled(maskSize, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+        m_maskImgs[VISIABLE_IMG_ORIGINAL] = maskImg;
+        m_maskImgs[VISIABLE_IMG_SCREEN] = maskImg.scaled(maskSize, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         m_maskRect = QRect(maskPos, maskSize);
 
-        updateVisiableRect();
-        clear();
+        m_opacity = photoLayer["opacity"].toReal();
+        m_angle = photoLayer["rotation"].toReal();
+
+        updateVisiableRect(m_visiableRects[VisiableRectTypeCopied]);
+        ok = true;
+    }
+    else
+    {
+end:
+        m_visiableImgs[VISIABLE_IMG_SCREEN] = m_visiableImgs[VISIABLE_IMG_ORIGINAL] = QImage();
+        m_maskImgs[VISIABLE_IMG_SCREEN] = m_maskImgs[VISIABLE_IMG_ORIGINAL] = QImage();
+        m_bgdRect = m_maskRect = QRect(0, 0, 0, 0);
+        m_ratioSize = QSizeF(1, 1);
+        m_opacity = 1;
+        m_angle = 0;
     }
 
-    return m_visiableImg;
+    clear();
+
+    return ok;
 }
 
 void PhotoLayer::changePhoto(const QVariantMap &belongings)
@@ -105,20 +122,38 @@ void PhotoLayer::changePhoto(const QVariantMap &belongings)
 //    emit hasUpdated();
 }
 
-void PhotoLayer::blend()
+void PhotoLayer::blend(bool actual)
 {
-    if (m_bk.isNull() || m_maskImg.isNull())
+    if (!hasPicture() || (m_maskImgs[VISIABLE_IMG_SCREEN].isNull() && m_maskImgs[VISIABLE_IMG_ORIGINAL].isNull()))
     {
         return;
     }
 
-    QImage srcImg = m_bk.toImage().convertToFormat(QImage::Format_ARGB32);
-    QRect picRect(mapTo(parentWidget(), QPoint(0, 0)), m_bk.size());
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_maskRect.intersects(picRect)<< m_maskRect.contains(picRect) << picRect.contains(m_maskRect)<< m_maskRect << picRect << m_maskRect.intersected(picRect);
+    QPoint pos = mapTo(parentWidget(), QPoint(0, 0));
+    QSize size = this->size();
+    QRect picRect = !actual ? QRect(pos, size) : actualRect(pos, size);
+    QPixmap pix = !actual ? m_bk : m_ori.scaled(picRect.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);;
+    QImage srcImg = pix.toImage().convertToFormat(QImage::Format_ARGB32);
 
-    if (m_maskRect.intersects(picRect))
+    pos = m_maskRect.topLeft();
+    size = m_maskRect.size();
+    QRect maskRect = !actual ? QRect(pos, size) : actualRect(pos, size);
+    QImage maskImg;
+
+    if (actual)
     {
-        QRect xrect = m_maskRect.intersected(picRect);
+        maskImg = m_maskImgs[VISIABLE_IMG_ORIGINAL].scaled(maskRect.size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    }
+    else
+    {
+        maskImg = m_maskImgs[VISIABLE_IMG_SCREEN];
+    }
+
+    //qDebug() << __FILE__ << __LINE__ << picRect << maskRect << maskRect.intersects(picRect)<< maskRect.contains(picRect) << picRect.contains(maskRect) << picRect.intersects(maskRect);
+
+    if (maskRect.intersects(picRect))
+    {
+        QRect xrect = maskRect.intersected(picRect);
         int maskx, masky, srcx = 0, srcy = 0;
 
         //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << xrect;
@@ -129,10 +164,10 @@ void PhotoLayer::blend()
             {
                 srcx = x + xrect.x() - picRect.x();
                 srcy = y + xrect.y() - picRect.y();
-                maskx = x + xrect.x() - m_maskRect.x();
-                masky = y + xrect.y() - m_maskRect.y();
+                maskx = x + xrect.x() - maskRect.x();
+                masky = y + xrect.y() - maskRect.y();
                 QRgb rgb = srcImg.pixel(srcx, srcy);
-                int a = qAlpha(m_maskImg.pixel(maskx, masky));
+                int a = qAlpha(maskImg.pixel(maskx, masky));
                 srcImg.setPixel(srcx, srcy, qRgba(qRed(rgb), qGreen(rgb), qBlue(rgb), a));
             }
         }
@@ -176,11 +211,6 @@ void PhotoLayer::blend()
         }
     }
 
-//    if (picRect.contains(maskRect))
-//    {
-
-//    }
-
     m_composedImg = srcImg;
 }
 
@@ -188,7 +218,6 @@ void PhotoLayer::movePhoto(QPoint offset)
 {
     QPoint topLeft = mapTo(parentWidget(), QPoint(0, 0));
 
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "move:" << topLeft << offset;
     topLeft.rx() += offset.x();
     topLeft.ry() += offset.y();
     move(topLeft);
@@ -197,13 +226,7 @@ void PhotoLayer::movePhoto(QPoint offset)
                                                     m_visiableRects[VisiableRectTypeCanvas].y() + offset.y(),
                                                     m_size.width(),
                                                     m_size.height());
-
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "move:" << topLeft
-//             //<< m_visiableRects[VisiableRectTypeContainer]
-             //<< m_visiableRects[VisiableRectTypeCanvas]
-             //<< m_visiableRects[VisiableRectTypeFixed]
-//             << m_visiableRects[VisiableRectTypeCopied]
-             //<< m_visiableRects[VisiableRectTypeDefault];
+    m_moved = true;
 }
 
 void PhotoLayer::updateCopiedRect()
@@ -240,59 +263,68 @@ void PhotoLayer::updateCopiedRect()
 
     if ((!x && !width) || (!y && !height))
     {
-        //qDebug() << __FILE__ << __LINE__ << "invalid rect!";
+        qDebug() << __FILE__ << __LINE__ << "invalid rect!";
         m_visiableRects[VisiableRectTypeDefault] = m_visiableRects[VisiableRectTypeCopied] = QRect(0, 0, 0, 0);
-        m_visiableImg = QImage();
+        m_visiableImgs[0] = m_visiableImgs[1] = QImage();
         return;
     }
 
     blend();
     m_visiableRects[VisiableRectTypeCopied].setRect(x, y, width, height);
-    m_visiableImg = m_composedImg.convertToFormat(QImage::Format_ARGB32_Premultiplied).copy(m_visiableRects[VisiableRectTypeCopied]);
+    m_visiableImgs[VISIABLE_IMG_SCREEN] = m_composedImg.convertToFormat(QImage::Format_ARGB32_Premultiplied).copy(m_visiableRects[VisiableRectTypeCopied]);
+    //m_visiableImgs[VISIABLE_IMG_SCREEN].save(tr("C:\\Users\\Onglu\\Desktop\\test\\Copied_%1").arg(m_fileName));
+
+//    blend(true);
+//    m_visiableImgs[VISIABLE_IMG_ORIGINAL] = m_composedImg.convertToFormat(QImage::Format_ARGB32_Premultiplied).copy(actualRect(m_visiableRects[VisiableRectTypeCopied]));
+//    m_visiableImgs[VISIABLE_IMG_ORIGINAL].save(tr("C:\\Users\\Onglu\\Desktop\\test\\Copied_Ori_%1").arg(m_fileName));
+//    qDebug() << __FILE__ << __LINE__ << rect << m_visiableImgs[VISIABLE_IMG_ORIGINAL].isNull();
 
     left = qMax(m_bgdRect.x(), topLeft.x()) - m_bgdRect.x() + x;
     top = qMax(m_bgdRect.y(), topLeft.y()) - m_bgdRect.y() + y;
     m_visiableRects[VisiableRectTypeDefault].setRect(left, top, width, height);
 
-//    qDebug() << __FILE__ << __LINE__ << "now:" << x << y << width << height << m_maskRect
-//             //<< m_visiableRects[VisiableRectTypeContainer]
+//    qDebug() << __FILE__ << __LINE__
 //             //<< m_visiableRects[VisiableRectTypeCanvas]
-//             << m_visiableRects[VisiableRectTypeFixed]
+//             //<< m_visiableRects[VisiableRectTypeFixed]
 //             << m_visiableRects[VisiableRectTypeCopied]
 //             << m_visiableRects[VisiableRectTypeDefault]
 //             ;
 }
 
-void PhotoLayer::updateVisiableRect()
+void PhotoLayer::updateVisiableRect(QRect copiedRect)
 {
     QPoint topLeft = mapTo(parentWidget(), QPoint(0, 0));
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << topLeft << m_size << m_bgdRect;
+    //qDebug() << __FILE__ << __LINE__ << topLeft << m_size << m_bgdRect;
 
-    /* Form where */
-    int x = m_bgdRect.x() > topLeft.x() ? m_bgdRect.x() - topLeft.x() : 0;
-    int y = m_bgdRect.y() > topLeft.y() ? m_bgdRect.y() - topLeft.y() : 0;
+    if (copiedRect.isNull())
+    {
+        /* Form where */
+        int x = m_bgdRect.x() > topLeft.x() ? m_bgdRect.x() - topLeft.x() : 0;
+        int y = m_bgdRect.y() > topLeft.y() ? m_bgdRect.y() - topLeft.y() : 0;
 
-    /* How big */
-    int width = m_bgdRect.width() < m_size.width() - x ? m_bgdRect.width() : m_size.width() - x;
-    int height = m_bgdRect.height() < m_size.height() - y ? m_bgdRect.height() : m_size.height() - y;
+        /* How big */
+        int width = m_bgdRect.width() < m_size.width() - x ? m_bgdRect.width() : m_size.width() - x;
+        int height = m_bgdRect.height() < m_size.height() - y ? m_bgdRect.height() : m_size.height() - y;
 
-    blend();
-    m_visiableRects[VisiableRectTypeCopied].setRect(x, y, width, height);
-    m_visiableImg = m_composedImg.convertToFormat(QImage::Format_ARGB32_Premultiplied).copy(m_visiableRects[VisiableRectTypeCopied]);
+        blend();
+        m_visiableRects[VisiableRectTypeCopied].setRect(x, y, width, height);
+        m_visiableImgs[VISIABLE_IMG_SCREEN] = m_composedImg.convertToFormat(QImage::Format_ARGB32_Premultiplied).copy(m_visiableRects[VisiableRectTypeCopied]);
+        //m_visiableImgs[VISIABLE_IMG_SCREEN].save(tr("C:\\Users\\Onglu\\Desktop\\test\\Visiable_%1").arg(m_fileName));
 
-//    m_visiableRects[VisiableRectTypeContainer].setRect(m_bgdRect.x() > topLeft.x() ? m_bgdRect.x() : topLeft.x(),
-//                                                       m_bgdRect.y() > topLeft.y() ? m_bgdRect.y() : topLeft.y(),
-//                                                       width,
-//                                                       height);
+//        blend(true);
+//        m_visiableImgs[VISIABLE_IMG_ORIGINAL] = m_composedImg.convertToFormat(QImage::Format_ARGB32_Premultiplied).copy(actualRect(m_visiableRects[VisiableRectTypeCopied]));
+//        m_visiableImgs[VISIABLE_IMG_ORIGINAL].save(tr("C:\\Users\\Onglu\\Desktop\\test\\Visiable_Ori_%1").arg(m_fileName));
+//        qDebug() << __FILE__ << __LINE__ << rect << m_visiableImgs[VISIABLE_IMG_ORIGINAL].isNull();
+
+        x = qMax(m_bgdRect.x(), topLeft.x()) - m_bgdRect.x();
+        y = qMax(m_bgdRect.y(), topLeft.y()) - m_bgdRect.y();
+        m_visiableRects[VisiableRectTypeDefault].setRect(x, y, width, height);
+    }
 
     m_visiableRects[VisiableRectTypeCanvas].setRect(topLeft.x() - m_bgdRect.x(),
                                                     topLeft.y() - m_bgdRect.y(),
                                                     m_size.width(),
                                                     m_size.height());
-
-    x = qMax(m_bgdRect.x(), topLeft.x()) - m_bgdRect.x();
-    y = qMax(m_bgdRect.y(), topLeft.y()) - m_bgdRect.y();
-    m_visiableRects[VisiableRectTypeDefault].setRect(x, y, width, height);
 
     if (m_visiableRects[VisiableRectTypeFixed].isNull())
     {
@@ -302,10 +334,9 @@ void PhotoLayer::updateVisiableRect()
                                                        m_maskRect.height());
     }
 
-//    qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << x << y << m_maskRect
-////             //<< m_visiableRects[VisiableRectTypeContainer]
-//             << m_visiableRects[VisiableRectTypeCanvas]
-//             << m_visiableRects[VisiableRectTypeFixed]
+//    qDebug() << __FILE__ << __LINE__
+//             //<< m_visiableRects[VisiableRectTypeCanvas]
+//             //<< m_visiableRects[VisiableRectTypeFixed]
 //             << m_visiableRects[VisiableRectTypeCopied]
 //             << m_visiableRects[VisiableRectTypeDefault]
 //                ;
@@ -325,6 +356,7 @@ void PhotoLayer::setMoveable(bool moveable)
     {
         setCursor(Qt::OpenHandCursor);
         updateRect();
+        m_moved = false;
     }
 }
 
@@ -338,96 +370,4 @@ void PhotoLayer::mousePressEvent(QMouseEvent *event)
         pos.ry() += event->pos().y();
         emit clicked(*this, pos);
     }
-}
-
-void BgdLayer::compose(const QVariantList &layers, const QVector<PhotoLayer *> labels)
-{
-    if (m_bgdImg.isNull())
-    {
-        return;
-    }
-
-    m_composedImg = m_bgdImg;
-
-    int index = 0;
-    QPainter painter(&m_composedImg);
-    painter.fillRect(m_composedImg.rect(), Qt::transparent);
-
-    foreach (const QVariant &layer, layers)
-    {
-        qreal opacity = 1, angle = 0;
-        QVariantMap data = layer.toMap();
-        //QString filename = data["filename"].toString();
-        int type = data["type"].toInt();
-
-        if (1 == type)
-        {
-            PhotoLayer *label = labels.at(index);
-            if (label && label->hasPicture())
-            {
-                //m_photoWidgets[index]->getShape(opacity, angle);
-                //painter.setTransform(QTransform().rotate(angle));
-                painter.setOpacity(opacity);
-                painter.drawImage(label->visiableRect(/*PhotoLayer::VisiableRectTypeCanvas*/), label->visiableImg());
-                //qDebug() << __FILE__ << __LINE__ << "photo:" << index << label->visiableRect();
-                index++;
-            }
-        }
-        else
-        {
-            QVariantMap frame = data["frame"].toMap();
-            QSize size = QSize(frame["width"].toInt() * m_ratioSize.width(), frame["height"].toInt() * m_ratioSize.height());
-            QPoint pos = QPoint(frame["x"].toInt() * m_ratioSize.width(), frame["y"].toInt() * m_ratioSize.height());
-            int x = pos.x() - size.width() / 2;
-            int y = pos.y() - size.height() / 2;
-
-            //QImage img(size, QImage::Format_ARGB32_Premultiplied);
-            //img.load(filename);
-
-            QImage img(size, QImage::Format_ARGB32);
-            if (!img.loadFromData(data["picture"].toByteArray()))
-            {
-                continue;
-            }
-
-            img = img.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-            opacity = data["opacity"].toReal();
-            angle = data["angle"].toReal();
-
-            painter.setTransform(QTransform().rotate(angle));
-            painter.setOpacity(opacity);
-            painter.drawImage(x, y, img);
-            //qDebug() << __FILE__ << __LINE__ << "mask:" << filename;
-        }
-    }
-
-    painter.setTransform(QTransform().rotate(m_angle));
-    painter.setOpacity(m_opacity);
-    painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-    painter.drawImage(0, 0, m_composedImg);
-    painter.end();
-
-    setPixmap(QPixmap::fromImage(m_composedImg));
-}
-
-void BgdLayer::paintEvent(QPaintEvent *event)
-{
-    QLabel::paintEvent(event);
-    QPainter painter;
-    const int delta = 2;
-    QBrush borderColor = m_enter ? Qt::darkCyan : Qt::transparent;
-
-    if (m_borderColor == borderColor)
-    {
-        return;
-    }
-
-    painter.begin(this);
-    painter.setPen(QPen(m_borderColor = borderColor, delta));
-    painter.setRenderHints(QPainter::Antialiasing);
-    painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
-    painter.fillRect(m_visiableRect, Qt::transparent);
-    painter.drawRect(m_visiableRect.adjusted(delta, delta, -delta, -delta));
-    painter.end();
 }
