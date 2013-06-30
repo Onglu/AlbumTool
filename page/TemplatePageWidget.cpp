@@ -5,7 +5,7 @@
 #include "wrapper/DraggableLabel.h"
 #include "page/TaskPageWidget.h"
 
-TemplatePageWidget::TemplatePageWidget(bool previewable, /*QWidget*/TaskPageWidget *parent) :
+TemplatePageWidget::TemplatePageWidget(bool previewable, TaskPageWidget *parent) :
     QWidget(parent),
     ui(new Ui::TemplatePageWidget),
     m_container(parent),
@@ -14,6 +14,8 @@ TemplatePageWidget::TemplatePageWidget(bool previewable, /*QWidget*/TaskPageWidg
     Q_ASSERT(m_container);
 
     ui->setupUi(this);
+
+    m_belongings["picture_file"] = "";
 
     setPreviewable(previewable);
 }
@@ -44,38 +46,32 @@ inline void TemplatePageWidget::setPreviewable(bool previewable)
     }
 }
 
-void TemplatePageWidget::setPreview(const QString &tmplPic)
+bool TemplatePageWidget::changeTmplFile(const QVariantMap &belongings)
 {
-    if (m_tmplPic != tmplPic)
-    {
-        QPixmap pix(tmplPic);
+    bool ok = false;
+    QString tmplPic = belongings["picture_file"].toString();
+    QString currPic = m_belongings["picture_file"].toString();
 
+    if (currPic != tmplPic)
+    {
+        ok = true;
         ui->templateLabel->clear();
 
+        QPixmap pix(tmplPic);
         if (!pix.isNull())
         {
             ui->templateLabel->setPixmap(pix.scaled(m_tmplSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         }
 
-        m_tmplPic = tmplPic;
+        m_belongings = belongings;
     }
+
+    return ok;
 }
 
 QGraphicsView *TemplatePageWidget::getView() const
 {
     return ui->templatesGraphicsView;
-}
-
-bool TemplatePageWidget::clearTmplLabel(const QString &tmplPic)
-{
-    if (m_tmplPic == tmplPic)
-    {
-        ui->templateLabel->clear();
-        m_tmplPic.clear();
-        return true;
-    }
-
-    return false;
 }
 
 void TemplatePageWidget::dragEnterEvent(QDragEnterEvent *event)
@@ -99,14 +95,12 @@ void TemplatePageWidget::dropEvent(QDropEvent *event)
     DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
     if (picLabel->meetDragDrop(DRAGGABLE_TEMPLATE) && !children().contains(picLabel))
     {
+        QString currPic = m_belongings["picture_file"].toString();
         QVariantMap belongings = picLabel->getBelongings();
-        QString tmplPic = belongings["picture_file"].toString();
-
-        if (m_tmplPic != tmplPic)
+        if (changeTmplFile(belongings))
         {
-            emit replaced(m_tmplPic, belongings["template_file"].toString());
             event->acceptProposedAction();
-            setPreview(tmplPic);
+            emit replaced(currPic, belongings["template_file"].toString());
         }
     }
 }

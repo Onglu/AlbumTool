@@ -34,9 +34,7 @@ public:
     void open(ChildWidgetsMap &widgetsMap);
 
     /* If tmplFile is empty, so it indicates that is a delete operation */
-    void changeTmplFile(const QString &tmplFile = QString(),
-                        const QPixmap &tmplPic = QPixmap(),
-                        const QVariantMap &belongings = QVariantMap());
+    void changeTmplFile(const QVariantMap &belongings = QVariantMap());
 
     void changePhotoLayer(const QString &photoName,
                           QRect rect,
@@ -47,13 +45,12 @@ public:
     DraggableLabels &getPhotoLabels(void){return m_photoLabels;}
 
     QStringList &getPhotosList(void){return m_photosList;}
+    AlbumPhotos &getPhotosVector(void){return m_photosVector;}
+
     const QString &getTmplFile(void){return m_tmplFile;}
 
     void setViewsList(const AlbumPhotos &photosVector,
                       const QString &tmplFile = QString("")/* Default indicates that doesn't change the current template */);
-    void getViewsList(AlbumPhotos &photosVector,
-                      QString &tmpl,
-                      bool pic = true/* true: get template picture file name, otherwise get its template file name */);
 
     const QVariantMap &getChanges(void);
 

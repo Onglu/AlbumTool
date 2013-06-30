@@ -26,25 +26,26 @@ public:
     void setAngle(qreal angle){m_angle = angle;}
     qreal getAngle(void) const {return m_angle;}
 
-    void clear(void)
-    {
-        m_angle = 0;
-        m_opacity = 1;
-        QLabel::clear();
-    }
-
-protected:
     /***
      * scale: not zoom(0 = scale), zoom in(0 < scale < 1), zoom fit(scale == 1), zoom out(1 < scale < 2)
      * all zooming operations which excepts 0 and 1 is based on its previous picture size.
      */
-    void scaledZoom(float scale);
+    void scaledZoom(float scale, Qt::AspectRatioMode aspectRatioMode);
 
     void setOpacity(QPixmap &pix, qreal opacity);
 
     void rotate(qreal angle, Qt::Axis axis = Qt::ZAxis);
 
-    QSize m_size, m_optimal;
+    void clear(void)
+    {
+        m_angle = 0;
+        m_opacity = 1;
+        m_ori = m_bk = QPixmap();
+        QLabel::clear();
+    }
+
+protected:
+    QSize m_size;
     QString m_fileName;
     QPixmap m_ori, m_bk;
 

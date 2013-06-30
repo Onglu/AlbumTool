@@ -18,16 +18,15 @@ class TemplatePageWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit TemplatePageWidget(bool previewable, /*QWidget*/TaskPageWidget *parent = 0);
+    explicit TemplatePageWidget(bool previewable, TaskPageWidget *parent = 0);
     ~TemplatePageWidget();
-
-    void setPreview(const QString &tmplPic);
 
     void updateTags(bool immediate, const QVariantMap &tags);
 
     QGraphicsView *getView(void) const;
 
-    bool clearTmplLabel(const QString &tmplFile);
+    bool changeTmplFile(const QVariantMap &belongings);
+    const QVariantMap &getBelongings(void){return m_belongings;}
 
 signals:
     void replaced(const QString &tmplPic, const QString &tmplFile);
@@ -94,8 +93,7 @@ private:
     Ui::TemplatePageWidget *ui;
     TaskPageWidget *m_container;
     const QSize m_tmplSize;
-    QString m_tmplPic;
-    QVariantMap m_tagsMap;
+    QVariantMap m_tagsMap, m_belongings;
 };
 
 #endif // TEMPLATEPAGEWIDGET_H

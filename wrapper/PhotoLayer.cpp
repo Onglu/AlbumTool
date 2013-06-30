@@ -1,4 +1,5 @@
 #include "PhotoLayer.h"
+#include "DraggableLabel.h"
 #include <QMouseEvent>
 #include <QDebug>
 
@@ -78,48 +79,16 @@ bool PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
         m_angle = photoLayer["rotation"].toReal();
 
         updateVisiableRect(m_visiableRects[VisiableRectTypeCopied]);
-        ok = true;
+        clear();
+        setAcceptDrops(ok = true);
     }
     else
     {
 end:
-        m_visiableImgs[VISIABLE_IMG_SCREEN] = m_visiableImgs[VISIABLE_IMG_ORIGINAL] = QImage();
-        m_maskImgs[VISIABLE_IMG_SCREEN] = m_maskImgs[VISIABLE_IMG_ORIGINAL] = QImage();
-        m_bgdRect = m_maskRect = QRect(0, 0, 0, 0);
-        m_ratioSize = QSizeF(1, 1);
-        m_opacity = 1;
-        m_angle = 0;
+        flush();
     }
 
-    clear();
-
     return ok;
-}
-
-void PhotoLayer::changePhoto(const QVariantMap &belongings)
-{
-//    QString picFile = belongings["picture_file"].toString();
-//    if (m_picFile == picFile)
-//    {
-//        return;
-//    }
-
-//    m_picFile = picFile;
-//    m_ori = QPixmap(m_picFile);
-//    if (m_ori.isNull())
-//    {
-//        return;
-//    }
-
-//    qreal angle = belongings["rotation_angle"].toReal();
-//    Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-//    m_bk = m_ori.scaled(m_bk.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-//    rotate(ui->pictureLabel, m_bk, angle, axis);
-
-//    blend();
-//    updateView();
-
-//    emit hasUpdated();
 }
 
 void PhotoLayer::blend(bool actual)
@@ -265,7 +234,7 @@ void PhotoLayer::updateCopiedRect()
     {
         qDebug() << __FILE__ << __LINE__ << "invalid rect!";
         m_visiableRects[VisiableRectTypeDefault] = m_visiableRects[VisiableRectTypeCopied] = QRect(0, 0, 0, 0);
-        m_visiableImgs[0] = m_visiableImgs[1] = QImage();
+        m_visiableImgs[VISIABLE_IMG_ORIGINAL] = m_visiableImgs[VISIABLE_IMG_SCREEN] = QImage();
         return;
     }
 
@@ -284,7 +253,7 @@ void PhotoLayer::updateCopiedRect()
     m_visiableRects[VisiableRectTypeDefault].setRect(left, top, width, height);
 
 //    qDebug() << __FILE__ << __LINE__
-//             //<< m_visiableRects[VisiableRectTypeCanvas]
+//             << m_visiableRects[VisiableRectTypeCanvas]
 //             //<< m_visiableRects[VisiableRectTypeFixed]
 //             << m_visiableRects[VisiableRectTypeCopied]
 //             << m_visiableRects[VisiableRectTypeDefault]
@@ -335,11 +304,43 @@ void PhotoLayer::updateVisiableRect(QRect copiedRect)
     }
 
 //    qDebug() << __FILE__ << __LINE__
-//             //<< m_visiableRects[VisiableRectTypeCanvas]
+//             << m_visiableRects[VisiableRectTypeCanvas]
 //             //<< m_visiableRects[VisiableRectTypeFixed]
 //             << m_visiableRects[VisiableRectTypeCopied]
 //             << m_visiableRects[VisiableRectTypeDefault]
 //                ;
+}
+
+void PhotoLayer::updateRect()
+{
+    clear();
+
+    if (m_size.width() > m_bgdRect.width() || m_size.height() > m_bgdRect.height())
+    {
+        updateVisiableRect();
+    }
+    else
+    {
+        updateCopiedRect();
+    }
+}
+
+void PhotoLayer::flush()
+{
+    for (int i = 0; i < VISIABLE_RECT_TYPES; i++)
+    {
+        m_visiableRects[i] = QRect(0, 0, 0, 0);
+    }
+
+    m_maskRect = QRect(0, 0, 0, 0);
+    m_visiableImgs[VISIABLE_IMG_SCREEN] = m_visiableImgs[VISIABLE_IMG_ORIGINAL] = QImage();
+    m_maskImgs[VISIABLE_IMG_SCREEN] = m_maskImgs[VISIABLE_IMG_ORIGINAL] = QImage();
+    m_bgdRect = m_maskRect = QRect(0, 0, 0, 0);
+    m_ratioSize = QSizeF(1, 1);
+    m_opacity = 1;
+    m_angle = 0;
+
+    clear();
 }
 
 void PhotoLayer::setMoveable(bool moveable)
@@ -360,6 +361,23 @@ void PhotoLayer::setMoveable(bool moveable)
     }
 }
 
+bool PhotoLayer::zoomAction(bool in, float scale)
+{
+    if (in && !zoomIn(scale))
+    {
+        return false;
+    }
+
+    if (!in && (1 > m_bk.width() * scale || 1 > m_bk.height() * scale))
+    {
+        return false;
+    }
+
+    scaledZoom(scale, Qt::KeepAspectRatioByExpanding);
+
+    return true;
+}
+
 void PhotoLayer::mousePressEvent(QMouseEvent *event)
 {
     if (Qt::LeftButton & event->buttons() && !m_moveable)
@@ -369,5 +387,43 @@ void PhotoLayer::mousePressEvent(QMouseEvent *event)
         pos.rx() += event->pos().x();
         pos.ry() += event->pos().y();
         emit clicked(*this, pos);
+    }
+}
+
+void PhotoLayer::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasFormat(DRAGGABLE_PHOTO) && !children().contains(event->source()))
+    {
+        event->acceptProposedAction();
+    }
+}
+
+void PhotoLayer::dragMoveEvent(QDragMoveEvent *event)
+{
+    if (event->mimeData()->hasFormat(DRAGGABLE_PHOTO) && !children().contains(event->source()))
+    {
+        event->acceptProposedAction();
+    }
+}
+
+void PhotoLayer::dropEvent(QDropEvent *event)
+{
+    DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
+    if (picLabel && picLabel->meetDragDrop(DRAGGABLE_PHOTO) && !children().contains(picLabel)
+        && m_picFile != picLabel->getPictureFile())
+    {
+        QVariantMap belongings = picLabel->getBelongings();
+        m_picFile = belongings["picture_file"].toString();
+        qreal angle = belongings["rotation_angle"].toReal();
+        Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
+
+        m_ori = QPixmap(m_picFile);
+        m_bk = m_ori.scaled(m_size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        m_size = m_bk.size();
+        qDebug() << __FILE__ << __LINE__ << m_fileName << m_picFile << m_size;
+        //setPixmap(m_bk.transformed(QTransform().rotate(angle, axis)));
+        setPixmap(m_bk);
+        updateRect();
+        emit refresh(*this);
     }
 }

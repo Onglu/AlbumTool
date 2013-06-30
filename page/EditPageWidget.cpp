@@ -36,7 +36,8 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
     {
         PhotoLayer *layer = new PhotoLayer(ui->mainFrame);
         m_layerLabels.insert(i, layer);
-        connect(layer, SIGNAL(clicked(PhotoLayer&,QPoint)), SLOT(labelClicked(PhotoLayer&,QPoint)));
+        connect(layer, SIGNAL(refresh(PhotoLayer&)), SLOT(onRefreshed(PhotoLayer&)));
+        connect(layer, SIGNAL(clicked(PhotoLayer&,QPoint)), SLOT(onClicked(PhotoLayer&,QPoint)));
     }
 #endif
 
@@ -63,13 +64,29 @@ EditPageWidget::~EditPageWidget()
     delete ui;
 }
 
-void EditPageWidget::labelClicked(PhotoLayer &label, QPoint pos)
+void EditPageWidget::onRefreshed(PhotoLayer &label)
+{
+    m_layerLabel = &label;
+    m_bgdLabel->enterCopiedRect(true, label.visiableRect(PhotoLayer::VisiableRectTypeFixed));
+    m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
+    m_bgdLabel->enterCopiedRect(false);
+
+    //QString photoName;
+    qDebug() << __FILE__ << __LINE__ << m_layerLabel->getPictureFile() << m_layerLabel->getFrame();
+//    m_pAlbumWidget->changePhotoLayer(Converter::fileName(m_layerLabel->getPictureFile(), photoName),
+//                                     m_layerLabel->getFrame(),
+//                                     m_layerLabel->getOpacity(),
+//                                     m_layerLabel->getAngle());
+}
+
+void EditPageWidget::onClicked(PhotoLayer &label, QPoint pos)
 {
     if (label.isMoveable())
     {
         m_bgdLabel->enterCopiedRect(true, label.visiableRect(PhotoLayer::VisiableRectTypeFixed));
         m_layerLabel = &label;
         m_startPos = pos;
+        enableButtons(true);
         //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_startPos << pos;
     }
 }
@@ -78,6 +95,7 @@ void EditPageWidget::mousePressEvent(QMouseEvent *event)
 {
     if (Qt::LeftButton == event->button() && m_layerLabel && m_layerLabel != childAt(event->pos()))
     {
+        enableButtons(false);
         m_layerLabel = NULL;
     }
 }
@@ -258,23 +276,22 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
 {
     Q_ASSERT(m_pAlbumWidget);
 
-//    if (ui->bgdLayerLabel->isVisible())
-//    {
-
-//    }
-//    else
+    if (m_bgdLabel->isVisible())
     {
-        if (ui->photosGraphicsView->isVisible())
-        {
-            m_container->replace(PictureGraphicsScene::SceneType_Photos, current, replaced);
-            updateAlbum();
-            m_container->noticeChanged();
-        }
-        else
-        {
-            m_container->replace(PictureGraphicsScene::SceneType_Templates, current, replaced);
-            m_pAlbumWidget->changeTmplFile(replaced);
-        }
+        qDebug() << __FILE__ << __LINE__ << current << replaced;
+    }
+    else if (ui->photosGraphicsView->isVisible())
+    {
+        m_container->replace(PictureGraphicsScene::SceneType_Photos, current, replaced);
+        updateAlbum();
+        m_container->noticeChanged();
+    }
+    else if (m_pTemplatePage->isVisible())
+    {
+        m_container->replace(PictureGraphicsScene::SceneType_Templates, current, replaced);
+        m_pAlbumWidget->changeTmplFile(m_pTemplatePage->getBelongings());
+        swicth(m_current);
+        qDebug() << __FILE__ << __LINE__ << replaced;
     }
 }
 
@@ -418,14 +435,17 @@ bool EditPageWidget::swicth(int index)
     m_photoLayers.clear();
     m_bgdLabel->flush();
 
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    {
+        m_layerLabels[i]->flush();
+    }
+
     ui->pagesLabel->setText(tr("第%1页/共%2页").arg(index).arg(count));
 
     if ((m_pAlbumWidget = static_cast<AlbumChildWidget *>(m_albumsMap[index])))
     {
         int pid = 0, tid = 0;
-        AlbumPhotos photosVector;
-
-        m_pAlbumWidget->getViewsList(photosVector, m_tmplPic);
+        AlbumPhotos photosVector = m_pAlbumWidget->getPhotosVector();
 
         updateLayers();
 
@@ -480,7 +500,7 @@ bool EditPageWidget::swicth(int index)
 
         ThumbChildWidget::updateList(photosList);
 
-        m_pTemplatePage->setPreview(m_tmplPic);
+        m_pTemplatePage->changeTmplFile(m_pAlbumWidget->getTmplLabel().getBelongings());
 
         ok = true;
     }
@@ -493,6 +513,7 @@ void EditPageWidget::on_editPushButton_clicked()
     ui->verticalLayout->setContentsMargins(9, 9, 9, 9);
     ui->editPushButton->setCheckable(true);
     m_bgdLabel->show();
+    showPhotos(true);
     ui->thumbsGraphicsView->show();
     ui->photosGraphicsView->hide();
     m_pTemplatePage->hide();
@@ -503,6 +524,7 @@ void EditPageWidget::on_photoPushButton_clicked()
     ui->verticalLayout->setContentsMargins(9, 9, 9, 9);
     ui->photoPushButton->setCheckable(true);
     m_bgdLabel->hide();
+    showPhotos(false);
     ui->thumbsGraphicsView->show();
     ui->photosGraphicsView->show();
     m_pTemplatePage->hide();
@@ -514,6 +536,7 @@ void EditPageWidget::on_templatePushButton_clicked()
     ui->verticalLayout->setContentsMargins(9, 9, 9, 0);
     ui->templatePushButton->setCheckable(true);
     m_bgdLabel->hide();
+    showPhotos(false);
     ui->photosGraphicsView->hide();
     ui->thumbsGraphicsView->hide();
     m_pTemplatePage->show();
@@ -587,55 +610,52 @@ void EditPageWidget::on_deletePushButton_clicked()
     }
 }
 
-void EditPageWidget::dragEnterEvent(QDragEnterEvent *event)
+void EditPageWidget::on_zoomInPushButton_clicked()
 {
-    if (event->mimeData()->hasFormat(DRAGGABLE_PHOTO) && !children().contains(event->source()))
+    if (m_pAlbumWidget && m_layerLabel)
     {
-        event->acceptProposedAction();
-    }
-}
-
-void EditPageWidget::dragMoveEvent(QDragMoveEvent *event)
-{
-    if (event->mimeData()->hasFormat(DRAGGABLE_PHOTO) && !children().contains(event->source()))
-    {
-        event->acceptProposedAction();
-    }
-}
-
-void EditPageWidget::dropEvent(QDropEvent *event)
-{
-    DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
-    if (picLabel->meetDragDrop(DRAGGABLE_PHOTO) && !children().contains(picLabel))
-    {
-        QVariantMap belongings = picLabel->getBelongings();
-        //qDebug() << __FILE__ << __LINE__ << belongings << event->pos();
-
-        //for (int i = 0; i < m_photoLayers.size(); i++)
-        for (int i = m_photoLayers.size(); i > 0; i--)
+        if (m_layerLabel->zoomAction(true, 1.10))
         {
-//            if (m_photoWidgets[i]->hasLoaded())
-//            {
-//                QRect rect = m_photoWidgets[i]->visiableRect(VISIABLE_RECT_TYPE_CONTAINER);
-//                //m_photoWidgets[i]->showButtons(rect.contains(event->pos()));
-
-//                //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << event->pos() << ;
-
-//                if (rect.x() < event->pos().x() && rect.y() < event->pos().y()
-//                   && rect.right() > event->pos().x() && rect.bottom() > event->pos().y())
-//                {
-//                    m_photoWidgets[i]->changePicture(belongings);
-//                    qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << i << m_photoWidgets[i]->photoFile();
-//                    event->acceptProposedAction();
-//                    break;
-//                }
-
-////                if (rect.contains(event->pos()))
-////                {
-////                    qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << i << m_photoWidgets[i]->photoFile();
-////                }
-//            }
+            m_layerLabel->updateRect();
+            m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
+            //qDebug() << __FILE__ << __LINE__ << m_layerLabel->getFrame();
         }
+        else
+        {
+            ui->zoomInPushButton->setEnabled(false);
+        }
+    }
+}
+
+void EditPageWidget::on_zoomOutPushButton_clicked()
+{
+    if (m_pAlbumWidget && m_layerLabel)
+    {
+        if (m_layerLabel->zoomAction(false, 0.90))
+        {
+            m_layerLabel->updateRect();
+            m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
+            //qDebug() << __FILE__ << __LINE__ << m_layerLabel->getFrame();
+        }
+        else
+        {
+            ui->zoomOutPushButton->setEnabled(false);
+        }
+    }
+}
+
+void EditPageWidget::on_resetPushButton_clicked()
+{
+//    if (m_pAlbumWidget)
+//    {
+//        m_bgdLabel->compose(VISIABLE_IMG_ORIGINAL, "C:\\Users\\Onglu\\Desktop\\test\\Composed_Final.jpg");
+//    }
+
+    if (m_pAlbumWidget && m_layerLabel)
+    {
+        m_layerLabel->resetAction();
+        m_layerLabel->updateRect();
+        m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
     }
 }
 
@@ -649,10 +669,48 @@ void EditPageWidget::on_mirroredPushButton_clicked()
     }
 }
 
-void EditPageWidget::on_resetPushButton_clicked()
+#if 0
+void EditPageWidget::on_zoomInPushButton_pressed()
 {
-    if (m_pAlbumWidget)
+    if (m_layerLabel && !m_layerLabel->zoomAction(true, 1.10))
     {
-        m_bgdLabel->compose(VISIABLE_IMG_ORIGINAL, "C:\\Users\\Onglu\\Desktop\\test\\Composed_Final.jpg");
+        ui->zoomInPushButton->setEnabled(false);
     }
+}
+
+void EditPageWidget::on_zoomInPushButton_released()
+{
+    releaseButton(*ui->zoomInPushButton);
+}
+
+void EditPageWidget::on_zoomOutPushButton_pressed()
+{
+    if (m_layerLabel && !m_layerLabel->zoomAction(false, 0.90))
+    {
+        ui->zoomOutPushButton->setEnabled(false);
+    }
+}
+
+void EditPageWidget::on_zoomOutPushButton_released()
+{
+    releaseButton(*ui->zoomOutPushButton);
+}
+#endif
+
+inline void EditPageWidget::releaseButton(const QPushButton &button)
+{
+    if (m_layerLabel && button.isEnabled())
+    {
+        m_layerLabel->updateRect();
+        m_bgdLabel->compose(VISIABLE_IMG_SCREEN);
+        qDebug() << __FILE__ << __LINE__ << m_layerLabel->getFrame();
+    }
+}
+
+inline void EditPageWidget::enableButtons(bool enable)
+{
+    ui->zoomInPushButton->setEnabled(enable);
+    ui->zoomOutPushButton->setEnabled(enable);
+    ui->resetPushButton->setEnabled(enable);
+    ui->mirroredPushButton->setEnabled(enable);
 }

@@ -195,17 +195,11 @@ void AlbumChildWidget::clearBanners()
     }
 }
 
-void AlbumChildWidget::changeTmplFile(const QString &tmplFile, const QPixmap &tmplPic, const QVariantMap &belongings)
+void AlbumChildWidget::changeTmplFile(const QVariantMap &belongings)
 {
-    if (m_tmplFile == tmplFile)
-    {
-        return;
-    }
-
-    m_tmplFile = tmplFile;
     m_records["photo_layers"].clear();
 
-    if (tmplFile.isEmpty())
+    if (belongings.isEmpty())
     {
         m_tmplFile.clear();
         m_tmplLabel->reset();
@@ -214,9 +208,16 @@ void AlbumChildWidget::changeTmplFile(const QString &tmplFile, const QPixmap &tm
     }
     else
     {
-        m_tmplLabel->setPixmap(tmplPic.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        QPixmap tmplPic(belongings["picture_file"].toString());
+        if (!tmplPic.isNull())
+        {
+            tmplPic = tmplPic.scaled(QSize(93, 141), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
+
+        m_tmplLabel->setPixmap(tmplPic);
         m_tmplLabel->clearMimeType();
         m_tmplLabel->setBelongings(belongings);
+        m_tmplFile = belongings["template_file"].toString();
 
         TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
         //qDebug() << __FILE__ << __LINE__ << m_locations[0] << m_locations[1];
@@ -448,17 +449,13 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
         QVariantMap belongings = picLabel->getBelongings();
         QString picFile = belongings["picture_file"].toString();
         //qDebug() << __FILE__ << __LINE__ << picFile << picLabel->getPictureFile();
-        QPixmap pix(picFile);
-        if (pix.isNull())
-        {
-            return;
-        }
 
         m_tmplVisible = m_tmplLabel != m_picLabel ? false : true;
 
         if (!m_tmplVisible)
         {
-            if (m_photosList.contains(picFile, Qt::CaseInsensitive))
+            QPixmap pix(picFile);
+            if (pix.isNull() || m_photosList.contains(picFile, Qt::CaseInsensitive))
             {
                 return;
             }
@@ -506,7 +503,7 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
                 picLabel->accept();
             }
 
-            changeTmplFile(belongings["template_file"].toString(), pix, belongings);
+            changeTmplFile(belongings);
             //qDebug() << __FILE__ << __LINE__ << tmplFile;
         }
 
@@ -618,13 +615,6 @@ void AlbumChildWidget::setViewsList(const AlbumPhotos &photosVector, const QStri
     changeBanners();
 }
 
-void AlbumChildWidget::getViewsList(AlbumPhotos &photosVector, QString &tmpl, bool pic)
-{
-    photosVector = m_photosVector;
-    tmpl = pic ? m_tmplLabel->getPictureFile() : m_tmplFile;
-    //qDebug() << __FILE__ << __LINE__ << m_tmplFile << m_tmplLabel->getPictureFile();
-}
-
 void AlbumProxyWidget::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     PictureProxyWidget::hoverEnterEvent(event);
@@ -659,11 +649,8 @@ bool AlbumProxyWidget::excludeItem(const QString &picFile)
             }
         }
 
-        AlbumPhotos photosVector(PHOTOS_NUMBER);
+        AlbumPhotos photosVector = m_pChildWidget->getPhotosVector();
         DraggableLabels &photoLabels = m_pChildWidget->getPhotoLabels();
-        QString tmplPic;
-
-        m_pChildWidget->getViewsList(photosVector, tmplPic);
 
         for (int i = 0; i < PHOTOS_NUMBER; i++)
         {

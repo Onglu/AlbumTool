@@ -241,7 +241,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>上一页相册(Left)</string>
+        <string>上一页(Left)</string>
        </property>
        <property name="text">
         <string/>
@@ -307,7 +307,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>下一页相册(Right)</string>
+        <string>下一页(Right)</string>
        </property>
        <property name="text">
         <string/>
@@ -335,6 +335,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="zoomInPushButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>24</width>
@@ -348,7 +351,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>放大相册照片</string>
+        <string>放大</string>
        </property>
        <property name="text">
         <string/>
@@ -370,6 +373,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="zoomOutPushButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>24</width>
@@ -383,7 +389,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>缩小相册照片</string>
+        <string>缩小</string>
        </property>
        <property name="text">
         <string/>
@@ -405,6 +411,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="resetPushButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>24</width>
@@ -418,7 +427,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>重置相册照片</string>
+        <string>重置</string>
        </property>
        <property name="text">
         <string/>
@@ -440,6 +449,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="mirroredPushButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="minimumSize">
         <size>
          <width>24</width>
@@ -453,7 +465,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>翻转相册照片</string>
+        <string>翻转</string>
        </property>
        <property name="text">
         <string/>
@@ -488,7 +500,7 @@
         </size>
        </property>
        <property name="toolTip">
-        <string>删除当前相册(Del)</string>
+        <string>删除相册页(Del)</string>
        </property>
        <property name="text">
         <string/>

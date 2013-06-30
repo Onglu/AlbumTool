@@ -332,7 +332,7 @@ void TaskPageWidget::addItem(int index, const QString &file, int usedTimes)
     TemplateChildWidget *childWidget = new TemplateChildWidget(index, file, usedTimes, this);
     m_pTemplatesScene->insertProxyWidget(index, new TemplateProxyWidget(childWidget), file);
     m_pTemplatesScene->autoAdjust();
-    qDebug() << __FILE__ << __LINE__ << "Template:" << index << file << usedTimes;
+    //qDebug() << __FILE__ << __LINE__ << "Template:" << index << file << usedTimes;
 }
 
 void TaskPageWidget::addItem(int index,
@@ -364,8 +364,6 @@ void TaskPageWidget::finishLoaded(uchar state)
         {
             m_pTemplatesScene->finishLoaded(true);
         }
-
-        qDebug() << __FILE__ << __LINE__ << m_pTemplatesLoader->isActive();
     }
     else
     {
@@ -803,11 +801,11 @@ void TaskPageWidget::enterEdit(bool enter)
 {
     if (enter)
     {
+        emit maxShow(true);
         ui->collapsePushButton->hide();
         ui->photosGroupBox->hide();
         ui->templatesGroupBox->hide();
         ui->albumsGroupBox->hide();
-        emit maxShow(true);
         m_pEditPage->show();
         m_pEditPage->adjustViewLayout();
     }
@@ -829,7 +827,7 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
 {
     bool ok = false;
 
-    //qDebug() << __FILE__ << __LINE__ << current << replaced;
+    qDebug() << __FILE__ << __LINE__ << current << replaced;
 
     if (PictureGraphicsScene::SceneType_Albums > type && current != replaced)
     {
@@ -854,7 +852,7 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
                 belongings["used_times"] = usedTimes - 1;
             }
 
-            if (replaced == file/* || replaced == belongings["template_file"].toString()*/)
+            if (replaced == file || replaced == belongings["template_file"].toString())
             {
                 belongings["used_times"] = usedTimes + 1;
             }
@@ -905,55 +903,100 @@ void TaskPageWidget::onSearch(bool immediate, bool inner, const QVariantMap &tag
     QSqlQuery query;
     QVariantMap::const_iterator iter = tags.constBegin();
     QVector<int> tids;
+    int n, pageType = 0;
+    QString value, sql, pageId = m_taskParser.getPageId();
 
+    /* Get the id number of templates which meet the searching conditions */
     while (iter != tags.constEnd())
     {
-        //qDebug() << __FILE__ << __LINE__ << name << ":" << iter.value().toString();
-        int pid = SqlHelper::getId(tr("select id from tproperty where ptype='%1' and name='%2'").arg(iter.value().toString()).arg(iter.key()));
-        if (pid)
+        //qDebug() << __FILE__ << __LINE__ << iter.key() << iter.value().toString();
+        if ("pagetype" != iter.key())
         {
-            if (tids.isEmpty())
+            value = iter.value().toString();
+            if (value.isEmpty())
             {
-                query.exec(QString("select templateid from template_property where propertyid=%1").arg(pid));
-                while (query.next())
-                {
-                    tids.append(query.value(0).toInt());
-                }
+                ++iter;
+                continue;
+            }
+
+            if (tr("风格") == iter.key())
+            {
+                sql = tr("select id from tproperty where ptype='%1' and name like '%%2%'").arg(iter.key()).arg(value);
             }
             else
             {
-                for (int i = 0; i < tids.size(); i++)
+                sql = tr("select id from tproperty where ptype='%1' and name='%2'").arg(value).arg(iter.key());
+            }
+
+            int tid, pid = SqlHelper::getId(sql);
+            //qDebug() << __FILE__ << __LINE__ << sql << "," << pid;
+
+            if (pid)
+            {
+                if (tids.isEmpty()) // Get query resluts
                 {
-                    /* Remove the template which doesn't meet the template properties */
-                    if (!SqlHelper::getId(QString("select templateid from template_property where templateid=%1 and propertyid=%2").arg(tids[i]).arg(pid)))
+                    query.exec(QString("select templateid from template_property where propertyid=%1").arg(pid));
+                    while (query.next())
                     {
-                        tids.remove(i);
+                        tid = query.value(0).toInt();
+                        if (tid && !tids.contains(tid))
+                        {
+                            tids.append(tid);
+                        }
                     }
                 }
+                else // Flitter
+                {
+                    for (int i = tids.size() - 1; i >= 0; i--)
+                    {
+                        /* Remove the template which doesn't meet the template properties */
+                        sql = QString("select templateid from template_property where templateid=%1 and propertyid=%2").arg(tids[i]).arg(pid);
+                        tid = SqlHelper::getId(sql);
+                        //qDebug() << __FILE__ << __LINE__ << sql << "," << tid << i << tids.size();
+                        if (!tid)
+                        {
+                            tids.remove(i);
+                        }
+                    }
+                    //qDebug() << __FILE__ << __LINE__ << tids;
+                }
             }
+        }
+        else
+        {
+            pageType = iter.value().toInt();
         }
 
         ++iter;
     }
 
-    const int pageType = tags["pagetype"].toInt();
-    const QString pageId = m_taskParser.getPageId();
     QStringList tmplPics;
-    //QString pageId = m_taskParser.getId();
-
-    for (int i = 0; i < tids.size(); i++)
+    if ((n = tids.size()))
     {
-        qDebug() << __FILE__ << __LINE__ << "templateid:" << tids[i];
-        query.exec(QString("select fileurl, page_type, page_id from template where id=%1").arg(tids[i]));
-        while (query.next())
+        for (int i = 0; i < n; i++)
         {
-            if (pageType == query.value(1).toInt() && pageId == query.value(2).toString())
+            sql = QString("select fileurl, page_type, page_id from template where id=%1").arg(tids[i]);
+            query.exec(sql);
+            while (query.next())
             {
-                tmplPics << query.value(0).toString();
-                //qDebug() << __FILE__ << __LINE__ << "templateid:" << query.value(0).toInt();
+                if (pageType == query.value(1).toInt() && pageId == query.value(2).toString())
+                {
+                    tmplPics << query.value(0).toString();
+                }
             }
         }
     }
+    else
+    {
+        sql = QString("select fileurl from template where page_type=%1 and page_id='%2'").arg(pageType).arg(pageId);
+        query.exec(sql);
+        while (query.next())
+        {
+            tmplPics << query.value(0).toString();
+        }
+    }
+
+    //qDebug() << __FILE__ << __LINE__ << tmplPics;
 
     int index = 0, size = tmplPics.size();
     ProxyWidgetsMap proxyWidgets = m_pTemplatesScene->getProxyWidgets();
@@ -973,7 +1016,7 @@ void TaskPageWidget::onSearch(bool immediate, bool inner, const QVariantMap &tag
                 {
                     m_pTemplatesScene->addProxyWidget(++index, proxyWidget);
                     m_pTemplatesScene->adjustItemPos(true);
-                    qDebug() << __FILE__ << __LINE__ << size << index << m_pTemplatesScene->getResultWidgets().size();
+                    //qDebug() << __FILE__ << __LINE__ << size << index << m_pTemplatesScene->getResultWidgets().size();
 
                     if (size <= index)
                     {

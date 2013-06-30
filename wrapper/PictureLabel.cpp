@@ -13,13 +13,14 @@ bool PictureLabel::loadPicture(const QPixmap &pix, QSize size)
 
     m_bk = m_ori.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     m_size = m_bk.size();
+
     setFixedSize(m_size);
     setPixmap(m_bk);
 
     return true;
 }
 
-void PictureLabel::scaledZoom(float scale)
+void PictureLabel::scaledZoom(float scale, Qt::AspectRatioMode aspectRatioMode)
 {
     if (m_bk.isNull() || 2 <= scale)
     {
@@ -32,13 +33,12 @@ void PictureLabel::scaledZoom(float scale)
     }
     else
     {
-        m_bk = m_ori.scaled(1 == scale ? m_optimal : QSize(m_bk.width() * scale, m_bk.height() * scale),
-                            Qt::KeepAspectRatio,
+        m_bk = m_ori.scaled(1 == scale ? this->size() : QSize(m_bk.width() * scale, m_bk.height() * scale),
+                            aspectRatioMode,
                             Qt::SmoothTransformation);
     }
 
     m_size = m_bk.size();
-    setFixedSize(m_size);
     setPixmap(m_bk);
 }
 

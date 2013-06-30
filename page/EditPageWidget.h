@@ -10,6 +10,7 @@
 
 class PictureGraphicsScene;
 class TaskPageWidget;
+class QPushButton;
 
 namespace Ui {
     class EditPageWidget;
@@ -43,9 +44,6 @@ protected:
     void mouseMoveEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void resizeEvent(QResizeEvent *);
-    void dragEnterEvent(QDragEnterEvent *event);
-    void dragMoveEvent(QDragMoveEvent *event);
-    void dropEvent(QDropEvent *event);
 
 private slots:
     void on_editPushButton_clicked();
@@ -67,20 +65,53 @@ private slots:
     /* Replaced picture file */
     void onReplaced(const QString &current, const QString &replaced);
 
-    void labelClicked(PhotoLayer &label, QPoint pos);
+    void onRefreshed(PhotoLayer &label);
+
+    void onClicked(PhotoLayer &label, QPoint pos);
 
     void on_mirroredPushButton_clicked();
 
     void on_resetPushButton_clicked();
 
+    void on_zoomInPushButton_clicked();
+
+    void on_zoomOutPushButton_clicked();
+
+//    void on_zoomInPushButton_pressed();
+
+//    void on_zoomInPushButton_released();
+
+//    void on_zoomOutPushButton_pressed();
+
+//    void on_zoomOutPushButton_released();
+
 private:
     void updateLayers(void);
+
+    void enableButtons(bool enable = true);
+
+    void releaseButton(const QPushButton &button);
 
     bool swicth(int index);
 
     void adjustViewLayout(void);
 
     void adjustThumbsHeight(void);
+
+    void showPhotos(bool visiable)
+    {
+        for (int i = 0; i < PHOTOS_NUMBER; i++)
+        {
+            if (visiable)
+            {
+                m_layerLabels[i]->show();
+            }
+            else
+            {
+                m_layerLabels[i]->hide();
+            }
+        }
+    }
 
     Ui::EditPageWidget *ui;
 
@@ -93,7 +124,6 @@ private:
     int m_current, m_x, m_y;
     QPoint m_startPos;
     ChildWidgetsMap m_albumsMap;
-    QString m_tmplPic;    /* Picture file name */
 
     QVariantList m_layers, m_photoLayers;
     LabelsVector m_layerLabels;

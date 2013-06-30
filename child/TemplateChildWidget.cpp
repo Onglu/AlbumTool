@@ -495,7 +495,7 @@ const QVariantMap &TemplateChildWidget::loadPictures()
         //qDebug() << __FILE__ << __LINE__ << m_currFile;
     }
 
-    qDebug() << __FILE__ << __LINE__ << m_tmplFile;
+    //qDebug() << __FILE__ << __LINE__ << m_tmplFile;
     qDebug() << __FILE__ << __LINE__ << "time costs:" << tm.elapsed() << "after loaded" << m_pictures.size() << "pictures";
 
     return m_pictures;

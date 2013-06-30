@@ -30,9 +30,8 @@ ThumbChildWidget::ThumbChildWidget(int index,
 void ThumbChildWidget::dropEvent(QDropEvent *event)
 {
     DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
-
-    if (!picLabel || m_photosList.isEmpty() || m_photosList.contains(picLabel->getPictureFile(), Qt::CaseInsensitive)
-            || !meetDragDrop(event) || children().contains(picLabel))
+    if (!picLabel || !meetDragDrop(event) || children().contains(picLabel) || m_photosList.isEmpty()
+        || m_photosList.contains(picLabel->getPictureFile(), Qt::CaseInsensitive))
     {
         event->ignore();
         return;
