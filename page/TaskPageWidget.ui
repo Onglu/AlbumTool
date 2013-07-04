@@ -14,7 +14,7 @@
    <string>Form</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="images.qrc">
+   <iconset>
     <normaloff>:/images/logo.png</normaloff>:/images/logo.png</iconset>
   </property>
   <layout class="QHBoxLayout" name="mainHorizontalLayout">
@@ -179,7 +179,7 @@
          </widget>
         </item>
         <item row="0" column="2">
-         <widget class="QPushButton" name="generatePushButton">
+         <widget class="QPushButton" name="makePushButton">
           <property name="minimumSize">
            <size>
             <width>75</width>
@@ -200,7 +200,7 @@
         <item row="0" column="3">
          <widget class="QLabel" name="albumsLabel">
           <property name="text">
-           <string>共有25张空位，还需要竖幅2张，横幅5张</string>
+           <string/>
           </property>
           <property name="alignment">
            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -306,8 +306,6 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="images.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

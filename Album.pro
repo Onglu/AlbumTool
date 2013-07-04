@@ -34,7 +34,9 @@ SOURCES += main.cpp\
     wrapper/PictureLabel.cpp \
     wrapper/PhotoLayer.cpp \
     SqlEngine.cpp \
-    wrapper/BgdLayer.cpp
+    wrapper/BgdLayer.cpp \
+    wrapper/MakeHelper.cpp \
+    page/AlbumPageWidget.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -59,7 +61,9 @@ HEADERS  += \
     defines.h \
     events.h \
     SqlEngine.h \
-    wrapper/BgdLayer.h
+    wrapper/BgdLayer.h \
+    wrapper/MakeHelper.h \
+    page/AlbumPageWidget.h
 
 FORMS    += \
     MainWindow.ui \

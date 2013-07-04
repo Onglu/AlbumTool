@@ -1,6 +1,7 @@
 #include "PictureLabel.h"
 #include "utility.h"
 #include <QPainter>
+#include <QDebug>
 
 bool PictureLabel::loadPicture(const QPixmap &pix, QSize size)
 {
@@ -12,7 +13,7 @@ bool PictureLabel::loadPicture(const QPixmap &pix, QSize size)
     }
 
     m_bk = m_ori.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    m_size = m_bk.size();
+    m_size = m_default = m_bk.size();
 
     setFixedSize(m_size);
     setPixmap(m_bk);
@@ -27,18 +28,19 @@ void PictureLabel::scaledZoom(float scale, Qt::AspectRatioMode aspectRatioMode)
         return;
     }
 
-    if (!scale)
+    if (scale)
     {
-        m_bk = m_ori;
-    }
-    else
-    {
-        m_bk = m_ori.scaled(1 == scale ? this->size() : QSize(m_bk.width() * scale, m_bk.height() * scale),
+        m_bk = m_ori.scaled(1 == scale ? m_default : QSize(m_bk.width() * scale, m_bk.height() * scale),
                             aspectRatioMode,
                             Qt::SmoothTransformation);
     }
+    else
+    {
+        m_bk = m_ori;
+    }
 
     m_size = m_bk.size();
+    setFixedSize(m_size);
     setPixmap(m_bk);
 }
 
@@ -49,7 +51,7 @@ void PictureLabel::setOpacity(QPixmap &pix, qreal opacity)
         return;
     }
 
-    QPixmap result(m_size);
+    QPixmap result(pix.size());
     result.fill(Qt::transparent);
 
     QPainter painter;
@@ -57,8 +59,7 @@ void PictureLabel::setOpacity(QPixmap &pix, qreal opacity)
     painter.setOpacity(m_opacity = opacity);
     painter.drawPixmap(0, 0, pix);
     painter.end();
-
-    setPixmap(pix = result);
+    pix = result;
 }
 
 void PictureLabel::rotate(qreal angle, Qt::Axis axis)
@@ -66,6 +67,8 @@ void PictureLabel::rotate(qreal angle, Qt::Axis axis)
     if (!m_bk.isNull())
     {
         m_angle = Converter::rotation(m_angle, angle);
+        m_axis = axis;
+        m_ori = m_ori.transformed(QTransform().rotate(angle, axis), Qt::SmoothTransformation);
         m_bk = m_bk.transformed(QTransform().rotate(angle, axis), Qt::SmoothTransformation);
         setFixedSize(m_bk.size());
         setPixmap(m_bk);

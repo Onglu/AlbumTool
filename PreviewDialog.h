@@ -59,7 +59,7 @@ signals:
     void itemDetached(QGraphicsScene *scene, const QString &name);
 
 private:
-    void swicth(int index);
+    void switchPage(int index);
     void rotate(qreal angle, Qt::Axis axis = Qt::ZAxis);
 
     Ui::PreviewDialog *ui;

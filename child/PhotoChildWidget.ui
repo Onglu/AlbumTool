@@ -14,7 +14,7 @@
    <string>Form</string>
   </property>
   <property name="toolTip">
-   <string>鼠标点中以拖放</string>
+   <string/>
   </property>
   <property name="autoFillBackground">
    <bool>true</bool>

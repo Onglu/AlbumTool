@@ -2,15 +2,42 @@
 #include <QPainter>
 #include <QDebug>
 
-void BgdLayer::compose(int type, const QString &fileName)
+void BgdLayer::loadPixmap(const QPixmap &pix)
 {
-    if (VISIABLE_IMG_TYPES <= type || m_srcImg[type].isNull())
+    QSize size = parentWidget() ? parentWidget()->size() : this->size();
+
+    //qDebug() << __FILE__ << __LINE__ << size;
+
+    if (loadPicture(pix, size))
+    {
+//            m_srcImg[PhotoLayer::VisiableImgTypeScreen] = m_bk.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+//            m_srcImg[PhotoLayer::VisiableImgTypeOriginal] = m_ori.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+//            m_ratioSize.setWidth((qreal)m_size.width() / m_actualSize.width());
+//            m_ratioSize.setHeight((qreal)m_size.height() / m_actualSize.height());
+
+        if (PhotoLayer::VisiableImgTypeScreen == m_type)
+        {
+            m_srcImg = m_bk.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+            m_ratioSize.setWidth((qreal)m_size.width() / m_actualSize.width());
+            m_ratioSize.setHeight((qreal)m_size.height() / m_actualSize.height());
+        }
+        else
+        {
+            m_srcImg = m_ori.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
+            m_ratioSize = QSizeF(1, 1);
+        }
+    }
+}
+
+void BgdLayer::compose(const QString &fileName)
+{
+    if (VISIABLE_IMG_TYPES <= m_type || m_srcImg/*[m_type]*/.isNull())
     {
         return;
     }
 
-    QImage composedImg = m_srcImg[type];
-    QSizeF ratioSize = VISIABLE_IMG_SCREEN == type ? m_ratioSize : QSizeF(1, 1);
+    QImage composedImg = m_srcImg/*[m_type]*/;
+    //QSizeF ratioSize = PhotoLayer::VisiableImgTypeScreen == m_type ? m_ratioSize : QSizeF(1, 1);
 
     int index = 0;
     QPainter painter(&composedImg);
@@ -18,9 +45,10 @@ void BgdLayer::compose(int type, const QString &fileName)
 
     foreach (const QVariant &layer, m_layers)
     {
-        qreal opacity = 1, angle = 0;
         QVariantMap data = layer.toMap();
         QString file = data["filename"].toString();
+        qreal opacity = data["opacity"].toReal();
+        qreal angle = data["angle"].toReal();
 
         //qDebug() << __FILE__ << __LINE__ << "layer:" << filename;
 
@@ -35,13 +63,14 @@ void BgdLayer::compose(int type, const QString &fileName)
             //qDebug() << __FILE__ << __LINE__ << index << label->hasPicture();
             if (label && label->hasPhoto())
             {
-                QRect rect = label->visiableRect();
-                QImage img = label->visiableImg(type);
-                //painter.setTransform(QTransform().rotate(angle));
+                QRect rect = label->getVisiableRect();
+                QImage img = label->getVisiableImg();
+                painter.setTransform(QTransform().rotate(angle));
                 painter.setOpacity(opacity);
-                painter.drawImage(VISIABLE_IMG_SCREEN == type ? rect : label->actualRect(rect), img);
+                //painter.drawImage(PhotoLayer::VisiableImgTypeScreen == m_type ? rect : label->getActualRect(rect), img);
+                painter.drawImage(rect, img);
                 //img.save(tr("C:\\Users\\Onglu\\Desktop\\test\\Composed_%1x%2_%3").arg(rect1.width()).arg(rect1.height()).arg(file));
-                //qDebug() << __FILE__ << __LINE__ << "photo:" << file << rect1 << type;
+                //qDebug() << __FILE__ << __LINE__ << "photo:" << file << rect;
             }
 
             index++;
@@ -49,8 +78,8 @@ void BgdLayer::compose(int type, const QString &fileName)
         else
         {
             QVariantMap frame = data["frame"].toMap();
-            QSize size = QSize(frame["width"].toInt() * ratioSize.width(), frame["height"].toInt() * ratioSize.height());
-            QPoint pos = QPoint(frame["x"].toInt() * ratioSize.width(), frame["y"].toInt() * ratioSize.height());
+            QSize size = QSize(frame["width"].toInt() * m_ratioSize.width(), frame["height"].toInt() * m_ratioSize.height());
+            QPoint pos = QPoint(frame["x"].toInt() * m_ratioSize.width(), frame["y"].toInt() * m_ratioSize.height());
             int x = pos.x() - size.width() / 2;
             int y = pos.y() - size.height() / 2;
 
@@ -60,8 +89,6 @@ void BgdLayer::compose(int type, const QString &fileName)
                 continue;
             }
 
-            opacity = data["opacity"].toReal();
-            angle = data["angle"].toReal();
             painter.setTransform(QTransform().rotate(angle));
             painter.setOpacity(opacity);
 
@@ -77,7 +104,7 @@ void BgdLayer::compose(int type, const QString &fileName)
     painter.drawImage(0, 0, composedImg);
     painter.end();
 
-    if (VISIABLE_IMG_SCREEN == type)
+    if (PhotoLayer::VisiableImgTypeScreen == m_type)
     {
         setPixmap(QPixmap::fromImage(composedImg));
     }

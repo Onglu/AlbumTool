@@ -18,10 +18,16 @@ public:
                               Qt::Axis axis = Qt::ZAxis,
                               TaskPageWidget *parent = 0);
 
-    const QVariantMap &getBelongings(void){return m_Belongings;}
+    const QVariantMap &getBelongings(void){return m_belongings;}
 
     void setId(int id){m_id = id;/* zero-based index */}
     int getId(void) const {return m_id;}
+
+    static void getRotation(qreal &angle, Qt::Axis &axis)
+    {
+        angle = m_angle;
+        axis = m_axis;
+    }
 
     static void updateList(const QStringList &photosList){m_photosList = photosList;}
 
@@ -33,8 +39,10 @@ protected:
 
 private:
     int m_id;   // A zero-based id number of every photo which added in a album photoslist
-    QVariantMap m_Belongings;
+    QVariantMap m_belongings;
     static QStringList m_photosList;
+    static qreal m_angle;
+    static Qt::Axis m_axis;
 };
 
 #endif // THUMBCHILDWIDGET_H

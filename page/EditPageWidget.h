@@ -2,14 +2,13 @@
 #define EDITPAGEWIDGET_H
 
 #include <QWidget>
-#include "page/TemplatePageWidget.h"
-#include "child/PhotoChildWidget.h"
+#include "TemplatePageWidget.h"
 #include "child/AlbumChildWidget.h"
-#include "child/TemplateChildWidget.h"
-#include "wrapper/BgdLayer.h"
 
 class PictureGraphicsScene;
+class AlbumPageWidget;
 class TaskPageWidget;
+class PhotoLayer;
 class QPushButton;
 
 namespace Ui {
@@ -65,58 +64,44 @@ private slots:
     /* Replaced picture file */
     void onReplaced(const QString &current, const QString &replaced);
 
-    void onRefreshed(PhotoLayer &label);
-
     void onClicked(PhotoLayer &label, QPoint pos);
 
     void on_mirroredPushButton_clicked();
 
     void on_resetPushButton_clicked();
-
+#if 1
     void on_zoomInPushButton_clicked();
 
     void on_zoomOutPushButton_clicked();
+#else
+    void on_zoomInPushButton_pressed();
 
-//    void on_zoomInPushButton_pressed();
+    void on_zoomInPushButton_released();
 
-//    void on_zoomInPushButton_released();
+    void on_zoomOutPushButton_pressed();
 
-//    void on_zoomOutPushButton_pressed();
-
-//    void on_zoomOutPushButton_released();
+    void on_zoomOutPushButton_released();
+#endif
 
 private:
-    void updateLayers(void);
-
     void enableButtons(bool enable = true);
 
     void releaseButton(const QPushButton &button);
 
-    bool swicth(int index);
+    void zoomAction(QPushButton &button, bool in);
+
+    bool switchPage(int index);
 
     void adjustViewLayout(void);
 
     void adjustThumbsHeight(void);
 
-    void showPhotos(bool visiable)
-    {
-        for (int i = 0; i < PHOTOS_NUMBER; i++)
-        {
-            if (visiable)
-            {
-                m_layerLabels[i]->show();
-            }
-            else
-            {
-                m_layerLabels[i]->hide();
-            }
-        }
-    }
-
     Ui::EditPageWidget *ui;
 
     TaskPageWidget *m_container;
+    PhotoLayer *m_layerLabel;
     AlbumChildWidget *m_pAlbumWidget;
+    AlbumPageWidget *m_pAlbumPage;
     TemplatePageWidget *m_pTemplatePage;
     PictureGraphicsScene *m_pThumbsScene;
 
@@ -124,11 +109,6 @@ private:
     int m_current, m_x, m_y;
     QPoint m_startPos;
     ChildWidgetsMap m_albumsMap;
-
-    QVariantList m_layers, m_photoLayers;
-    LabelsVector m_layerLabels;
-    PhotoLayer *m_layerLabel;
-    BgdLayer *m_bgdLabel;
 
     friend class TaskPageWidget;
 };

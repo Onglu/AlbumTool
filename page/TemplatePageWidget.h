@@ -25,7 +25,7 @@ public:
 
     QGraphicsView *getView(void) const;
 
-    bool changeTmplFile(const QVariantMap &belongings);
+    bool changeTemplate(const QVariantMap &belongings);
     const QVariantMap &getBelongings(void){return m_belongings;}
 
 signals:

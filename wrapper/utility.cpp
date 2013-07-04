@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <QtSql>
 
-const QStringList &Converter::v2s(const QVector<QString> strVector, QStringList &strList)
+const QStringList &Converter::v2l(const QVector<QString> strVector, QStringList &strList)
 {
     int size = strVector.size();
     for (int i = 0; i < size; i++)
@@ -33,15 +33,21 @@ int Converter::num(const QStringList &strList, bool empty)
     return n;
 }
 
-const QString &Converter::fileName(const QString &path, QString &name)
+const QString &Converter::getFileName(const QString &fullPath, QString &fileName, bool suffix)
 {
-    int pos = path.lastIndexOf('.');
-    if (-1 != pos)
+    if (!fullPath.isEmpty())
     {
-        name = path.left(pos);
+        int pos = -1, start = fullPath.lastIndexOf(QDir::separator()) + 1;
+
+        if (!suffix && -1 != (pos = fullPath.lastIndexOf('.')))
+        {
+            pos = pos - start;
+        }
+
+        fileName = fullPath.mid(start, pos);
     }
 
-    return name;
+    return fileName;
 }
 
 bool SqlHelper::connectDb()

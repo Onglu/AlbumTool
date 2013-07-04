@@ -43,7 +43,7 @@ public:
                  const QString &current,
                  const QString &replaced);
 
-    TemplateChildWidget *getTemplateWidget(const QString &tmplFile) const;
+    TemplateChildWidget *getTmplWidget(const QString &tmplFile) const;
 
     const QString &getPageId(void) const {return m_taskParser.getPageId();}
 
@@ -86,8 +86,12 @@ private slots:
 
     void finishLoaded(uchar state);
 
+    void on_makePushButton_clicked();
+
 private:
     void loadViewItems(const QVariantList &recordsList, ViewType view);
+
+    void countLocations(PictureGraphicsScene::SceneType type);
 
     Ui::TaskPageWidget *ui;
     int m_tabId;

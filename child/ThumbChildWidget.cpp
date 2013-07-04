@@ -5,6 +5,8 @@
 #include <QDebug>
 
 QStringList ThumbChildWidget::m_photosList;
+qreal ThumbChildWidget::m_angle = 0;
+Qt::Axis ThumbChildWidget::m_axis = Qt::ZAxis;
 
 ThumbChildWidget::ThumbChildWidget(int index,
                                    const QString &mimeType,
@@ -12,7 +14,7 @@ ThumbChildWidget::ThumbChildWidget(int index,
                                    qreal angle,
                                    Qt::Axis axis,
                                    TaskPageWidget *parent) :
-    PictureChildWidget(QSize(162, 142), true, parent)
+    PictureChildWidget(file, QSize(162, 142), true, parent)
 {
     setIndexLabel(index, NULL, QPoint(11, 4));
     setPictureLabel(QPixmap(file), QSize(141, 96), mimeType, this, QPoint(11, 22));
@@ -24,7 +26,7 @@ ThumbChildWidget::ThumbChildWidget(int index,
     }
 
     PhotoChildWidget::setPhoto(*m_picLabel, file, angle, axis);
-    m_Belongings = m_picLabel->getBelongings();
+    m_belongings = m_picLabel->getBelongings();
 }
 
 void ThumbChildWidget::dropEvent(QDropEvent *event)
@@ -45,8 +47,10 @@ void ThumbChildWidget::dropEvent(QDropEvent *event)
     stream >> pix >> offset;
     m_picLabel->setPixmap(pix);
 
-    m_Belongings = picLabel->getBelongings();
-    m_Belongings["used_times"] = m_Belongings["used_times"].toInt() + 1;
+    m_belongings = picLabel->getBelongings();
+    m_angle = m_belongings["rotation_angle"].toReal();
+    m_axis = (Qt::Axis)m_belongings["rotation_axis"].toInt();
+    m_belongings["used_times"] = m_belongings["used_times"].toInt() + 1;
 
     QString current = m_picLabel->getPictureFile();
     m_photosList.removeOne(current);
@@ -55,8 +59,8 @@ void ThumbChildWidget::dropEvent(QDropEvent *event)
     m_photosList.append(replaced);
 
     //qDebug() << __FILE__ << __LINE__ << "current:" << current << "," << ut
-             //<< ", replaced:" << picLabel->getPictureFile() << "," << m_Belongings["used_times"].toInt();
+             //<< ", replaced:" << picLabel->getPictureFile() << "," << m_belongings["used_times"].toInt();
     emit itemReplaced(current, replaced);
 
-    m_picLabel->setBelongings(m_Belongings);
+    m_picLabel->setBelongings(m_belongings);
 }

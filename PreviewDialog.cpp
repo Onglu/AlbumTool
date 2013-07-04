@@ -58,7 +58,7 @@ PreviewDialog::PreviewDialog(const QStringList &pictures, int current, QWidget *
 
     if (0 <= current && current < pictures.size())
     {
-        swicth(current);
+        switchPage(current);
     }
 }
 
@@ -102,7 +102,7 @@ void PreviewDialog::updateList(const QStringList &pictures, int current)
     m_picturesList = pictures;
     if (0 <= current && current < pictures.size())
     {
-        swicth(m_current = current);
+        switchPage(m_current = current);
     }
 }
 
@@ -338,7 +338,7 @@ void PreviewDialog::on_fullScreenPushButton_clicked()
     }
 }
 
-inline void PreviewDialog::swicth(int index)
+inline void PreviewDialog::switchPage(int index)
 {
     if (!m_picturesList.size())
     {
@@ -353,7 +353,7 @@ inline void PreviewDialog::swicth(int index)
     fileName = fileName.right(fileName.length() - fileName.lastIndexOf(QDir::separator()) - 1);
     setWindowTitle(QString("%1（%2KB，%3x%4像素） - 第%5/%6张").arg(fileName).arg(file.size() / 1024).arg(pix.width()).arg(pix.height()).arg(index + 1).arg(m_picturesList.size()));
 
-    //qDebug() << "swicth picture:" << fileName;
+    //qDebug() << "switchPage picture:" << fileName;
 
     if (1440 < pix.width() || 900 < pix.height())
     {
@@ -380,7 +380,7 @@ void PreviewDialog::on_prevPushButton_clicked()
         index = m_picturesList.size() - 1;
     }
 
-    swicth(index);
+    switchPage(index);
 }
 
 void PreviewDialog::on_nextPushButton_clicked()
@@ -392,7 +392,7 @@ void PreviewDialog::on_nextPushButton_clicked()
         index = 0;
     }
 
-    swicth(index);
+    switchPage(index);
 }
 
 inline void PreviewDialog::rotate(qreal angle, Qt::Axis axis)
@@ -450,6 +450,6 @@ void PreviewDialog::on_deletePushButton_clicked()
             m_current = 0;
         }
 
-        swicth(m_current);
+        switchPage(m_current);
     }
 }

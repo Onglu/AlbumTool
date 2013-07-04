@@ -9,14 +9,12 @@
 #include <QWaitCondition>
 #include <QMutex>
 
-#define MAKER_NAME  "tmaker.exe"
-
 class Converter
 {
 public:
     Converter(){}
 
-    static const QStringList &v2s(const QVector<QString> strVector, QStringList &strList);
+    static const QStringList &v2l(const QVector<QString> strVector, QStringList &strList);
     static int num(const QStringList &strList, bool empty = false/* equal with its size */);
     static qreal rotation(qreal &current, qreal degree)
     {
@@ -37,7 +35,9 @@ public:
         return current;
     }
 
-    static const QString &fileName(const QString &path, QString &name);
+    static const QString &getFileName(const QString &fullPath,
+                                      QString &fileName,
+                                      bool suffix);
 };
 
 class SqlHelper
@@ -143,6 +143,8 @@ private:
     QStringList m_existingsList, m_filesList;
     ViewType m_viewType;
 };
+
+#define MAKER_NAME  "tmaker.exe"
 
 class CryptThread : public QThread
 {

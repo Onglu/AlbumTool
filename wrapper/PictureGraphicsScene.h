@@ -16,7 +16,11 @@ class PictureGraphicsScene : public QGraphicsScene
 {
 public:
     enum LayoutMode{LayoutMode_Grid, LayoutMode_Horizontality};
-    enum SceneType{SceneType_Photos, SceneType_Templates, SceneType_Albums, SceneType_Thumbs, SceneType_End};
+    enum SceneType{SceneType_Photos,
+                   SceneType_Templates,
+                   SceneType_Albums,
+                   SceneType_Thumbs,
+                   SceneType_End};
 
     PictureGraphicsScene(const QBrush &bkclr,
                          LayoutMode layout,

@@ -43,17 +43,22 @@ class TemplateChildWidget : public PictureChildWidget
 
 public:
     explicit TemplateChildWidget(int index,
-                                 const QString &tmplFile,
+                                 const QString &file,
                                  int usedTimes = 0,
                                  TaskPageWidget *parent = 0);
 
-    TemplateChildWidget(const QString &tmplFile, DraggableLabel *label);
+    TemplateChildWidget(const QString &file, DraggableLabel *label);
 
     const QVariantMap &getChanges(void);
 
     const QString &getTmplFile(void){return m_tmplFile;}
 
     bool getTmplPic(QString &tmplPic);
+
+    static bool isCover(const QVariantMap &data)
+    {
+        return (1 == data["pagetype"].toInt());
+    }
 
     static QSize getSize(const QVariantMap &data)
     {
@@ -67,14 +72,14 @@ public:
     {
         memset(locations, 2, 0);
 
-        if (data.contains("landscapeCount"))
-        {
-            locations[0] = (uchar)data["landscapeCount"].toUInt();
-        }
-
         if (data.contains("portraitCount"))
         {
-            locations[1] = (uchar)data["portraitCount"].toUInt();
+            locations[PORTRAIT_PICTURE] = (uchar)data["portraitCount"].toUInt();
+        }
+
+        if (data.contains("landscapeCount"))
+        {
+            locations[PORTRAIT_PICTURE] = (uchar)data["landscapeCount"].toUInt();
         }
 
         return locations;
@@ -110,7 +115,6 @@ private slots:
     void processFinished(int, QProcess::ExitStatus);
 
 private:
-
     void loadPicture(QVariantMap &data, QString tmplPic = QString());
 
     int getId(void);

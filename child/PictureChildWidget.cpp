@@ -4,7 +4,13 @@
 #include <QDebug>
 #include "page/TaskPageWidget.h"
 
-PictureChildWidget::PictureChildWidget(QSize fixedSize, bool droppable, TaskPageWidget *container) :
+PictureChildWidget::PictureChildWidget(const QString &file, QWidget *parent) : QWidget(parent)
+{
+    QString name;
+    setToolTip(Converter::getFileName(file, name, true));
+}
+
+PictureChildWidget::PictureChildWidget(const QString &file, QSize fixedSize, bool droppable, TaskPageWidget *container) :
     QWidget(0),
     m_container(container),
     m_index(0),
@@ -17,6 +23,9 @@ PictureChildWidget::PictureChildWidget(QSize fixedSize, bool droppable, TaskPage
     Q_ASSERT(m_container);
 
     m_defaultPalette = palette();
+
+    QString name;
+    setToolTip(Converter::getFileName(file, name, true));
 
     setFixedSize(fixedSize);
     setAcceptDrops(droppable);

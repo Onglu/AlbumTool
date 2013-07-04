@@ -1,8 +1,10 @@
 #include "TaskPageWidget.h"
 #include "ui_TaskPageWidget.h"
+#include "StartupPageWidget.h"
 #include "PreviewDialog.h"
-#include "page/StartupPageWidget.h"
 #include "MainWindow.h"
+#include "child/PhotoChildWidget.h"
+#include "child/TemplateChildWidget.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QMovie>
@@ -111,35 +113,10 @@ inline void TaskPageWidget::noticeChanged()
     {
         m_bChanged = true;
         emit changed(m_tabId);
+
+        countLocations(PictureGraphicsScene::SceneType_Photos);
+        countLocations(PictureGraphicsScene::SceneType_Albums);
     }
-
-    if (m_pPhotosScene == PictureProxyWidget::getFocusScene())
-    {
-        int times = 0;
-        PictureProxyWidget *proxyWidget = NULL;
-        GraphicsItemsList items = m_pPhotosScene->items();
-
-        foreach (QGraphicsItem *item, items)
-        {
-            if ((proxyWidget = static_cast<PictureProxyWidget *>(item)))
-            {
-                PhotoChildWidget &childWidget = (PhotoChildWidget &)proxyWidget->getChildWidget();
-                if (childWidget.usedTimes())
-                {
-                    times++;
-                }
-            }
-        }
-
-        QString photosUsage = tr("共导入 %1 张图片").arg(items.size());
-        if (times)
-        {
-            photosUsage += tr("，已使用 %2 张").arg(times);
-        }
-        ui->photosLabel->setText(photosUsage);
-    }
-
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << m_pPhotosScene << m_pTemplatesScene << m_pAlbumsScene << PictureProxyWidget::getFocusScene();
 }
 
 char *TaskPageWidget::saveFile(uchar mode)
@@ -353,6 +330,12 @@ void TaskPageWidget::finishLoaded(uchar state)
         if (!m_pPhotosLoader->isActive() && !m_pTemplatesLoader->isActive() && !m_pAlbumsLoader->isActive())
         {
             showProcess(false);
+
+            if (LOAD_RECORDS == state)
+            {
+                countLocations(PictureGraphicsScene::SceneType_Photos);
+                countLocations(PictureGraphicsScene::SceneType_Albums);
+            }
         }
 
         if (!m_pPhotosLoader->isActive() && !m_pPhotosScene->loadFinished())
@@ -695,6 +678,73 @@ void TaskPageWidget::on_collapsePushButton_clicked()
     m_pPhotosScene->adjustViewLayout();
 }
 
+void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
+{
+    if (PictureGraphicsScene::SceneType_End <= type)
+    {
+        return;
+    }
+
+    int landscape = 0, portrait = 0, count = 0;
+    PictureGraphicsScene *scene = m_scensVector[type];
+    PictureProxyWidget *proxyWidget = NULL;
+    GraphicsItemsList items = scene->items();
+
+    if (PictureGraphicsScene::SceneType_Photos == type)
+    {
+        foreach (QGraphicsItem *item, items)
+        {
+            if ((proxyWidget = static_cast<PictureProxyWidget *>(item)))
+            {
+                const PhotoChildWidget *childWidget = (PhotoChildWidget *)proxyWidget->getChildWidgetPtr();
+                if (childWidget && !childWidget->usedTimes())
+                {
+                    if (childWidget->getPictureLabel()->getOrientation())
+                    {
+                        landscape++;
+                    }
+                    else
+                    {
+                        portrait++;
+                    }
+                }
+            }
+        }
+
+        QString info = tr("共导入 %1 张照片，未入册竖幅 %2 张，横幅 %3 张").arg(items.size()).arg(portrait).arg(landscape);
+        ui->photosLabel->setText(info);
+    }
+
+    if (PictureGraphicsScene::SceneType_Albums == type)
+    {
+        foreach (QGraphicsItem *item, items)
+        {
+            if ((proxyWidget = static_cast<PictureProxyWidget *>(item)))
+            {
+                const AlbumChildWidget *childWidget = (AlbumChildWidget *)proxyWidget->getChildWidgetPtr();
+                uchar locations[2] = {0};
+                int num = childWidget->getLocations(locations);
+
+                if (num)
+                {
+                    count += num;
+                    if (locations[LANDSCAPE_PICTURE])
+                    {
+                        landscape++;
+                    }
+                    else
+                    {
+                        portrait++;
+                    }
+                }
+            }
+        }
+
+        QString info = tr("共有 %1 个空位，需要竖幅照片 %2 张，横幅照片 %3 张 ").arg(count).arg(portrait).arg(landscape);
+        ui->albumsLabel->setText(info);
+    }
+}
+
 void TaskPageWidget::on_importPhotosPushButton_clicked()
 {
     QStringList fileNames;
@@ -801,11 +851,11 @@ void TaskPageWidget::enterEdit(bool enter)
 {
     if (enter)
     {
-        emit maxShow(true);
         ui->collapsePushButton->hide();
         ui->photosGroupBox->hide();
         ui->templatesGroupBox->hide();
         ui->albumsGroupBox->hide();
+        emit maxShow(true);
         m_pEditPage->show();
         m_pEditPage->adjustViewLayout();
     }
@@ -827,7 +877,7 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
 {
     bool ok = false;
 
-    qDebug() << __FILE__ << __LINE__ << current << replaced;
+    //qDebug() << __FILE__ << __LINE__ << current << replaced;
 
     if (PictureGraphicsScene::SceneType_Albums > type && current != replaced)
     {
@@ -869,7 +919,7 @@ bool TaskPageWidget::replace(PictureGraphicsScene::SceneType type,
     return ok;
 }
 
-TemplateChildWidget *TaskPageWidget::getTemplateWidget(const QString &tmplFile) const
+TemplateChildWidget *TaskPageWidget::getTmplWidget(const QString &tmplFile) const
 {
     ProxyWidgetsMap &proxyWidgets = m_pTemplatesScene->getProxyWidgets();
 
@@ -1029,6 +1079,21 @@ void TaskPageWidget::onSearch(bool immediate, bool inner, const QVariantMap &tag
             }
 
             ++iter;
+        }
+    }
+}
+
+void TaskPageWidget::on_makePushButton_clicked()
+{
+    QString taskFile = m_taskParser.getParsingFile(), outDir = taskFile.left(taskFile.length() - 5);
+    ProxyWidgetsMap proxyWidgets = m_pAlbumsScene->getProxyWidgets();
+
+    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
+    {
+        AlbumChildWidget *childWidget = static_cast<AlbumChildWidget *>(proxyWidget->getChildWidgetPtr());
+        if (childWidget)
+        {
+            childWidget->output(outDir);
         }
     }
 }

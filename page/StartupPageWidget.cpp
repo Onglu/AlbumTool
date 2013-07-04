@@ -60,6 +60,9 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
 //        query.exec(sql);
 //    }
 
+//    QString photoName;
+//    Converter::getFileName("C:\\Users\\Onglu\\Desktop\\test\\Copied_kk.png", photoName, true);
+//    qDebug() << __FILE__ << __LINE__ << photoName;
 }
 
 StartupPageWidget::~StartupPageWidget()

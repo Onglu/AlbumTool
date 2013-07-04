@@ -11,10 +11,13 @@ PhotoChildWidget::PhotoChildWidget(int index,
                                    Qt::Axis axis,
                                    int usedTimes,
                                    TaskPageWidget *parent) :
-    PictureChildWidget(QSize(162, 142), true, parent),
+    PictureChildWidget(file, QSize(162, 142), true, parent),
     ui(new Ui::PhotoChildWidget)
 {
     ui->setupUi(this);
+
+    QString name;
+    setToolTip(Converter::getFileName(file, name, true));
 
     setIndexLabel(index, ui->indexLabel);
 

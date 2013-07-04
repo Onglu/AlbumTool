@@ -46,7 +46,7 @@ inline void TemplatePageWidget::setPreviewable(bool previewable)
     }
 }
 
-bool TemplatePageWidget::changeTmplFile(const QVariantMap &belongings)
+bool TemplatePageWidget::changeTemplate(const QVariantMap &belongings)
 {
     bool ok = false;
     QString tmplPic = belongings["picture_file"].toString();
@@ -97,7 +97,7 @@ void TemplatePageWidget::dropEvent(QDropEvent *event)
     {
         QString currPic = m_belongings["picture_file"].toString();
         QVariantMap belongings = picLabel->getBelongings();
-        if (changeTmplFile(belongings))
+        if (changeTemplate(belongings))
         {
             event->acceptProposedAction();
             emit replaced(currPic, belongings["template_file"].toString());

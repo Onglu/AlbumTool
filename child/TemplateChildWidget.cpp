@@ -12,15 +12,13 @@ using namespace QtJson;
 using namespace TemplatesSql;
 
 TemplateChildWidget::TemplateChildWidget(int index,
-                                         const QString &tmplFile,
+                                         const QString &file,
                                          int usedTimes,
                                          TaskPageWidget *parent) :
-    PictureChildWidget(QSize(90, 130), true, parent),
-    m_tmplFile(QDir::toNativeSeparators(tmplFile)),
+    PictureChildWidget(file, QSize(90, 130), true, parent),
+    m_tmplFile(QDir::toNativeSeparators(file)),
     m_sql(this)
 {
-    setToolTip(tr("鼠标点中以拖放"));
-
     setIndexLabel(index, NULL, QPoint(9, 3));
 
     m_records.insert("template_file", m_tmplFile);
@@ -43,9 +41,9 @@ TemplateChildWidget::TemplateChildWidget(int index,
     }
 }
 
-TemplateChildWidget::TemplateChildWidget(const QString &tmplFile, DraggableLabel *label) :
-    PictureChildWidget(),
-    m_tmplFile(tmplFile),
+TemplateChildWidget::TemplateChildWidget(const QString &file, DraggableLabel *label) :
+    PictureChildWidget(file),
+    m_tmplFile(file),
     m_sql(this)
 {
     m_picLabel = label;
@@ -108,6 +106,11 @@ void TemplateChildWidget::onAccept(const QVariantMap &belongings)
     }
 
     m_records["used_times"] = belongings["used_times"];
+
+    if (!m_pictures.isEmpty())
+    {
+        m_pictures.clear();
+    }
 
     PictureChildWidget::onAccept(belongings);
 }
@@ -466,7 +469,6 @@ const QVariantMap &TemplateChildWidget::loadPictures()
 
     if (!m_pictures.isEmpty())
     {
-        //m_pictures.clear();
         return m_pictures;
     }
 
@@ -480,11 +482,11 @@ const QVariantMap &TemplateChildWidget::loadPictures()
     foreach (const QVariant &layer, layers)
     {
         QVariantMap data = layer.toMap();
-
         m_currFile = data["id"].toString();
         if (LT_Photo == data["type"].toInt())
         {
             m_currFile += PIC_FMT;
+            //continue;
         }
         else
         {
@@ -495,8 +497,7 @@ const QVariantMap &TemplateChildWidget::loadPictures()
         //qDebug() << __FILE__ << __LINE__ << m_currFile;
     }
 
-    //qDebug() << __FILE__ << __LINE__ << m_tmplFile;
-    qDebug() << __FILE__ << __LINE__ << "time costs:" << tm.elapsed() << "after loaded" << m_pictures.size() << "pictures";
+    qDebug() << __FILE__ << __LINE__ << "costs" << tm.elapsed() << "ms after loaded" << m_pictures.size() << "pictures";
 
     return m_pictures;
 }

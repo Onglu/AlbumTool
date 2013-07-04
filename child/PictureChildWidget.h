@@ -15,9 +15,10 @@ class PictureChildWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit PictureChildWidget(QWidget *parent = 0) : QWidget(parent){}
+    explicit PictureChildWidget(const QString &file, QWidget *parent = 0);
 
-    PictureChildWidget(QSize fixedSize,
+    PictureChildWidget(const QString &file,
+                       QSize fixedSize,
                        bool droppable = true,
                        TaskPageWidget *container = 0);
 

@@ -8,6 +8,8 @@
 #define DRAGGABLE_TEMPLATE      "image/x-draggable-template-23807"
 #define DRAGGABLE_ALBUM         "image/x-draggable-album-80732"
 #define TEXT_SEP                '|'
+#define PORTRAIT_PICTURE        0
+#define LANDSCAPE_PICTURE       1
 
 class DraggableLabel : public QLabel
 {
@@ -32,6 +34,11 @@ public:
         }
 
         return "";
+    }
+
+    uchar getOrientation(void) const
+    {
+        return (0 < m_pix.width() - m_pix.height() ? LANDSCAPE_PICTURE : PORTRAIT_PICTURE);
     }
 
     QString getMimeType(void) const {return m_mimeType;}

@@ -4,8 +4,8 @@
 #include <QVariant>
 #include "PictureLabel.h"
 
-#define VISIABLE_IMG_SCREEN          0
-#define VISIABLE_IMG_ORIGINAL        1
+//#define VISIABLE_IMG_SCREEN          0
+//#define VISIABLE_IMG_ORIGINAL        1
 #define VISIABLE_IMG_TYPES           2
 #define VISIABLE_RECT_TYPES          4
 
@@ -14,49 +14,70 @@ class PhotoLayer : public PictureLabel
     Q_OBJECT
 
 public:
-    PhotoLayer(QWidget *parent) : PictureLabel(parent),
-        m_moveable(false),
-        m_moved(false),
-        m_ratioSize(QSizeF(1, 1))
-    {
-        setFrameShape(QFrame::Box);
-        setFrameShadow(QFrame::Raised);
-        //setAlignment(Qt::AlignCenter);
-    }
+    enum VisiableImgType{VisiableImgTypeScreen,
+                         VisiableImgTypeOriginal};
 
     enum VisiableRectType{VisiableRectTypeDefault,
                           VisiableRectTypeCanvas,
                           VisiableRectTypeCopied,
                           VisiableRectTypeFixed};
 
+    PhotoLayer(VisiableImgType type, QWidget *parent);
+
+    void setCanvas(QSizeF ratioSize, QRect bgdRect)
+    {
+        if (!ratioSize.width())
+        {
+            ratioSize.setWidth(1);
+        }
+
+        if (!ratioSize.height())
+        {
+            ratioSize.setHeight(1);
+        }
+
+        m_ratioSize = ratioSize;
+        m_bgdRect = bgdRect;
+    }
+
     bool loadPhoto(const QVariantMap &photoLayer,
-                   QSizeF ratioSize,
-                   QRect bgdRect,
-                   const QString &replaced = QString());
+                   const QString &photoFile = QString(),
+                   qreal angle = 0,
+                   Qt::Axis axis = Qt::ZAxis);
 
-    void changePhoto(const QVariantMap &belongings);
+    void changePhoto(const QString &photoFile,
+                     qreal angle = 0,
+                     Qt::Axis axis = Qt::ZAxis);
 
-    bool hasPhoto(int type = VISIABLE_IMG_SCREEN){return !m_visiableImgs[type].isNull();}
+    //bool hasPhoto(int type = VISIABLE_IMG_SCREEN){return !m_visiableImgs[type].isNull();}
+    bool hasPhoto(void) const {return /*!m_visiableImgs[m_type].isNull()*/!m_visiableImg.isNull();}
 
-    QRect visiableRect(VisiableRectType type = VisiableRectTypeDefault) const
+    const QString &getPhoto(void) const {return m_picFile;}
+
+    void setVisiableRect(VisiableRectType type, QRect rect)
+    {
+        m_visiableRects[type] = rect;
+    }
+
+    QRect getVisiableRect(VisiableRectType type = VisiableRectTypeDefault) const
     {
         return m_visiableRects[type];
     }
 
-    const QImage &visiableImg(int type = VISIABLE_IMG_SCREEN) const {return m_visiableImgs[type];}
+    const QImage &getVisiableImg() const {return m_visiableImg/*s[m_type]*/;}
 
     QRect getFrame(void) const
     {
-        return actualRect(m_visiableRects[VisiableRectTypeCanvas].center(),
-                         m_visiableRects[VisiableRectTypeCanvas].size());
+        return getActualRect(m_visiableRects[VisiableRectTypeCanvas].center(),
+                             m_visiableRects[VisiableRectTypeCanvas].size());
     }
 
-    QRect actualRect(QRect rect) const
+    QRect getActualRect(QRect rect) const
     {
-        return actualRect(rect.topLeft(), rect.size());
+        return getActualRect(rect.topLeft(), rect.size());
     }
 
-    QRect actualRect(QPointF pos, QSizeF size) const
+    QRect getActualRect(QPointF pos, QSizeF size) const
     {
         pos.rx() /= m_ratioSize.width();
         pos.ry() /= m_ratioSize.height();
@@ -64,10 +85,6 @@ public:
         size.rheight() /= m_ratioSize.height();
         return QRectF(pos, size).toRect();
     }
-
-    qreal getOpacity(void) const {return m_opacity;}
-
-    qreal getAngle(void) const {return m_angle;}
 
     void setMoveable(bool moveable);
 
@@ -77,9 +94,7 @@ public:
 
     void movePhoto(QPoint offset);
 
-    bool zoomAction(bool in, float scale);
-
-    void resetAction(void){scaledZoom(1, Qt::KeepAspectRatio);}
+    bool zoomAction(float scale);
 
     void flipAction(void){rotate(180.0f, Qt::YAxis);}
 
@@ -87,10 +102,12 @@ public:
 
     void flush(void);
 
+    void blend(void);
+
 signals:
     void clicked(PhotoLayer &self, QPoint pos);
 
-    void refresh(PhotoLayer &self);
+    void replaced(const QString &tmplPic, const QString &tmplFile);
 
 protected:
     void mousePressEvent(QMouseEvent *event);
@@ -99,8 +116,6 @@ protected:
     void dropEvent(QDropEvent *event);
 
 private:
-    void blend(bool actual = false);
-
     void updateVisiableRect(QRect copiedRect = QRect());
 
     void updateCopiedRect(void);
@@ -117,11 +132,12 @@ private:
         return true;
     }
 
+    const VisiableImgType m_type;
     bool m_moveable, m_moved;
+
     QSizeF m_ratioSize; // Visiable size devides actual size
     QRect m_bgdRect, m_maskRect, m_visiableRects[VISIABLE_RECT_TYPES];
-    qreal m_opacity, m_angle;
-    QImage m_maskImgs[VISIABLE_IMG_TYPES], m_visiableImgs[VISIABLE_IMG_TYPES], m_composedImg;
+    QImage m_visiableImg, m_maskImg, m_maskImgs[VISIABLE_IMG_TYPES], m_visiableImgs[VISIABLE_IMG_TYPES], m_composedImg;
     QString m_picFile;
 };
 
