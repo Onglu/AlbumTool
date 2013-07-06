@@ -15,7 +15,7 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
 {
     if (!parent)    // None parent window
     {
-        setWindowTitle("相册编辑工具");
+        setWindowTitle(tr("相册编辑工具"));
         setWindowIcon(QIcon(":/images/logo.png"));
         setFixedSize(fixed);
 
@@ -62,7 +62,9 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
 
 //    QString photoName;
 //    Converter::getFileName("C:\\Users\\Onglu\\Desktop\\test\\Copied_kk.png", photoName, true);
-//    qDebug() << __FILE__ << __LINE__ << photoName;
+
+    //QString strDt = QString("%")
+    //qDebug() << __FILE__ << __LINE__;
 }
 
 StartupPageWidget::~StartupPageWidget()
@@ -125,7 +127,7 @@ const QString &StartupPageWidget::getTaskFile(uchar mode, QString &taskFile, QSt
     return taskFile;
 }
 
-inline void StartupPageWidget::openMw(QString taskFile, QString taskName)
+void StartupPageWidget::openMw(QString taskFile, QString taskName)
 {
     if (!m_pMW)
     {

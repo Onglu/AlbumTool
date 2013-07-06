@@ -351,7 +351,7 @@ inline void PreviewDialog::switchPage(int index)
     QPixmap pix(fileName);
 
     fileName = fileName.right(fileName.length() - fileName.lastIndexOf(QDir::separator()) - 1);
-    setWindowTitle(QString("%1（%2KB，%3x%4像素） - 第%5/%6张").arg(fileName).arg(file.size() / 1024).arg(pix.width()).arg(pix.height()).arg(index + 1).arg(m_picturesList.size()));
+    setWindowTitle(tr("%1（%2KB，%3x%4像素） - 第%5/%6张").arg(fileName).arg(file.size() / 1024).arg(pix.width()).arg(pix.height()).arg(index + 1).arg(m_picturesList.size()));
 
     //qDebug() << "switchPage picture:" << fileName;
 

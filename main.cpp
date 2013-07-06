@@ -1,7 +1,10 @@
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QTextCodec>
+//#include <QtPlugin>
 #include "page/StartupPageWidget.h"
+
+//Q_IMPORT_PLUGIN(qsqlite)
 
 QRect g_appRect;
 

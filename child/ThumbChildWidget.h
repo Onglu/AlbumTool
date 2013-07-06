@@ -23,6 +23,8 @@ public:
     void setId(int id){m_id = id;/* zero-based index */}
     int getId(void) const {return m_id;}
 
+    static const QString &getReplaced(void){return m_replaced;}
+
     static void getRotation(qreal &angle, Qt::Axis &axis)
     {
         angle = m_angle;
@@ -41,6 +43,7 @@ private:
     int m_id;   // A zero-based id number of every photo which added in a album photoslist
     QVariantMap m_belongings;
     static QStringList m_photosList;
+    static QString m_replaced;
     static qreal m_angle;
     static Qt::Axis m_axis;
 };

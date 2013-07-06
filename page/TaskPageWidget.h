@@ -5,11 +5,42 @@
 #include <QSettings>
 #include "parser/FileParser.h"
 #include "page/EditPageWidget.h"
-#include "wrapper/utility.h"
+//#include "wrapper/utility.h"
 #include "wrapper/PictureGraphicsScene.h"
+#include <QDialog>
 
+class LoadingDlg;
+class LoadingDlg1;
 class PreviewDialog;
 class TemplateChildWidget;
+class TaskPageWidget;
+
+namespace TaskPage
+{
+    class MakerThread : public QThread
+    {
+        Q_OBJECT
+
+    public:
+        MakerThread(TaskPageWidget *page = 0) : m_page(page), m_abort(false){}
+
+        void stop(){m_abort = true;}
+
+    signals:
+        void doing(void);
+
+    protected:
+        void run();
+//        {
+//            emit doing();
+//            emit finished();
+//        }
+
+    private:
+        TaskPageWidget *m_page;
+        bool m_abort;
+    };
+}
 
 namespace Ui {
 class TaskPageWidget;
@@ -25,7 +56,7 @@ public:
 
     bool isValid(void){return m_taskParser.isValid();}
     bool hasOpened(const QString &taskFile) const {return (taskFile == m_taskParser.getParsingFile());}
-    bool isEditing(void) const {return m_pEditPage->isVisible();}
+    bool isEditing(void) const {return m_editPage->isVisible();}
 
     void setTabId(int tabId){m_tabId = tabId;}
     void importTemplates(void);
@@ -34,7 +65,7 @@ public:
     void onEdit(const ChildWidgetsMap &albumsMap, int current);
     void onSearch(bool immediate, bool inner, const QVariantMap &tags);
 
-    bool hasChanged(void) const {return m_bChanged;}
+    bool hasChanged(void) const {return m_changed;}
     char *saveFile(uchar mode);
     void saveChanges(void);
     void noticeChanged(void);
@@ -47,9 +78,12 @@ public:
 
     const QString &getPageId(void) const {return m_taskParser.getPageId();}
 
-    static void showProcess(bool show,
-                            QRect global = QRect(0, 0, 0, 0),
+    void showProcess(bool show,
                             const QString &info = QString());
+
+    static bool deleteDir(const QString &dir, bool all = true);
+
+    //void process();
 
 signals:
     void changed(int index);
@@ -67,6 +101,10 @@ private slots:
 
     void on_addAlbumPushButton_clicked();
 
+    void on_createPushButton_clicked();
+
+    void on_previewPushButton_clicked();
+
     void detachItem(QGraphicsScene *scene, const QString &file);
 
     void updateViews(void);
@@ -82,11 +120,13 @@ private slots:
                  const QString &file,
                  const QVariantList &changes);
 
-    void loadingItem(void){showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));}
+    //void loadingItem(void){showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));}
 
-    void finishLoaded(uchar state);
+    void process();
 
-    void on_makePushButton_clicked();
+    void ok(uchar state);
+
+    void kk(bool v);
 
 private:
     void loadViewItems(const QVariantList &recordsList, ViewType view);
@@ -95,26 +135,52 @@ private:
 
     Ui::TaskPageWidget *ui;
     int m_tabId;
-    bool m_bCollapsed, m_bChanged;
+    bool m_collapsed, m_changed;
+
+    PreviewDialog *m_previewDlg;
+    LoadingDlg *m_loadingDlg;
+    LoadingDlg1 *m_loadingDlg1;
 
     QSettings m_Settings;
     FileParser m_taskParser;
-    LoaderThread *m_pPhotosLoader, *m_pTemplatesLoader, *m_pAlbumsLoader;
+    LoaderThread *m_photosLoader, *m_templatesLoader, *m_albumsLoader;
+    //TaskPage::MakerThread m_maker;
+    QStringList m_pictures;
 
     GraphicsScenesVector m_scensVector;
-    PictureGraphicsScene *m_pPhotosScene, *m_pTemplatesScene, *m_pAlbumsScene, *m_pFocusScene;
+    PictureGraphicsScene *m_photosScene, *m_templatesScene, *m_albumsScene, *m_focusScene;
 
     /* Configurations */
     QVariantList m_photosList, m_templatesList, m_albumsList;
 
     /* Child windows/widgets */
-    PreviewDialog *m_pPreviewDlg;
-    TemplatePageWidget *m_pTemplatePage;
-    EditPageWidget *m_pEditPage;
+    TemplatePageWidget *m_templatePage;
+    EditPageWidget *m_editPage;
 
-    static QDialog *m_pLoadingDlg;
+    //static QDialog *m_loadingDlg;
 
     friend class EditPageWidget;
+};
+
+class LoadingDlg1 : public QDialog
+{
+public:
+    LoadingDlg1(TaskPageWidget *page);
+
+    void showProcess(bool show,
+                     QRect global = QRect(0, 0, 0, 0),
+                     const QString &info = QString());
+
+protected:
+    void closeEvent(QCloseEvent *)
+    {
+        m_maker.stop();
+    }
+
+private:
+    QLabel *m_movieLabel, *m_textLabel;
+    TaskPageWidget *m_page;
+    TaskPage::MakerThread /***/m_maker;
 };
 
 #endif // ALBUMITEMWIDGET_H

@@ -4,8 +4,6 @@
 #include <QVariant>
 #include "PictureLabel.h"
 
-//#define VISIABLE_IMG_SCREEN          0
-//#define VISIABLE_IMG_ORIGINAL        1
 #define VISIABLE_IMG_TYPES           2
 #define VISIABLE_RECT_TYPES          4
 
@@ -49,8 +47,7 @@ public:
                      qreal angle = 0,
                      Qt::Axis axis = Qt::ZAxis);
 
-    //bool hasPhoto(int type = VISIABLE_IMG_SCREEN){return !m_visiableImgs[type].isNull();}
-    bool hasPhoto(void) const {return /*!m_visiableImgs[m_type].isNull()*/!m_visiableImg.isNull();}
+    bool hasPhoto(void) const {return !m_visiableImg.isNull();}
 
     const QString &getPhoto(void) const {return m_picFile;}
 
@@ -64,7 +61,7 @@ public:
         return m_visiableRects[type];
     }
 
-    const QImage &getVisiableImg() const {return m_visiableImg/*s[m_type]*/;}
+    const QImage &getVisiableImg() const {return m_visiableImg;}
 
     QRect getFrame(void) const
     {
@@ -137,7 +134,7 @@ private:
 
     QSizeF m_ratioSize; // Visiable size devides actual size
     QRect m_bgdRect, m_maskRect, m_visiableRects[VISIABLE_RECT_TYPES];
-    QImage m_visiableImg, m_maskImg, m_maskImgs[VISIABLE_IMG_TYPES], m_visiableImgs[VISIABLE_IMG_TYPES], m_composedImg;
+    QImage m_visiableImg, m_maskImg, m_composedImg;
     QString m_picFile;
 };
 

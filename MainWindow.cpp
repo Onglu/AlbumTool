@@ -3,8 +3,6 @@
 #include "PreviewDialog.h"
 #include "page/StartupPageWidget.h"
 #include "page/TaskPageWidget.h"
-#include "page/EditPageWidget.h"
-#include "defines.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QCloseEvent>
@@ -14,7 +12,7 @@ extern QRect g_appRect;
 MainWindow::MainWindow(const QString &taskFile, const QString &taskName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_pLoadingDlg(new QDialog(this, Qt::FramelessWindowHint))
+    m_loadingDlg(new QDialog(this, Qt::FramelessWindowHint))
 {
     ui->setupUi(this);
 

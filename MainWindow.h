@@ -52,7 +52,7 @@ private:
     QLabel *m_pLabel;
     QLabel *m_pSsLabel;
     QSettings m_Settings;
-    QDialog *m_pLoadingDlg;
+    QDialog *m_loadingDlg;
 };
 
 #endif // MAINWINDOW_H

@@ -1,6 +1,4 @@
 #include "utility.h"
-#include "defines.h"
-//#include "child/TemplateChildWidget.h"
 #include <QDebug>
 #include <QtSql>
 
@@ -60,7 +58,7 @@ bool SqlHelper::connectDb()
         db.setDatabaseName(BACKEND_DB);
         if (!(connected = db.open()))
         {
-            m_error = "connect database failed";
+            m_error = /*"connect database failed"*/ db.lastError().databaseText();
             return false;
         }
     }
@@ -255,7 +253,7 @@ bool LoaderThread::loadRecords()
     if (loaded)
     {
         reset();
-        emit loadFinished(LOAD_RECORDS);
+        emit done(LOAD_RECORDS);
     }
 
     return true;
@@ -270,8 +268,6 @@ bool LoaderThread::loadFiles()
 
     bool loaded = false;
     int index = m_existingsList.size();
-
-    qDebug() << __FILE__ << __LINE__ << index << m_existingsList;
 
     foreach (const QString &file, m_filesList)
     {
@@ -299,7 +295,7 @@ bool LoaderThread::loadFiles()
             if (!loaded)
             {
                 loaded = true;
-                emit loadFinished(LOAD_NEW);
+                emit done(LOAD_NEW);
             }
 
             if (ViewType_Photo == m_viewType)
@@ -321,7 +317,7 @@ bool LoaderThread::loadFiles()
     if (loaded)
     {
         reset();
-        emit loadFinished(LOAD_FILES);
+        emit done(LOAD_FILES);
     }
 
     return true;

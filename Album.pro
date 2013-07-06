@@ -13,6 +13,8 @@ TEMPLATE = app
 DEFINES += FROM_PACKAGE
 #TRANSLATIONS ＋＝ ./temp/zh_CN.ts
 
+#QTPLUGIN += qsqlite
+
 SOURCES += main.cpp\
     MainWindow.cpp \
     PreviewDialog.cpp \
@@ -33,10 +35,10 @@ SOURCES += main.cpp\
     wrapper/PictureGraphicsScene.cpp \
     wrapper/PictureLabel.cpp \
     wrapper/PhotoLayer.cpp \
-    SqlEngine.cpp \
     wrapper/BgdLayer.cpp \
     wrapper/MakeHelper.cpp \
-    page/AlbumPageWidget.cpp
+    page/AlbumPageWidget.cpp \
+    LoadingDlg.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -60,10 +62,10 @@ HEADERS  += \
     wrapper/PhotoLayer.h \
     defines.h \
     events.h \
-    SqlEngine.h \
     wrapper/BgdLayer.h \
     wrapper/MakeHelper.h \
-    page/AlbumPageWidget.h
+    page/AlbumPageWidget.h \
+    LoadingDlg.h
 
 FORMS    += \
     MainWindow.ui \

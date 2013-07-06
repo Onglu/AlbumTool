@@ -4,12 +4,45 @@
 #include <QWidget>
 #include "TemplatePageWidget.h"
 #include "child/AlbumChildWidget.h"
+//#include "defines.h"
+#include "wrapper/utility.h"
 
 class PictureGraphicsScene;
 class AlbumPageWidget;
 class TaskPageWidget;
 class PhotoLayer;
 class QPushButton;
+
+namespace EditPage
+{
+    class MakerThread : public QThread
+    {
+        Q_OBJECT
+
+    public:
+        MakerThread(void){}
+
+        void replace(const QString &current, const QString &replaced)
+        {
+            m_current = current;
+            m_replaced = replaced;
+            this->start();
+        }
+
+    signals:
+        void doing(const QString &, const QString &);
+
+    protected:
+        void run()
+        {
+            emit doing(m_current, m_replaced);
+            emit finished();
+        }
+
+    private:
+        QString m_current, m_replaced;
+    };
+}
 
 namespace Ui {
     class EditPageWidget;
@@ -34,6 +67,8 @@ public:
 
     /* Update the pictures list for the persent selected album */
     void updateAlbum(void);
+
+    void updatePage(void);
 
 signals:
     void editEntered(bool);
@@ -60,6 +95,8 @@ private slots:
     void on_deletePushButton_clicked();
 
     void selectThumb(bool bSingle){m_thumbsSceneFocused = bSingle;}
+
+    void onReplacing(const QString &current, const QString &replaced);
 
     /* Replaced picture file */
     void onReplaced(const QString &current, const QString &replaced);
@@ -102,13 +139,15 @@ private:
     PhotoLayer *m_layerLabel;
     AlbumChildWidget *m_pAlbumWidget;
     AlbumPageWidget *m_pAlbumPage;
-    TemplatePageWidget *m_pTemplatePage;
+    TemplatePageWidget *m_templatePage;
     PictureGraphicsScene *m_pThumbsScene;
 
     bool m_thumbsSceneFocused;
     int m_current, m_x, m_y;
     QPoint m_startPos;
     ChildWidgetsMap m_albumsMap;
+
+    EditPage::MakerThread m_maker;
 
     friend class TaskPageWidget;
 };

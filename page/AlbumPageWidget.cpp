@@ -71,7 +71,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
                 m_bgdLabel->setGeometry(QRect(bgdPos, bgdSize));
                 m_bgdLabel->setAngle(angle);
                 m_bgdLabel->setOpacity(opacity);
-                qDebug() << __FILE__ << __LINE__ << bgdSize << m_bgdLabel->geometry() << m_bgdLabel->getRatioSize();
+                //qDebug() << __FILE__ << __LINE__ << bgdSize << m_bgdLabel->geometry() << m_bgdLabel->getRatioSize();
             }
             else
             {
@@ -88,7 +88,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
         {
             photoLayer.insert("frame", frame);
             photoLayer.insert("filename", fileName.replace(".png", PIC_FMT));
-            photoLayer.insert("picture", pictures[fileName].toByteArray());
+            //photoLayer.insert("picture", pictures[fileName].toByteArray());
             photoLayer.insert("maskfile", data["maskLayer"].toString() + ".png");
             photoLayer.insert("opacity", opacity);
             photoLayer.insert("rotation", angle);
@@ -153,13 +153,42 @@ bool AlbumPageWidget::loadPhoto(int index,
         return m_layerLabels[index]->loadPhoto(//m_photoLayers.first().toMap()
                                             //m_photoLayers.last().toMap()
                                               m_photoLayers.at(index).toMap()
-                                              //,photoFile,
-                                              //angle,
-                                              //axis
+                                              ,photoFile,
+                                              angle,
+                                              axis
                                               );
     }
 
     return false;
+}
+
+int AlbumPageWidget::loadPhotos(const QStringList &photosList)
+{
+    int index = 0;
+
+    if (!photosList.isEmpty())
+    {
+        for (int i = 0; i < PHOTOS_NUMBER; i++)
+        {
+            QString photoAttr = photosList.at(i);
+            if (photoAttr.isEmpty())
+            {
+                continue;
+            }
+
+            QStringList photoInfo = photoAttr.split(TEXT_SEP);
+            if (PHOTO_ATTRIBUTES == photoInfo.size() && index < m_photoLayers.size())
+            {
+                m_layerLabels[index]->loadPhoto(m_photoLayers.at(index).toMap(),
+                                                photoInfo.at(0),
+                                                photoInfo.at(1).toDouble(),
+                                                (Qt::Axis)photoInfo.at(2).toInt());
+                index++;
+            }
+        }
+    }
+
+    return index;
 }
 
 void AlbumPageWidget::replace(const QString &current, const QString &replaced)
@@ -180,7 +209,7 @@ void AlbumPageWidget::replace(const QString &current, const QString &replaced)
 
 void AlbumPageWidget::compose(int count, const QString &fileName)
 {
-    if (count)
+    if (0 <= count)
     {
         m_bgdLabel->loadLayers(count, m_layers, m_layerLabels);
     }

@@ -15,6 +15,9 @@ TemplatePageWidget::TemplatePageWidget(bool previewable, TaskPageWidget *parent)
 
     ui->setupUi(this);
 
+    ui->searchCheckBox->hide();
+    ui->resetPushButton->hide();
+
     m_belongings["picture_file"] = "";
 
     setPreviewable(previewable);

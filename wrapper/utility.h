@@ -8,6 +8,7 @@
 #include <QThread>
 #include <QWaitCondition>
 #include <QMutex>
+#include "defines.h"
 
 class Converter
 {
@@ -56,12 +57,6 @@ public:
 private:
     QString m_error;
 };
-
-#define LOAD_NEW        0
-#define LOAD_RECORDS    1
-#define LOAD_FILES      2
-
-enum ViewType{ViewType_Photo, ViewType_Template, ViewType_Album};
 
 class LoaderThread : public QThread
 {
@@ -124,7 +119,7 @@ signals:
                    const QString &file/* Template data file */,
                    const QVariantList &changes);
 
-    void loadFinished(uchar state);
+    void done(uchar state);
 
 protected:
     void run();
@@ -143,8 +138,6 @@ private:
     QStringList m_existingsList, m_filesList;
     ViewType m_viewType;
 };
-
-#define MAKER_NAME  "tmaker.exe"
 
 class CryptThread : public QThread
 {

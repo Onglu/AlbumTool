@@ -2,7 +2,6 @@
 #include "parser/json.h"
 #include "parser/FileParser.h"
 #include "page/TaskPageWidget.h"
-#include "defines.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QtSql>
@@ -68,7 +67,7 @@ bool TemplateChildWidget::getTmplPic(QString &tmplPic)
 
     if (-1 != pos)
     {
-        tmplPic = fileName.replace(pos, strlen(PKG_FMT), PIC_FMT);
+        tmplPic = fileName.replace(pos, strlen(PKG_FMT), /*PIC_FMT*/ ".png");
         if (QFile::exists(tmplPic))
         {
             return true;
@@ -214,7 +213,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 
         if (!getTmplPic(m_tmplPic))
         {
-            m_currFile = m_tmplPic = results["name"].toString() + PIC_FMT;
+            m_currFile = m_tmplPic = /*results["name"].toString() + PIC_FMT*/ PIC_NAME;
             useZip(m_tmaker, ZipUsageRead, m_tmplFile + " " + m_tmplPic);
         }
         else
@@ -226,7 +225,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
     if (content.startsWith("picture:"))
     {
         QString name = content.mid(8);
-        QPixmap pix(name);
+
         //qDebug() << __FILE__ << __LINE__ << m_currFile << pix.isNull();
 
         //QPixmap pixe;
@@ -238,12 +237,23 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
         }
         else
         {
+            QPixmap pix(name);
             QFile file(name);
             if (!pix.isNull() && file.open(QIODevice::ReadOnly))
             {
                 m_pictures.insert(m_currFile, file.readAll());
                 file.remove();
             }
+
+//            QPixmap pix(name);
+//            if (!pix.isNull())
+//            {
+//                QByteArray bytes;
+//                QBuffer buffer(&bytes);
+//                buffer.open(QIODevice::WriteOnly);
+//                pix.save(&buffer, "PNG");
+//                m_pictures.insert(m_currFile, bytes);
+//            }
         }
 
         QFile::remove(m_currFile);
@@ -485,8 +495,8 @@ const QVariantMap &TemplateChildWidget::loadPictures()
         m_currFile = data["id"].toString();
         if (LT_Photo == data["type"].toInt())
         {
-            m_currFile += PIC_FMT;
-            //continue;
+            //m_currFile += PIC_FMT;
+            continue;
         }
         else
         {

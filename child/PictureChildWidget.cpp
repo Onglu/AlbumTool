@@ -99,6 +99,12 @@ void PictureChildWidget::onAccept(const QVariantMap &belongings)
     }
 
     setPalette(pal);
+
+    QString name;
+    if (this->toolTip() != Converter::getFileName(m_picLabel->getPictureFile(), name, true))
+    {
+        setToolTip(name);
+    }
 }
 
 void PictureChildWidget::open(ChildWidgetsMap &widgetsMap)
@@ -135,6 +141,9 @@ void PictureChildWidget::swap(DraggableLabel &dragger)
 
     dragger.setPixmap(m_picLabel->getPicture());
     dragger.accept(true);
+
+    QString name;
+    setToolTip(Converter::getFileName(m_picLabel->getPictureFile(), name, true));
 }
 
 bool PictureChildWidget::meetDragDrop(QDropEvent *event)

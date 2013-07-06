@@ -1,10 +1,12 @@
 #include "ThumbChildWidget.h"
 #include "AlbumChildWidget.h"
 #include "PhotoChildWidget.h"
+#include "wrapper/utility.h"
 #include <QDragEnterEvent>
 #include <QDebug>
 
 QStringList ThumbChildWidget::m_photosList;
+QString ThumbChildWidget::m_replaced;
 qreal ThumbChildWidget::m_angle = 0;
 Qt::Axis ThumbChildWidget::m_axis = Qt::ZAxis;
 
@@ -58,9 +60,18 @@ void ThumbChildWidget::dropEvent(QDropEvent *event)
     QString replaced = picLabel->getPictureFile();
     m_photosList.append(replaced);
 
+    //m_replaced = replaced;
+
+    QString name;
+    setToolTip(Converter::getFileName(replaced, name, true));
+
     //qDebug() << __FILE__ << __LINE__ << "current:" << current << "," << ut
              //<< ", replaced:" << picLabel->getPictureFile() << "," << m_belongings["used_times"].toInt();
+
+    //qDebug() << __FILE__ << __LINE__ << "current:" << current << "," << ", replaced:" << replaced;
     emit itemReplaced(current, replaced);
+    //QCoreApplication::postEvent(m_container, new QEvent(CustomEvent_Item_Replaced));
+    //qDebug() << __FILE__ << __LINE__ << "replaced finished";
 
     m_picLabel->setBelongings(m_belongings);
 }

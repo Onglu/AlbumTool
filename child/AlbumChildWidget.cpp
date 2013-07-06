@@ -7,7 +7,6 @@
 #include "wrapper/utility.h"
 #include "wrapper/MakeHelper.h"
 #include "parser/json.h"
-#include "defines.h"
 #include <QDebug>
 #include <QMessageBox>
 
@@ -25,8 +24,6 @@ AlbumChildWidget::AlbumChildWidget(int index, TaskPageWidget *parent) :
     ui->setupUi(this);
 
     setIndexLabel(index, ui->indexLabel);
-
-    memset(m_locations, 0, 2);
 
     setupWidgets();
 }
@@ -49,8 +46,6 @@ AlbumChildWidget::AlbumChildWidget(int index,
 
     setIndexLabel(index, ui->indexLabel);
 
-    memset(m_locations, 0, 2);
-
     setupWidgets(photosList, tmplFile, photoLayers);
 
     int photosNum = m_photosList.size();
@@ -72,6 +67,8 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
 {
     QPixmap pix;
     QSize photoSize(48, 48), tmplSize(96, 144);
+
+    memset(m_locations, 0, 2);
 
     m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel1));
     m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel2));
@@ -132,8 +129,9 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
     if (tmplWidget.getTmplPic(tmplPic))
     {
         m_tmplLabel->setContentsMargins(1, 1, 2, 2);
-        m_tmplLabel->setPicture(QPixmap(tmplPic), QSize(92, 142));
-        m_records.insert("photo_layers", photoLayers);
+        m_tmplLabel->loadPicture(QPixmap(tmplPic), QSize(92, 142));
+        QVariantMap belongings = m_tmplLabel->getBelongings();
+        TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
     }
 
     //qDebug() << __FILE__ << __LINE__ << m_tmplFile << tmplPic;
@@ -146,6 +144,7 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
 
     m_records.insert("photos_list", photosList);
     m_records.insert("template_file", m_tmplFile);
+    m_records.insert("photo_layers", photoLayers);
 }
 
 inline void AlbumChildWidget::changeBanners()
@@ -304,34 +303,30 @@ TemplateChildWidget *AlbumChildWidget::getTmplWidget() const
 
 uchar AlbumChildWidget::getLocations(uchar locations[]) const
 {
-    int num = m_locations[0] + m_locations[1] - m_photosList.size();
+    int num = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE] - m_photosList.size();
+
+    memset(locations, 0, 2);
+
+    //qDebug() << __FILE__ << __LINE__ << m_index << num << m_locations[PORTRAIT_PICTURE] << m_locations[LANDSCAPE_PICTURE] << m_photosList;
 
     if (0 < num)
     {
-        QVariantMap &belongings = m_tmplLabel->getBelongings();
-        QVariantMap page = belongings["page_data"].toMap();
-        QVariantList layers = page["layers"].toList();
+        locations[PORTRAIT_PICTURE] = m_locations[PORTRAIT_PICTURE];
+        locations[LANDSCAPE_PICTURE] = m_locations[LANDSCAPE_PICTURE];
 
-        //qDebug() << __FILE__ << __LINE__ << "before:" << changes.size() << changes;
-        int size = m_records["photo_layers"].toList().size(), count = layers.size();
-
-        for (int i = size; i < count; i++)
+        for (int i = 0; i < PHOTOS_NUMBER; i++)
         {
-            QVariantMap data = layers[i].toMap();
-            if (LT_Photo == data["type"].toInt())
+            int o = m_photoLabels.at(i)->getOrientation();
+            if (PORTRAIT_PICTURE <= o && LANDSCAPE_PICTURE >= o)
             {
-                uchar o = data["orientation"].toUInt();
-                if (2 > o)
-                {
-                    locations[o]++;
-                }
+                locations[o]--;
             }
         }
 
-        return locations[PORTRAIT_PICTURE] + locations[LANDSCAPE_PICTURE];
+        //qDebug() << __FILE__ << __LINE__ << locations[PORTRAIT_PICTURE] << locations[LANDSCAPE_PICTURE];
     }
 
-    return 0;
+    return locations[PORTRAIT_PICTURE] + locations[LANDSCAPE_PICTURE];
 }
 
 QSize AlbumChildWidget::getSize() const
@@ -396,19 +391,23 @@ void AlbumChildWidget::open(ChildWidgetsMap &widgetsMap)
     }
 }
 
-void AlbumChildWidget::output(const QString &dir)
+bool AlbumChildWidget::output(const QString &dir)
 {
     //qDebug() << __FILE__ << __LINE__ << "output album" << m_index << TemplateChildWidget::isCover(getData()) << this->size() << getSize();
 
-    AlbumPageWidget *page = new AlbumPageWidget(PhotoLayer::VisiableImgTypeOriginal);
+    bool ok = false;
+    AlbumPageWidget *album = new AlbumPageWidget(PhotoLayer::VisiableImgTypeOriginal);
 
-    if (1 == m_index && page->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
+    if (/*1 == m_index &&*/ // for test
+        album->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
     {
         QString path = tr("%1\\%2").arg(dir).arg(1 == m_index ? "cover" : "page");
+
         if (1 < m_index)
         {
             path += QString("%1").arg(m_index - 1);
         }
+
         QDir().mkpath(path);
 
         QFile jf(tr("%1\\page.dat").arg(path));
@@ -432,21 +431,28 @@ void AlbumChildWidget::output(const QString &dir)
             qreal angle = photoInfo.at(1).toDouble();
             Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
 
-            if (page->loadPhoto(pid, photoFile, angle, axis))
+            if (album->loadPhoto(pid, photoFile, angle, axis))
             {
+                QPixmap pix = album->m_layerLabels[pid]->getPicture(false);
+                QSize size = pix.size();
+
+                if (MAX_PIC_SIZE < size.width())
+                {
+                    size.setWidth(MAX_PIC_SIZE);
+                }
+
+                if (MAX_PIC_SIZE < size.width())
+                {
+                    size.setHeight(MAX_PIC_SIZE);
+                }
+
+                pix.scaled(size, Qt::KeepAspectRatio).save(tr("%1\\%2").arg(path).arg(album->m_layerLabels[pid]->getPictureFile()));
+
                 pid++;
             }
         }
 
-//        foreach (const QVariant &layer, page->m_photoLayers)
-//        {
-//            QVariantMap photoLayer = layer.toMap(), maskLayer = photoLayer["maskLayer"].toMap();
-//            QPixmap pix;
-//            if (pix.loadFromData(maskLayer["picture"].toByteArray()))
-//            {
-//                pix.save(tr("%1\\%2").arg(path).arg(maskLayer["filename"].toString()));
-//            }
-//        }
+        album->compose(pid, tr("%1\\preview.png").arg(path));
 
         QVariantMap pictures = m_tmpl->loadPictures();
         QVariantMap::const_iterator iter = pictures.constBegin();
@@ -462,10 +468,13 @@ void AlbumChildWidget::output(const QString &dir)
             ++iter;
         }
 
-        page->compose(pid, tr("%1\\preview.png").arg(path));
+        ok = true;
+        //qDebug() << __FILE__ << __LINE__ << "changes:" << m_records["photo_layers"].toList();
     }
 
-    delete page;
+    delete album;
+
+    return ok;
 }
 
 inline void AlbumChildWidget::showPhotos(bool visible)
@@ -585,8 +594,11 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
             Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
             int usedTimes = belongings["used_times"].toInt();
 
-            pix = pix.scaled(m_thumbSize - QSize(2, 2), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            m_picLabel->setPixmap(pix.transformed(QTransform().rotate(angle, axis)));
+            m_picLabel->loadPicture(pix, m_thumbSize - QSize(2, 2), angle, axis);
+
+            //pix = pix.scaled(m_thumbSize - QSize(2, 2), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            //m_picLabel->setPixmap(pix.transformed(QTransform().rotate(angle, axis)));
+
             m_picLabel->setBelongings(belongings);
             m_picLabel->clearMimeType();
 
@@ -772,7 +784,9 @@ bool AlbumProxyWidget::excludeItem(const QString &picFile)
         m_pChildWidget->setPhotosVector(photosVector);
     }
 
-    if (!Converter::num(m_pChildWidget->getPhotosList(), true) &&
+    int n = Converter::num(m_pChildWidget->getPhotosList(), true);
+    qDebug() << __FILE__ << __LINE__ << m_pChildWidget->getIndex() << n << m_pChildWidget->getPhotosList() << picFile;
+    if (!n &&
         !m_pChildWidget->getTmplLabel().hasPicture())
     {
         m_empty = true;

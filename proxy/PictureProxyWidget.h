@@ -10,6 +10,7 @@ class PictureChildWidget;
 class PictureProxyWidget : public QGraphicsProxyWidget
 {
     Q_OBJECT
+
 public:
     PictureProxyWidget(PictureChildWidget *child, QGraphicsItem *parent = 0, Qt::WindowFlags wFlags = 0);
 
@@ -22,7 +23,7 @@ public:
 
     PictureChildWidget *getChildWidgetPtr(void) const {return m_pChildWidget;}
 
-    static QGraphicsScene *getFocusScene(void){return m_pFocusScene;}
+    static QGraphicsScene *getFocusScene(void){return m_focusScene;}
 
     static QTransform &getTransform(void){return m_trans;}
 
@@ -57,7 +58,7 @@ private:
     QTimeLine *m_pTimeLine;
     bool m_detachable;
     static QTransform m_trans;
-    static QGraphicsScene *m_pFocusScene;
+    static QGraphicsScene *m_focusScene;
 };
 
 #endif // PICTUREPROXYWIDGET_H

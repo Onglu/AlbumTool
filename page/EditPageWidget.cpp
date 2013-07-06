@@ -3,12 +3,13 @@
 #include "AlbumPageWidget.h"
 #include "TaskPageWidget.h"
 #include "child/ThumbChildWidget.h"
-#include "defines.h"
 #include <QDebug>
 #include <QMessageBox>
 #include <QMouseEvent>
 
 #define ALBUM_PAGE  1
+
+//using namespace EditPage;
 
 EditPageWidget::EditPageWidget(TaskPageWidget *container) :
     QWidget(0),
@@ -39,23 +40,51 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
                                               PictureGraphicsScene::LayoutMode_Horizontality,
                                               PictureGraphicsScene::SceneType_Thumbs,
                                               ui->thumbsGraphicsView,
-                                              container);
+                                              m_container);
     m_container->m_scensVector.insert(PictureGraphicsScene::SceneType_Thumbs, m_pThumbsScene);
 
-    ui->photosGraphicsView->setScene(m_container->m_pPhotosScene);
+    ui->photosGraphicsView->setScene(m_container->m_photosScene);
 
-    m_pTemplatePage = new TemplatePageWidget(true, m_container);
-    m_pTemplatePage->getView()->setScene(m_container->m_pTemplatesScene);
-    ui->mainHorizontalLayout->addWidget(m_pTemplatePage);
+    m_templatePage = new TemplatePageWidget(true, m_container);
+    m_templatePage->getView()->setScene(m_container->m_templatesScene);
+    ui->mainHorizontalLayout->addWidget(m_templatePage);
 
     on_editPushButton_clicked();
 
-    connect(m_pTemplatePage, SIGNAL(replaced(QString,QString)), SLOT(onReplaced(QString,QString)));
+    connect(m_templatePage, SIGNAL(replaced(QString,QString)), SLOT(onReplaced(QString,QString)));
+    connect(&m_maker, SIGNAL(doing(QString,QString)), SLOT(onReplacing(QString,QString)));
 }
 
 EditPageWidget::~EditPageWidget()
 {
     delete ui;
+}
+
+void EditPageWidget::onReplacing(const QString &current, const QString &replaced)
+{
+    Q_ASSERT(m_pAlbumWidget);
+
+    if (m_pAlbumPage->isVisible())
+    {
+        qDebug() << __FILE__ << __LINE__ << current << replaced;
+        m_pAlbumPage->compose();
+        qDebug() << __FILE__ << __LINE__ << "finished";
+    }
+    else if (ui->photosGraphicsView->isVisible())
+    {
+        qDebug() << __FILE__ << __LINE__ << "replacing";
+        m_pAlbumPage->replace(current, replaced);
+        qDebug() << __FILE__ << __LINE__ << "finished";
+    }
+    else if (m_templatePage->isVisible())
+    {
+        switchPage(m_current);
+        //m_pAlbumPage->loadLayers(*m_pAlbumWidget);
+        //updatePage();
+        qDebug() << __FILE__ << __LINE__ << replaced;
+    }
+
+    m_maker.quit();
 }
 
 void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
@@ -65,22 +94,32 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
     if (m_pAlbumPage->isVisible())
     {
         qDebug() << __FILE__ << __LINE__ << current << replaced;
-        m_pAlbumPage->compose();
+        //m_pAlbumPage->compose();
     }
     else if (ui->photosGraphicsView->isVisible())
     {
-        m_pAlbumPage->replace(current, replaced);
+        //qDebug() << __FILE__ << __LINE__ << current << replaced;
+        //m_pAlbumPage->replace(current, replaced);
         m_container->replace(PictureGraphicsScene::SceneType_Photos, current, replaced);
         updateAlbum();
         m_container->noticeChanged();
     }
-    else if (m_pTemplatePage->isVisible())
+    else if (m_templatePage->isVisible())
     {
         m_container->replace(PictureGraphicsScene::SceneType_Templates, current, replaced);
-        m_pAlbumWidget->changeTemplate(m_pTemplatePage->getBelongings());
-        switchPage(m_current);
-        qDebug() << __FILE__ << __LINE__ << replaced;
+        m_pAlbumWidget->changeTemplate(m_templatePage->getBelongings());
+
+        //switchPage(m_current);
+
+        //m_pAlbumPage->loadLayers(*m_pAlbumWidget);
+        //updatePage();
+
+        //qDebug() << __FILE__ << __LINE__ << replaced;
     }
+
+    qDebug() << __FILE__ << __LINE__ << "start";
+    m_maker.replace(current, replaced);
+    qDebug() << __FILE__ << __LINE__ << "end";
 }
 
 void EditPageWidget::onClicked(PhotoLayer &label, QPoint pos)
@@ -131,7 +170,7 @@ void EditPageWidget::mouseReleaseEvent(QMouseEvent *event)
 
             QString photoName;
             Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
-            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
+            //qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
             m_pAlbumWidget->changePhoto(photoName,
                                         m_layerLabel->getFrame(),
                                         m_layerLabel->getOpacity(),
@@ -147,15 +186,15 @@ int EditPageWidget::getViewWidth() const
         return ui->mainFrame->width();
     }
 
-    if (m_pTemplatePage->isVisible())
+    if (m_templatePage->isVisible())
     {
-        return m_pTemplatePage->getView()->width();
+        return m_templatePage->getView()->width();
     }
 
     return 0;
 }
 
-inline void EditPageWidget::adjustViewLayout()
+void EditPageWidget::adjustViewLayout()
 {
 //    if (m_bgdLabel->isVisible() && m_bgdLabel->hasPicture())
 //    {
@@ -166,12 +205,12 @@ inline void EditPageWidget::adjustViewLayout()
 
     if (ui->photosGraphicsView->isVisible())
     {
-        m_container->m_pPhotosScene->adjustViewLayout(ui->mainFrame->width());
+        m_container->m_photosScene->adjustViewLayout(ui->mainFrame->width());
     }
 
-    if (m_pTemplatePage->isVisible())
+    if (m_templatePage->isVisible())
     {
-        m_container->m_pTemplatesScene->adjustViewLayout(m_pTemplatePage->getView()->width());
+        m_container->m_templatesScene->adjustViewLayout(m_templatePage->getView()->width());
     }
 }
 
@@ -202,7 +241,7 @@ void EditPageWidget::resizeEvent(QResizeEvent *event)
 
 void EditPageWidget::removeThumbs(const QString &picFile)
 {
-    if (m_pTemplatePage->isVisible())
+    if (m_templatePage->isVisible())
     {
         return;
     }
@@ -213,8 +252,9 @@ void EditPageWidget::removeThumbs(const QString &picFile)
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
         if ((thumbLabel = proxyWidget->getChildWidget().getPictureLabel())
-                && picFile == thumbLabel->getPictureFile())
+             && picFile == thumbLabel->getPictureFile())
         {
+            qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
             m_pThumbsScene->removeProxyWidget(proxyWidget);
             m_pThumbsScene->adjustViewLayout();
             break;
@@ -276,6 +316,16 @@ void EditPageWidget::updateAlbum()
     m_pAlbumWidget->setPhotosVector(photosVector);
 }
 
+void EditPageWidget::updatePage()
+{
+    if (m_pAlbumWidget)
+    {
+        QStringList photosList;
+        Converter::v2l(m_pAlbumWidget->getPhotosVector(), photosList);
+        m_pAlbumPage->compose(m_pAlbumPage->loadPhotos(photosList));
+    }
+}
+
 bool EditPageWidget::switchPage(int index)
 {
     bool ok = false;
@@ -305,11 +355,12 @@ bool EditPageWidget::switchPage(int index)
         if (!m_pAlbumPage->loadLayers(*m_pAlbumWidget))
         {
             m_pAlbumPage->m_bgdLabel->loadPixmap(QPixmap(":/images/canvas.png"));
+            m_pAlbumPage->m_bgdLabel->move(QPoint((ui->mainFrame->width() - m_pAlbumPage->m_bgdLabel->getSize().width()) / 2, 0));
             validTmpl = false;
             qDebug() << __FILE__ << __LINE__ << "load layers failed!";
         }
 
-        //qDebug() << __FILE__ << __LINE__ << m_pAlbumPage->geometry() << m_pAlbumPage->m_bgdLabel->geometry() << topLeft;
+        qDebug() << __FILE__ << __LINE__ << m_pAlbumPage->geometry() << m_pAlbumPage->m_bgdLabel->geometry();
 
         for (int i = 0; i < PHOTOS_NUMBER; i++)
         {
@@ -347,7 +398,8 @@ bool EditPageWidget::switchPage(int index)
         }
 
         ThumbChildWidget::updateList(m_pAlbumWidget->getPhotosList());
-        m_pTemplatePage->changeTemplate(m_pAlbumWidget->getTmplLabel().getBelongings());
+        m_templatePage->changeTemplate(m_pAlbumWidget->getTmplLabel().getBelongings());
+
         ok = true;
     }
 
@@ -361,7 +413,7 @@ void EditPageWidget::on_editPushButton_clicked()
     m_pAlbumPage->show();
     ui->thumbsGraphicsView->show();
     ui->photosGraphicsView->hide();
-    m_pTemplatePage->hide();
+    m_templatePage->hide();
 }
 
 void EditPageWidget::on_photoPushButton_clicked()
@@ -371,7 +423,7 @@ void EditPageWidget::on_photoPushButton_clicked()
     m_pAlbumPage->hide();
     ui->thumbsGraphicsView->show();
     ui->photosGraphicsView->show();
-    m_pTemplatePage->hide();
+    m_templatePage->hide();
     adjustViewLayout();
 }
 
@@ -382,7 +434,7 @@ void EditPageWidget::on_templatePushButton_clicked()
     m_pAlbumPage->hide();
     ui->photosGraphicsView->hide();
     ui->thumbsGraphicsView->hide();
-    m_pTemplatePage->show();
+    m_templatePage->show();
     adjustViewLayout();
 }
 
@@ -391,7 +443,7 @@ void EditPageWidget::on_backPushButton_clicked()
     Q_ASSERT(m_pAlbumWidget);
 
     m_pAlbumWidget->unselectSelf();
-    m_container->m_pPhotosScene->clearFocusSelection(false);
+    m_container->m_photosScene->clearFocusSelection(false);
 
     emit editEntered(false);
 }
@@ -428,13 +480,13 @@ void EditPageWidget::on_deletePushButton_clicked()
 {
     if (QMessageBox::AcceptRole == QMessageBox::question(this, tr("删除确认"), tr("确定要从当前相册集当中删除掉此相册页吗？"), tr("确定"), tr("取消")))
     {
-        m_container->m_pAlbumsScene->removeProxyWidget(m_current);
-        m_container->m_pAlbumsScene->adjustViewLayout();
+        m_container->m_albumsScene->removeProxyWidget(m_current);
+        m_container->m_albumsScene->adjustViewLayout();
         m_container->noticeChanged();
 
         PictureProxyWidget *proxyWidget = NULL;
         PictureChildWidget *childWidget = NULL;
-        QList<QGraphicsItem *> items = m_container->m_pAlbumsScene->items();
+        QList<QGraphicsItem *> items = m_container->m_albumsScene->items();
 
         m_albumsMap.clear();
 

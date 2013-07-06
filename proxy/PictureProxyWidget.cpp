@@ -5,7 +5,7 @@
 #include <QDebug>
 
 QTransform PictureProxyWidget::m_trans;
-QGraphicsScene *PictureProxyWidget::m_pFocusScene = NULL;
+QGraphicsScene *PictureProxyWidget::m_focusScene = NULL;
 
 PictureProxyWidget::PictureProxyWidget(PictureChildWidget *child, QGraphicsItem *parent, Qt::WindowFlags wFlags):
     QGraphicsProxyWidget(parent, wFlags),
@@ -127,7 +127,7 @@ void PictureProxyWidget::selectItem(bool bSingle)
 
     if (bSelected)
     {
-        m_pFocusScene = scene();
+        m_focusScene = scene();
         QCoreApplication::postEvent(scene()->parent(), new QEvent(CustomEvent_Item_Selected));
     }
 
@@ -148,13 +148,13 @@ void PictureProxyWidget::dblSelectItem()
 
     if (bSelected)
     {
-        m_pFocusScene = scene();
+        m_focusScene = scene();
         QCoreApplication::postEvent(owner, new QEvent(CustomEvent_Item_Selected));
 
         ChildWidgetsMap widgetsMap;
         PictureChildWidget *childWidget = NULL;
         PictureProxyWidget *proxyWidget = NULL;
-        QList<QGraphicsItem *> items = m_pFocusScene->items();
+        QList<QGraphicsItem *> items = m_focusScene->items();
 
         foreach (QGraphicsItem *item, items)
         {
@@ -185,7 +185,7 @@ void PictureProxyWidget::detachItem()
 {
     setSelected(true);
     m_detachable = true;
-    m_pFocusScene = scene();
+    m_focusScene = scene();
     QCoreApplication::postEvent(scene()->parent(), new QEvent(CustomEvent_Item_Detached));
 }
 

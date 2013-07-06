@@ -293,15 +293,16 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
 
                     if (pEditPage)
                     {
+                        //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
                         pEditPage->removeThumbs(picFile);
                     }
 
                     if (SceneType_Templates == m_type)
                     {
-                        int pos = picFile.lastIndexOf(PIC_FMT, -1, Qt::CaseInsensitive);
+                        int pos = picFile.lastIndexOf(/*PIC_FMT*/".png", -1, Qt::CaseInsensitive);
                         if (-1 != pos)
                         {
-                            picFile = picFile.replace(pos, strlen(PIC_FMT), PKG_FMT);
+                            picFile = picFile.replace(pos, strlen(/*PIC_FMT*/".png"), PKG_FMT);
                         }
                     }
 

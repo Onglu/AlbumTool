@@ -49,7 +49,7 @@ public:
 
     void open(ChildWidgetsMap &widgetsMap);
 
-    void output(const QString &dir);
+    bool output(const QString &dir);
 
     TemplateChildWidget *getTmplWidget(void) const;
     DraggableLabel &getTmplLabel(void){return *m_tmplLabel;}
@@ -61,7 +61,7 @@ public:
 
     const QVariantMap &getChanges(void);
 
-    const QVariantMap &getData(void)
+    const QVariantMap &getData(void) const
     {
         QVariantMap belongings = m_tmplLabel->getBelongings();
         return belongings["page_data"].toMap();

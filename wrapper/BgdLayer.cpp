@@ -10,11 +10,6 @@ void BgdLayer::loadPixmap(const QPixmap &pix)
 
     if (loadPicture(pix, size))
     {
-//            m_srcImg[PhotoLayer::VisiableImgTypeScreen] = m_bk.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
-//            m_srcImg[PhotoLayer::VisiableImgTypeOriginal] = m_ori.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
-//            m_ratioSize.setWidth((qreal)m_size.width() / m_actualSize.width());
-//            m_ratioSize.setHeight((qreal)m_size.height() / m_actualSize.height());
-
         if (PhotoLayer::VisiableImgTypeScreen == m_type)
         {
             m_srcImg = m_bk.toImage().convertToFormat(QImage::Format_ARGB32_Premultiplied);
@@ -31,13 +26,12 @@ void BgdLayer::loadPixmap(const QPixmap &pix)
 
 void BgdLayer::compose(const QString &fileName)
 {
-    if (VISIABLE_IMG_TYPES <= m_type || m_srcImg/*[m_type]*/.isNull())
+    if (VISIABLE_IMG_TYPES <= m_type || m_srcImg.isNull())
     {
         return;
     }
 
-    QImage composedImg = m_srcImg/*[m_type]*/;
-    //QSizeF ratioSize = PhotoLayer::VisiableImgTypeScreen == m_type ? m_ratioSize : QSizeF(1, 1);
+    QImage composedImg = m_srcImg;
 
     int index = 0;
     QPainter painter(&composedImg);
@@ -63,12 +57,9 @@ void BgdLayer::compose(const QString &fileName)
             //qDebug() << __FILE__ << __LINE__ << index << label->hasPicture();
             if (label && label->hasPhoto())
             {
-                QRect rect = label->getVisiableRect();
-                QImage img = label->getVisiableImg();
                 painter.setTransform(QTransform().rotate(angle));
                 painter.setOpacity(opacity);
-                //painter.drawImage(PhotoLayer::VisiableImgTypeScreen == m_type ? rect : label->getActualRect(rect), img);
-                painter.drawImage(rect, img);
+                painter.drawImage(label->getVisiableRect(), label->getVisiableImg());
                 //img.save(tr("C:\\Users\\Onglu\\Desktop\\test\\Composed_%1x%2_%3").arg(rect1.width()).arg(rect1.height()).arg(file));
                 //qDebug() << __FILE__ << __LINE__ << "photo:" << file << rect;
             }

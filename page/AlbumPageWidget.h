@@ -23,13 +23,15 @@ public:
                    qreal angle = 0,
                    Qt::Axis axis = Qt::ZAxis);
 
+    int loadPhotos(const QStringList &photosList);
+
     //BgdLayer *getBgdLayer(void) const {return m_bgdLabel;}
 
     //const LabelsVector &getLayerLabels(void){return m_layerLabels;}
 
     void replace(const QString &current, const QString &replaced);
 
-    void compose(int count = 0, const QString &fileName = QString());
+    void compose(int count = -1, const QString &fileName = QString());
 
     void showPage(bool visiable);
 

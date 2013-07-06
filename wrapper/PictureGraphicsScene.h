@@ -45,8 +45,8 @@ public:
     void clearFocusSelection(bool all);
     void clearProxyWidgets();
 
-    void finishLoaded(bool loadFinished){m_loadFinished = loadFinished;}
-    bool loadFinished(void) const {return m_loadFinished;}
+    void ok(bool loadFinished){m_loadFinished = loadFinished;}
+    bool done(void) const {return m_loadFinished;}
 
     void autoAdjust(void)
     {

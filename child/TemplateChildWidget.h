@@ -79,7 +79,7 @@ public:
 
         if (data.contains("landscapeCount"))
         {
-            locations[PORTRAIT_PICTURE] = (uchar)data["landscapeCount"].toUInt();
+            locations[LANDSCAPE_PICTURE] = (uchar)data["landscapeCount"].toUInt();
         }
 
         return locations;

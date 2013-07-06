@@ -23,7 +23,11 @@ public:
     bool hasPicture(void) const;
     bool meetDragDrop(const QString &mimeType) const;
 
-    void setPicture(const QPixmap &pix, QSize size = QSize(0, 0));
+    void loadPicture(const QPixmap &pix,
+                     QSize size,
+                     qreal angle = 0,
+                     Qt::Axis axis = Qt::ZAxis);
+
     QPixmap getPicture(bool scaled = true) const;
 
     QString getPictureFile(void) const
@@ -36,8 +40,13 @@ public:
         return "";
     }
 
-    uchar getOrientation(void) const
+    int getOrientation(void) const
     {
+        if (m_pix.isNull())
+        {
+            return -1;
+        }
+
         return (0 < m_pix.width() - m_pix.height() ? LANDSCAPE_PICTURE : PORTRAIT_PICTURE);
     }
 

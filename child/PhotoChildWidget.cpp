@@ -130,6 +130,12 @@ void PhotoChildWidget::onAccept(const QVariantMap &belongings)
         ui->timesLabel->clear();
     }
 
+    QString name;
+    if (this->toolTip() != Converter::getFileName(m_picLabel->getPictureFile(), name, true))
+    {
+        setToolTip(name);
+    }
+
     PictureChildWidget::onAccept(belongings);
 }
 

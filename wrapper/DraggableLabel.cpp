@@ -26,10 +26,10 @@ DraggableLabel::DraggableLabel(const QPixmap &pix, QSize size, const QString &mi
 {
     resize(size);
     setAlignment(Qt::AlignCenter);
-    setPicture(pix, size);
+    loadPicture(pix, size);
 }
 
-void DraggableLabel::setPicture(const QPixmap &pix, QSize size)
+void DraggableLabel::loadPicture(const QPixmap &pix, QSize size, qreal angle, Qt::Axis axis)
 {
     m_pix = pix;
 
@@ -40,9 +40,14 @@ void DraggableLabel::setPicture(const QPixmap &pix, QSize size)
     }
     else
     {
+        if (angle || Qt::ZAxis != axis)
+        {
+            m_pix = pix.transformed(QTransform().rotate(angle, axis));
+        }
+
         if (size.width() && size.height())
         {
-            setPixmap(pix.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            setPixmap(m_pix.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         }
     }
 }

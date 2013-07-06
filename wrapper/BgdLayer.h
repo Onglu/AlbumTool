@@ -16,8 +16,8 @@ public:
         m_ratioSize(1, 1),
         m_locations(0)
     {
-        setFrameShape(QFrame::Box);
-        setFrameShadow(QFrame::Raised);
+//        setFrameShape(QFrame::Box);
+//        setFrameShadow(QFrame::Raised);
     }
 
     PhotoLayer::VisiableImgType getVisiableImgType(void) const {return m_type;}
@@ -62,7 +62,7 @@ public:
 
     void flush(void)
     {
-        m_srcImg/*[PhotoLayer::VisiableImgTypeOriginal] = m_srcImg[PhotoLayer::VisiableImgTypeScreen]*/ = QImage();
+        m_srcImg = QImage();
         m_actualSize = m_ratioSize = QSizeF(1, 1);
         clear();
     }
@@ -74,7 +74,7 @@ private:
     bool m_enter;
     QBrush m_borderColor;
     const PhotoLayer::VisiableImgType m_type;
-    QImage m_srcImg/*[VISIABLE_IMG_TYPES]*/;
+    QImage m_srcImg;
     QRect m_visiableRect;
     QSizeF m_actualSize, m_ratioSize; // background scale ratio size
     int m_locations;
