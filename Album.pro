@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui sql
+QT       += core gui sql network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -36,9 +36,9 @@ SOURCES += main.cpp\
     wrapper/PictureLabel.cpp \
     wrapper/PhotoLayer.cpp \
     wrapper/BgdLayer.cpp \
-    wrapper/MakeHelper.cpp \
     page/AlbumPageWidget.cpp \
-    LoadingDlg.cpp
+    LoadingDialog.cpp \
+    AlbumManageDialog.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -63,9 +63,9 @@ HEADERS  += \
     defines.h \
     events.h \
     wrapper/BgdLayer.h \
-    wrapper/MakeHelper.h \
     page/AlbumPageWidget.h \
-    LoadingDlg.h
+    LoadingDialog.h \
+    AlbumManageDialog.h
 
 FORMS    += \
     MainWindow.ui \
@@ -74,7 +74,8 @@ FORMS    += \
     child/AlbumChildWidget.ui \
     page/TemplatePageWidget.ui \
     page/TaskPageWidget.ui \
-    page/EditPageWidget.ui
+    page/EditPageWidget.ui \
+    AlbumManageDialog.ui
 
 RESOURCES += \
     images.qrc

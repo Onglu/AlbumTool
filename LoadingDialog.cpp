@@ -1,10 +1,10 @@
-#include "LoadingDlg.h"
+#include "LoadingDialog.h"
 #include <QLabel>
 #include <QMovie>
 #include <QVBoxLayout>
 #include <QDebug>
 
-LoadingDlg::LoadingDlg() : QDialog(0, Qt::FramelessWindowHint)
+LoadingDialog::LoadingDialog() : QDialog(0, Qt::FramelessWindowHint)
 {
     m_movieLabel = new QLabel(this);
     m_movieLabel->setFixedSize(126, 22);
@@ -30,31 +30,24 @@ LoadingDlg::LoadingDlg() : QDialog(0, Qt::FramelessWindowHint)
     setAttribute(Qt::WA_TranslucentBackground);
 }
 
-void LoadingDlg::showProcess(bool show, QRect global, const QString &info)
+void LoadingDialog::showProcess(bool show, QRect global, const QString &info)
 {
     if (isHidden() && show)
     {
         m_movieLabel->movie()->start();
         m_textLabel->setText(info);
-        qDebug() << __FILE__ << __LINE__ << info;
+        //qDebug() << __FILE__ << __LINE__ << info;
 
         QPoint pos((global.width() - this->width()) / 2, (global.height() - this->height()) / 2);
         move(global.topLeft() + pos);
-        //exec();
-        this->show();
+        exec();
+        //qDebug() << __FILE__ << __LINE__ << "Qt::NonModal";
     }
 
     if (isVisible() && !show)
     {
         m_movieLabel->movie()->stop();
         m_textLabel->clear();
-        //accept();
-        this->hide();
+        accept();
     }
-}
-
-void LoadingDlg::showEvent(QShowEvent *)
-{
-//    qDebug() << __FILE__ << __LINE__ << "stttt" << m_textLabel->text();
-//    emit ss(true);
 }

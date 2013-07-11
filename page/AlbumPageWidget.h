@@ -5,21 +5,22 @@
 #include "wrapper/BgdLayer.h"
 
 class AlbumChildWidget;
+class ThumbChildWidget;
 class EditPageWidget;
 
 class AlbumPageWidget : public QWidget
 {
-    Q_OBJECT
-
 public:
     explicit AlbumPageWidget(PhotoLayer::VisiableImgType type, QWidget *parent = 0);
 
     bool loadLayers(const AlbumChildWidget &album);
 
+    PhotoLayer *photoLayer(int index, const QString &fileName) const;
+
     void clearLayers(void);
 
     bool loadPhoto(int index,
-                   const QString &photoFile,
+                   const QString &fileName,
                    qreal angle = 0,
                    Qt::Axis axis = Qt::ZAxis);
 
@@ -29,16 +30,14 @@ public:
 
     //const LabelsVector &getLayerLabels(void){return m_layerLabels;}
 
-    void replace(const QString &current, const QString &replaced);
+    bool replace(const ThumbChildWidget *thumb,
+                 const QString &fileName,
+                 PhotoLayer **layer = NULL);
 
     void compose(int count = -1, const QString &fileName = QString());
 
     void showPage(bool visiable);
 
-signals:
-    
-private slots:
-    
 private:
     QVariantList m_layers, m_photoLayers;
     LabelsVector m_layerLabels;

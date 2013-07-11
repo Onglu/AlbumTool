@@ -90,11 +90,12 @@ int TemplateChildWidget::getId()
 
 void TemplateChildWidget::onAccept(const QVariantMap &belongings)
 {
-    //qDebug() << __FILE__ << __LINE__ << belongings["template_file"].toString() << belongings["used_times"].toInt();
-
     QString tmplFile = belongings["template_file"].toString();
+    //qDebug() << __FILE__ << __LINE__ << tmplFile << m_tmplFile;
+
     if (!tmplFile.isEmpty() && m_tmplFile != tmplFile)
     {
+        m_pictures = m_container->getTmplWidget(tmplFile)->getPictures();
         m_tmplFile = tmplFile;
     }
 
@@ -105,11 +106,6 @@ void TemplateChildWidget::onAccept(const QVariantMap &belongings)
     }
 
     m_records["used_times"] = belongings["used_times"];
-
-    if (!m_pictures.isEmpty())
-    {
-        m_pictures.clear();
-    }
 
     PictureChildWidget::onAccept(belongings);
 }
@@ -241,7 +237,8 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
             QFile file(name);
             if (!pix.isNull() && file.open(QIODevice::ReadOnly))
             {
-                m_pictures.insert(m_currFile, file.readAll());
+                //m_pictures.insert(m_currFile, file.readAll());
+                m_pictures.insert(m_currFile, qCompress(file.readAll(), 9));
                 file.remove();
             }
 

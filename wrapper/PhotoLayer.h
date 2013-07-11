@@ -51,11 +51,6 @@ public:
 
     const QString &getPhoto(void) const {return m_picFile;}
 
-    void setVisiableRect(VisiableRectType type, QRect rect)
-    {
-        m_visiableRects[type] = rect;
-    }
-
     QRect getVisiableRect(VisiableRectType type = VisiableRectTypeDefault) const
     {
         return m_visiableRects[type];
@@ -101,6 +96,9 @@ public:
 
     void blend(void);
 
+    static PhotoLayer *getActive(void){return m_active;}
+    static void resetActive(void){m_active = NULL;}
+
 signals:
     void clicked(PhotoLayer &self, QPoint pos);
 
@@ -117,25 +115,16 @@ private:
 
     void updateCopiedRect(void);
 
-    bool zoomIn(float scale)
-    {
-        /* Reachs the maximum size */
-        if ((this->width() < m_bgdRect.width() && this->height() < m_bgdRect.height()) &&
-           (m_bgdRect.width() < m_bk.width() * scale || m_bgdRect.height() < m_bk.height() * scale))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
     const VisiableImgType m_type;
     bool m_moveable, m_moved;
 
+    QSize m_default;
     QSizeF m_ratioSize; // Visiable size devides actual size
     QRect m_bgdRect, m_maskRect, m_visiableRects[VISIABLE_RECT_TYPES];
     QImage m_visiableImg, m_maskImg, m_composedImg;
     QString m_picFile;
+
+    static PhotoLayer *m_active;
 };
 
 #endif // PHOTOLAYER_H

@@ -64,7 +64,7 @@ class LoaderThread : public QThread
 
 public:
     LoaderThread(ViewType view) : m_running(false), m_suspended(false), m_viewType(view){}
-    LoaderThread(const LoaderThread &loader) : m_running(false), m_suspended(false), m_viewType(loader.m_viewType){}
+    LoaderThread(const LoaderThread &loader) : m_running(false), m_suspended(false){m_viewType = loader.m_viewType;}
     ~LoaderThread(void){end();}
 
     void loadList(const QVariantList &recordsList){m_recordsList = recordsList;}

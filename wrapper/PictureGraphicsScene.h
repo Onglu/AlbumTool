@@ -30,9 +30,9 @@ public:
 
     void updateScenes(GraphicsScenesVector &scenesVector){m_scensVector = scenesVector;}
 
-    bool isEmpty(void) const {return (0 >= this->items().size());}
-
     void addProxyWidget(int index, PictureProxyWidget *proxyWidget);
+
+    void addProxyWidgets(const ProxyWidgetsMap &proxyWidgets);
 
     void insertProxyWidget(int index,
                            PictureProxyWidget *proxyWidget,
@@ -44,6 +44,8 @@ public:
 
     void clearFocusSelection(bool all);
     void clearProxyWidgets();
+
+    bool isEmpty(void) const {return (0 >= this->items().size());}
 
     void ok(bool loadFinished){m_loadFinished = loadFinished;}
     bool done(void) const {return m_loadFinished;}
@@ -70,7 +72,7 @@ public:
 
     ProxyWidgetsMap &getResultWidgets(void){return m_resultsWidgets;}
 
-    const QStringList &filesList(void){return m_filesList;}
+    const QStringList &getFilesList(void){return m_filesList;}
 
     void getChanges(QVariantList &changesList);
 

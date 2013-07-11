@@ -17,6 +17,8 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
         return false;
     }
 
+    m_locker = FileLocker(m_fileName);
+
     QDataStream in(&file);
     quint32 magic, version;
 
@@ -177,4 +179,51 @@ int FileParser::importFiles(const QString &dirKey,
     m_Settings.endGroup();
 
     return count;
+}
+
+const QString &FileParser::getFileMd5(const QString &filePath, QString &md5)
+{
+    QFile localFile(filePath);
+
+    if (!localFile.open(QFile::ReadOnly))
+    {
+        return md5;
+    }
+
+    QCryptographicHash ch(QCryptographicHash::Md5);
+    quint64 totalBytes = 0;
+    quint64 bytesWritten = 0;
+    quint64 bytesToWrite = 0;
+    quint64 loadSize = 1024 * 4;
+    QByteArray buf;
+
+    totalBytes = localFile.size();
+    bytesToWrite = totalBytes;
+
+    while (1)
+    {
+        if (bytesToWrite > 0)
+        {
+            buf = localFile.read(qMin(bytesToWrite, loadSize));
+            ch.addData(buf);
+            bytesWritten += buf.length();
+            bytesToWrite -= buf.length();
+            buf.resize(0);
+        }
+        else
+        {
+            break;
+        }
+
+        if (bytesWritten == totalBytes)
+        {
+            break;
+        }
+    }
+
+    localFile.close();
+
+    md5.append(ch.result().toHex());
+
+    return md5;
 }

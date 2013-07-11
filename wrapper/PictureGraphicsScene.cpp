@@ -43,6 +43,22 @@ void PictureGraphicsScene::addProxyWidget(int index, PictureProxyWidget *proxyWi
     m_resultsWidgets.insert(index, proxyWidget);
 }
 
+void PictureGraphicsScene::addProxyWidgets(const ProxyWidgetsMap &proxyWidgets)
+{
+    PictureProxyWidget *proxyWidget = NULL;
+    ProxyWidgetsMap::const_iterator iter = proxyWidgets.constBegin();
+    while (iter != proxyWidgets.constEnd())
+    {
+        if ((proxyWidget = static_cast<PictureProxyWidget *>(iter.value())))
+        {
+            addProxyWidget(proxyWidget->getChildWidget().getIndex(), proxyWidget);
+            adjustItemPos();
+        }
+
+        ++iter;
+    }
+}
+
 void PictureGraphicsScene::insertProxyWidget(int index,
                                              PictureProxyWidget *proxyWidget,
                                              QString file)
@@ -60,6 +76,11 @@ void PictureGraphicsScene::insertProxyWidget(int index,
     }
 
     m_proxyWidgets.insert(index, proxyWidget);
+
+    if (SceneType_Templates == m_type)
+    {
+        m_resultsWidgets.insert(index, proxyWidget);
+    }
 }
 
 inline int PictureGraphicsScene::getViewWidth() const
@@ -119,7 +140,7 @@ void PictureGraphicsScene::adjustItemPos(bool partial)
 
 void PictureGraphicsScene::adjustViewLayout(int viewWidth)
 {
-    const GraphicsItemsList itemsList = m2l(m_proxyWidgets);
+    const GraphicsItemsList itemsList = SceneType_Templates != m_type ? m2l(m_proxyWidgets) : m2l(m_resultsWidgets);
     const int count = itemsList.size();
     if (!count)
     {
@@ -276,7 +297,7 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                         empty = albumProxyWidget->isEmpty();
                     }
 
-                    if (empty) // Clear all ?
+                    if (empty) // Clear all?
                     {
                         ProxyWidgetsMap &photoProxyWidgets = m_scensVector.at(SceneType_Photos)->getProxyWidgets();
                         foreach (PictureProxyWidget *photoProxyWidget, photoProxyWidgets)
@@ -299,10 +320,10 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
 
                     if (SceneType_Templates == m_type)
                     {
-                        int pos = picFile.lastIndexOf(/*PIC_FMT*/".png", -1, Qt::CaseInsensitive);
+                        int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
                         if (-1 != pos)
                         {
-                            picFile = picFile.replace(pos, strlen(/*PIC_FMT*/".png"), PKG_FMT);
+                            picFile = picFile.replace(pos, strlen(".png"), PKG_FMT);
                         }
                     }
 

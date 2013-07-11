@@ -20,6 +20,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
     TemplateChildWidget *tmplWidget = album.getTmplWidget();
     if (!tmplWidget)
     {
+        qDebug() << __FILE__ << __LINE__ << "doesn't find template" << album.getTmplFile();
         return false;
     }
 
@@ -51,7 +52,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
 
         if (LT_Background == type)
         {
-            QByteArray ba = pictures[fileName].toByteArray();
+            QByteArray ba = qUncompress(pictures[fileName].toByteArray());
 
             if (bgdSize.width() == width && bgdSize.height() == height && x == width / 2 && y == height / 2)
             {
@@ -100,7 +101,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
         {
             maskLayer.insert("frame", frame);
             maskLayer.insert("filename", fileName);
-            maskLayer.insert("picture", pictures[fileName].toByteArray());
+            maskLayer.insert("picture", qUncompress(pictures[fileName].toByteArray()));
             maskLayer.insert("opacity", opacity);
             maskLayer.insert("rotation", angle);
             maskLayers << maskLayer;
@@ -126,6 +127,19 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
     }
 
     return (!m_layers.isEmpty() && !m_photoLayers.isEmpty());
+}
+
+PhotoLayer *AlbumPageWidget::photoLayer(int index, const QString &fileName) const
+{
+    for (int i = index - 1; i >= 0; i--)
+    {
+        if (fileName == m_layerLabels[i]->getPhoto())
+        {
+            return m_layerLabels[i];
+        }
+    }
+
+    return NULL;
 }
 
 void AlbumPageWidget::clearLayers()
@@ -191,20 +205,27 @@ int AlbumPageWidget::loadPhotos(const QStringList &photosList)
     return index;
 }
 
-void AlbumPageWidget::replace(const QString &current, const QString &replaced)
+bool AlbumPageWidget::replace(const ThumbChildWidget *thumb, const QString &fileName, PhotoLayer **layer)
 {
-    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    if (!*layer)
     {
-        if (current == m_layerLabels[i]->getPhoto())
-        {
-            qreal angle;
-            Qt::Axis axis;
-            ThumbChildWidget::getRotation(angle, axis);
-            m_layerLabels[i]->changePhoto(replaced, angle, axis);
-            m_bgdLabel->compose();
-            break;
-        }
+        *layer = photoLayer(thumb->getIndex(), fileName);
     }
+
+    if (*layer && thumb)
+    {
+        QVariantMap belongings = thumb->getBelongings();
+        QString picFile = belongings["picture_file"].toString();
+        qreal angle = belongings["rotation_angle"].toReal();
+        Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
+
+        (*layer)->changePhoto(picFile, angle, axis);
+        compose();
+
+        return true;
+    }
+
+    return false;
 }
 
 void AlbumPageWidget::compose(int count, const QString &fileName)

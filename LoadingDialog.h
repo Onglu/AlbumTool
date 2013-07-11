@@ -5,22 +5,14 @@
 
 class QLabel;
 
-class LoadingDlg : public QDialog
+class LoadingDialog : public QDialog
 {
-    Q_OBJECT
-
 public:
-    LoadingDlg(void);
+    LoadingDialog(void);
 
     void showProcess(bool show,
                      QRect global = QRect(0, 0, 0, 0),
                      const QString &info = QString());
-
-signals:
-    void ss(bool);
-
-protected:
-    void showEvent(QShowEvent *);
 
 private:
     QLabel *m_movieLabel, *m_textLabel;

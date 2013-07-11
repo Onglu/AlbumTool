@@ -5,7 +5,6 @@
 #include "page/TaskPageWidget.h"
 #include "page/AlbumPageWidget.h"
 #include "wrapper/utility.h"
-#include "wrapper/MakeHelper.h"
 #include "parser/json.h"
 #include <QDebug>
 #include <QMessageBox>
@@ -18,7 +17,6 @@ AlbumChildWidget::AlbumChildWidget(int index, TaskPageWidget *parent) :
     m_photosVector(AlbumPhotos(PHOTOS_NUMBER)),
     m_tmplVisible(false),
     m_locked(false),
-    m_maker(new MakeHelper(this)),
     m_tmpl(NULL)
 {
     ui->setupUi(this);
@@ -39,7 +37,6 @@ AlbumChildWidget::AlbumChildWidget(int index,
     m_tmplFile(tmplFile),
     m_tmplVisible(false),
     m_locked(false),
-    m_maker(new MakeHelper(this)),
     m_tmpl(NULL)
 {
     ui->setupUi(this);
@@ -65,7 +62,6 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
                                     const QString &tmplFile,
                                     const QVariantList &photoLayers)
 {
-    QPixmap pix;
     QSize photoSize(48, 48), tmplSize(96, 144);
 
     memset(m_locations, 0, 2);
@@ -102,22 +98,15 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
                     if (!m_photosList.contains(photoFile, Qt::CaseInsensitive))
                     {
                         m_photosList.append(photoFile);
-
-                        pix = QPixmap(photoFile).scaled(QSize(46, 46), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                        if (angle || Qt::ZAxis != axis)
-                        {
-                            pix = pix.transformed(QTransform().rotate(angle, axis));
-                        }
-
-                        m_photoLabels.at(i)->setPixmap(pix);
-                        PhotoChildWidget::setPhoto(*m_photoLabels.at(i), photoFile, angle, axis, usedTimes);
+                        m_photoLabels[i]->loadPicture(QPixmap(photoFile), QSize(46, 46), angle, axis);
+                        PhotoChildWidget::setPhoto(*m_photoLabels[i], photoFile, angle, axis, usedTimes);
                     }
                 }
             }
         }
 
-        m_photoLabels.at(i)->setContentsMargins(1, 1, 2, 2);
-        m_photoLabels.at(i)->installEventFilter(this);
+        m_photoLabels[i]->setContentsMargins(1, 1, 2, 2);
+        m_photoLabels[i]->installEventFilter(this);
     }
 
     m_picLabel = m_photoLabels.last();
@@ -296,6 +285,25 @@ void AlbumChildWidget::changePhoto(const QString &photoName,
     }
 }
 
+void AlbumChildWidget::removePhoto(const QString &photoFile)
+{
+    if (!m_photosList.contains(photoFile, Qt::CaseInsensitive))
+    {
+        return;
+    }
+
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    {
+        QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
+        if (PHOTO_ATTRIBUTES == photoInfo.size() && photoFile == photoInfo.at(0))
+        {
+            m_photosList.removeOne(photoFile);
+            m_photosVector[i].clear();
+            m_photoLabels[i]->reset();
+        }
+    }
+}
+
 TemplateChildWidget *AlbumChildWidget::getTmplWidget() const
 {
     return m_tmpl ? m_tmpl : m_container->getTmplWidget(m_tmplFile);
@@ -319,11 +327,24 @@ uchar AlbumChildWidget::getLocations(uchar locations[]) const
             int o = m_photoLabels.at(i)->getOrientation();
             if (PORTRAIT_PICTURE <= o && LANDSCAPE_PICTURE >= o)
             {
-                locations[o]--;
+                if (locations[o])
+                {
+                    locations[o]--;
+                }
+                else
+                {
+                    if (locations[o ^ 1])
+                    {
+                        locations[o ^ 1]--;
+                    }
+                }
+
+                //qDebug() << __FILE__ << __LINE__ << m_index << o << locations[PORTRAIT_PICTURE] << locations[LANDSCAPE_PICTURE];
             }
         }
 
-        //qDebug() << __FILE__ << __LINE__ << locations[PORTRAIT_PICTURE] << locations[LANDSCAPE_PICTURE];
+        //qDebug() << __FILE__ << __LINE__ << m_index << locations[PORTRAIT_PICTURE] << locations[LANDSCAPE_PICTURE];
+        return num;
     }
 
     return locations[PORTRAIT_PICTURE] + locations[LANDSCAPE_PICTURE];
@@ -430,8 +451,9 @@ bool AlbumChildWidget::output(const QString &dir)
             QString photoFile = photoInfo.at(0);
             qreal angle = photoInfo.at(1).toDouble();
             Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
+            int usedTimes = photoInfo.at(3).toInt();
 
-            if (album->loadPhoto(pid, photoFile, angle, axis))
+            if (usedTimes && album->loadPhoto(pid, photoFile, angle, axis))
             {
                 QPixmap pix = album->m_layerLabels[pid]->getPicture(false);
                 QSize size = pix.size();
@@ -461,7 +483,7 @@ bool AlbumChildWidget::output(const QString &dir)
         {
             QString file = tr("%1\\%2").arg(path).arg(iter.key());
             QPixmap pix;
-            if (!QFile::exists(file) && pix.loadFromData(iter.value().toByteArray()))
+            if (!QFile::exists(file) && pix.loadFromData(qUncompress(iter.value().toByteArray())))
             {
                 pix.save(file);
             }
@@ -592,13 +614,9 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
 
             qreal angle = belongings["rotation_angle"].toReal();
             Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-            int usedTimes = belongings["used_times"].toInt();
+            //int usedTimes = belongings["used_times"].toInt();
 
             m_picLabel->loadPicture(pix, m_thumbSize - QSize(2, 2), angle, axis);
-
-            //pix = pix.scaled(m_thumbSize - QSize(2, 2), Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            //m_picLabel->setPixmap(pix.transformed(QTransform().rotate(angle, axis)));
-
             m_picLabel->setBelongings(belongings);
             m_picLabel->clearMimeType();
 
@@ -613,7 +631,8 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
             }
 
             int index = m_picLabel->objectName().right(1).toInt() - 1;
-            m_photosVector[index] = QString("%1|%2|%3|%4").arg(picFile).arg(angle).arg(axis).arg(usedTimes);
+            //m_photosVector[index] = QString("%1|%2|%3|%4|0").arg(picFile).arg(angle).arg(axis).arg(usedTimes);
+            m_photosVector[index] = QString("%1|%2|%3|0").arg(picFile).arg(angle).arg(axis);
             //qDebug() << __FILE__ << __LINE__ << m_photosVector[index];
 
             m_container->noticeChanged();
@@ -662,6 +681,32 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
         }
 
         m_dropped = true;
+    }
+}
+
+void AlbumChildWidget::replace(const QString &current, const QVariantMap &belongings)
+{
+    QString replaced = belongings["picture_file"].toString();
+    if (m_photosList.contains(replaced, Qt::CaseInsensitive))
+    {
+        return;
+    }
+
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    {
+        QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
+        if (PHOTO_ATTRIBUTES == photoInfo.size() && current == photoInfo.at(0))
+        {
+            qreal angle = belongings["rotation_angle"].toReal();
+            Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
+            int usedTimes = photoInfo.at(3).toInt();
+
+            m_photosList.removeOne(current);
+            m_photosList.append(replaced);
+            m_photosVector[i] = QString("%1|%2|%3|%4").arg(replaced).arg(angle).arg(axis).arg(usedTimes);
+            m_photoLabels[i]->loadPicture(QPixmap(replaced), QSize(46, 46), angle, axis);
+            m_photoLabels[i]->setBelongings(belongings);
+        }
     }
 }
 

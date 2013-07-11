@@ -4,7 +4,6 @@
 #include <QWidget>
 #include "TemplatePageWidget.h"
 #include "child/AlbumChildWidget.h"
-//#include "defines.h"
 #include "wrapper/utility.h"
 
 class PictureGraphicsScene;
@@ -12,37 +11,7 @@ class AlbumPageWidget;
 class TaskPageWidget;
 class PhotoLayer;
 class QPushButton;
-
-namespace EditPage
-{
-    class MakerThread : public QThread
-    {
-        Q_OBJECT
-
-    public:
-        MakerThread(void){}
-
-        void replace(const QString &current, const QString &replaced)
-        {
-            m_current = current;
-            m_replaced = replaced;
-            this->start();
-        }
-
-    signals:
-        void doing(const QString &, const QString &);
-
-    protected:
-        void run()
-        {
-            emit doing(m_current, m_replaced);
-            emit finished();
-        }
-
-    private:
-        QString m_current, m_replaced;
-    };
-}
+class ThumbChildWidget;
 
 namespace Ui {
     class EditPageWidget;
@@ -78,6 +47,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void resizeEvent(QResizeEvent *);
+    void customEvent(QEvent *);
 
 private slots:
     void on_editPushButton_clicked();
@@ -95,8 +65,6 @@ private slots:
     void on_deletePushButton_clicked();
 
     void selectThumb(bool bSingle){m_thumbsSceneFocused = bSingle;}
-
-    void onReplacing(const QString &current, const QString &replaced);
 
     /* Replaced picture file */
     void onReplaced(const QString &current, const QString &replaced);
@@ -133,6 +101,8 @@ private:
 
     void adjustThumbsHeight(void);
 
+    const ThumbChildWidget *getThumbWidget(const QString &picFile) const;
+
     Ui::EditPageWidget *ui;
 
     TaskPageWidget *m_container;
@@ -143,11 +113,9 @@ private:
     PictureGraphicsScene *m_pThumbsScene;
 
     bool m_thumbsSceneFocused;
-    int m_current, m_x, m_y;
+    int m_current;
     QPoint m_startPos;
     ChildWidgetsMap m_albumsMap;
-
-    EditPage::MakerThread m_maker;
 
     friend class TaskPageWidget;
 };

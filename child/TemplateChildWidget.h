@@ -108,6 +108,8 @@ public:
 
     const QVariantMap &loadPictures(void);
 
+    const QVariantMap &getPictures(void){return m_pictures;}
+
 protected slots:
     void onAccept(const QVariantMap &belongings);
 

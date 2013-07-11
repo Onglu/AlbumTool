@@ -5,6 +5,8 @@
 #include <QLabel>
 #include <QSettings>
 
+class AlbumManageDialog;
+
 namespace Ui {
 class MainWindow;
 }
@@ -42,6 +44,8 @@ private slots:
 
     void on_manageTemplateAction_triggered();
 
+    void on_manageAlbumAction_triggered();
+
 private:
     bool closePage(int index);
 
@@ -49,10 +53,9 @@ private:
     void addPage(AddMethod method, QString taskFile = "", QString taskName = "");
 
     Ui::MainWindow *ui;
-    QLabel *m_pLabel;
-    QLabel *m_pSsLabel;
+    QLabel *m_pLabel, *m_pSsLabel;
     QSettings m_Settings;
-    QDialog *m_loadingDlg;
+    AlbumManageDialog *m_albums;
 };
 
 #endif // MAINWINDOW_H

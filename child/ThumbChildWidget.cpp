@@ -6,9 +6,6 @@
 #include <QDebug>
 
 QStringList ThumbChildWidget::m_photosList;
-QString ThumbChildWidget::m_replaced;
-qreal ThumbChildWidget::m_angle = 0;
-Qt::Axis ThumbChildWidget::m_axis = Qt::ZAxis;
 
 ThumbChildWidget::ThumbChildWidget(int index,
                                    const QString &mimeType,
@@ -50,8 +47,6 @@ void ThumbChildWidget::dropEvent(QDropEvent *event)
     m_picLabel->setPixmap(pix);
 
     m_belongings = picLabel->getBelongings();
-    m_angle = m_belongings["rotation_angle"].toReal();
-    m_axis = (Qt::Axis)m_belongings["rotation_axis"].toInt();
     m_belongings["used_times"] = m_belongings["used_times"].toInt() + 1;
 
     QString current = m_picLabel->getPictureFile();
@@ -60,18 +55,13 @@ void ThumbChildWidget::dropEvent(QDropEvent *event)
     QString replaced = picLabel->getPictureFile();
     m_photosList.append(replaced);
 
-    //m_replaced = replaced;
-
     QString name;
     setToolTip(Converter::getFileName(replaced, name, true));
 
     //qDebug() << __FILE__ << __LINE__ << "current:" << current << "," << ut
              //<< ", replaced:" << picLabel->getPictureFile() << "," << m_belongings["used_times"].toInt();
 
-    //qDebug() << __FILE__ << __LINE__ << "current:" << current << "," << ", replaced:" << replaced;
     emit itemReplaced(current, replaced);
-    //QCoreApplication::postEvent(m_container, new QEvent(CustomEvent_Item_Replaced));
-    //qDebug() << __FILE__ << __LINE__ << "replaced finished";
 
     m_picLabel->setBelongings(m_belongings);
 }

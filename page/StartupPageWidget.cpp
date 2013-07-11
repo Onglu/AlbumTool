@@ -63,8 +63,10 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
 //    QString photoName;
 //    Converter::getFileName("C:\\Users\\Onglu\\Desktop\\test\\Copied_kk.png", photoName, true);
 
-    //QString strDt = QString("%")
-    //qDebug() << __FILE__ << __LINE__;
+
+//    QString fileName(tr("E:\\images\\album.xc")), md5;
+//    QString url = tr("%1offset=%2&md5=%3").arg(UPLOAD_URL).arg(0).arg(FileParser::getFileMd5(fileName, md5));
+//    qDebug() << __FILE__ << __LINE__ << url;
 }
 
 StartupPageWidget::~StartupPageWidget()

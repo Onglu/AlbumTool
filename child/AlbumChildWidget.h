@@ -7,7 +7,6 @@
 #define PHOTOS_NUMBER       6
 #define PHOTO_ATTRIBUTES    4
 
-class MakeHelper;
 class TemplateChildWidget;
 typedef QVector<QString> AlbumPhotos;
 typedef QList<DraggableLabel *> DraggableLabels;
@@ -37,6 +36,8 @@ public:
                      qreal opacity = 1,
                      qreal angle = 0);
 
+    void removePhoto(const QString &photoFile);
+
     void setPhotosVector(const AlbumPhotos &photosVector)
     {
         m_photosVector = photosVector;
@@ -46,6 +47,8 @@ public:
     void switchView(bool enter);
 
     void clearBanners(void);
+
+    void replace(const QString &current, const QVariantMap &belongings);
 
     void open(ChildWidgetsMap &widgetsMap);
 
@@ -57,7 +60,25 @@ public:
 
     AlbumPhotos &getPhotosVector(void){return m_photosVector;}
     QStringList &getPhotosList(void){return m_photosList;}
-    const QString &getTmplFile(void){return m_tmplFile;}
+    const QString &getTmplFile(void) const {return m_tmplFile;}
+
+    int getUsedNum(void) const
+    {
+        int num = 0;
+
+        for (int i = 0; i < PHOTOS_NUMBER; i++)
+        {
+            QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
+            int n = 0;
+
+            if (PHOTO_ATTRIBUTES == photoInfo.size() && 0 < (n = photoInfo.at(3).toInt()))
+            {
+                num += n;
+            }
+        }
+
+        return num;
+    }
 
     const QVariantMap &getChanges(void);
 
@@ -103,13 +124,12 @@ private:
     DraggableLabel *m_tmplLabel;
 
     QStringList m_photosList;       // item format: filename with path, not contains the empty items
-    AlbumPhotos m_photosVector;     // value format: file|angle|axis, contains empty items
+    AlbumPhotos m_photosVector;     // value format: file|angle|axis|times|flag, contains empty items
 
     /* Tempalte data */
     QString m_tmplFile;
     uchar m_locations[2];   // 0: portrait(Verti), 1: landscape(Hori)
 
-    MakeHelper *m_maker;
     TemplateChildWidget *m_tmpl;
 
     friend class MakeHelper;

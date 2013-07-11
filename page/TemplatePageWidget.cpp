@@ -16,7 +16,7 @@ TemplatePageWidget::TemplatePageWidget(bool previewable, TaskPageWidget *parent)
     ui->setupUi(this);
 
     ui->searchCheckBox->hide();
-    ui->resetPushButton->hide();
+    //ui->resetPushButton->hide();
 
     m_belongings["picture_file"] = "";
 
@@ -133,11 +133,11 @@ inline void TemplatePageWidget::addTag(const QCheckBox *cb)
 
     if (cb->isChecked() && !value.isEmpty())
     {
-        m_tagsMap.insert(name, value);
+        m_tags.insert(name, value);
     }
     else
     {
-        m_tagsMap.remove(name);
+        m_tags.remove(name);
     }
 
     if (ui->searchCheckBox->isChecked())
@@ -277,11 +277,11 @@ void TemplatePageWidget::setTag(int type, bool checked, const QString &name)
     }
 }
 
-void TemplatePageWidget::updateTags(bool immediate, const QVariantMap &tags)
+void TemplatePageWidget::setTags(bool immediate, const QVariantMap &tags)
 {
     QVariantMap::const_iterator iter = tags.constBegin();
 
-    m_tagsMap = tags;
+    m_tags = tags;
 
     ui->searchCheckBox->setChecked(immediate);
     if (!immediate)
@@ -333,6 +333,13 @@ void TemplatePageWidget::updateTags(bool immediate, const QVariantMap &tags)
 
         ++iter;
     }
+
+
+}
+
+bool TemplatePageWidget::isImmediate(void) const
+{
+    return ui->searchCheckBox->isChecked();
 }
 
 void TemplatePageWidget::on_typeChildrenCheckBox_clicked()
@@ -432,10 +439,10 @@ void TemplatePageWidget::on_colorPurpleCheckBox_clicked()
 
 void TemplatePageWidget::on_searchPushButton_clicked()
 {
-    m_tagsMap.insert("pagetype", ui->wpCoverRadioButton->isChecked() ? 1 : 0);
+    m_tags.insert("pagetype", ui->wpCoverRadioButton->isChecked() ? 1 : 0);
     //qDebug() << __FILE__ << __LINE__ << "风格 :" << style;
-    m_tagsMap.insert(tr("风格"), ui->styleLineEdit->text());
-    m_container->onSearch(ui->searchCheckBox->isChecked(), ui->templateLabel->isVisible(), m_tagsMap);
+    m_tags.insert(tr("风格"), ui->styleLineEdit->text());
+    m_container->onSearch(/*ui->searchCheckBox->isChecked(), ui->templateLabel->isVisible(), */m_tags);
 }
 
 void TemplatePageWidget::on_searchCheckBox_clicked(bool checked)
@@ -449,15 +456,11 @@ void TemplatePageWidget::on_searchCheckBox_clicked(bool checked)
 
 void TemplatePageWidget::on_resetPushButton_clicked()
 {
-    if (!m_tagsMap.isEmpty())
-    {
-        return;
-    }
-
-    m_tagsMap.clear();
-
-    ui->wpCoverRadioButton->setChecked(true);
+    ui->buttonGroup->setExclusive(false);
+    ui->wpCoverRadioButton->setChecked(false);
     ui->wpPageRadioButton->setChecked(false);
+    ui->buttonGroup->setExclusive(true);
+
     ui->styleLineEdit->clear();
     ui->searchCheckBox->setChecked(false);
     ui->searchPushButton->setEnabled(true);
@@ -466,7 +469,8 @@ void TemplatePageWidget::on_resetPushButton_clicked()
     setTag(2, false);
     setTag(3, false);
 
-    m_container->onSearch(false, ui->templateLabel->isVisible(), m_tagsMap);
+    m_tags.clear();
+    m_container->onSearch();
 }
 
 void TemplatePageWidget::on_styleLineEdit_textChanged(const QString &arg1)

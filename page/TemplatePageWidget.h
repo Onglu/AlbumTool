@@ -21,12 +21,15 @@ public:
     explicit TemplatePageWidget(bool previewable, TaskPageWidget *parent = 0);
     ~TemplatePageWidget();
 
-    void updateTags(bool immediate, const QVariantMap &tags);
-
     QGraphicsView *getView(void) const;
 
     bool changeTemplate(const QVariantMap &belongings);
     const QVariantMap &getBelongings(void){return m_belongings;}
+
+    void setTags(bool immediate, const QVariantMap &tags);
+    const QVariantMap &getTags(void){return m_tags;}
+
+    bool isImmediate(void) const;
 
 signals:
     void replaced(const QString &tmplPic, const QString &tmplFile);
@@ -93,7 +96,7 @@ private:
     Ui::TemplatePageWidget *ui;
     TaskPageWidget *m_container;
     const QSize m_tmplSize;
-    QVariantMap m_tagsMap, m_belongings;
+    QVariantMap m_tags, m_belongings;
 };
 
 #endif // TEMPLATEPAGEWIDGET_H
