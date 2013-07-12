@@ -47,7 +47,11 @@ void LoadingDialog::showProcess(bool show, QRect global, const QString &info)
     if (isVisible() && !show)
     {
         m_movieLabel->movie()->stop();
-        m_textLabel->clear();
         accept();
     }
+}
+
+const QString &LoadingDialog::getInfo() const
+{
+    return m_textLabel->text();
 }

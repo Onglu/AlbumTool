@@ -15,24 +15,25 @@ public:
 
     bool loadLayers(const AlbumChildWidget &album);
 
-    PhotoLayer *photoLayer(int index, const QString &fileName) const;
-
     void clearLayers(void);
 
     bool loadPhoto(int index,
                    const QString &fileName,
                    qreal angle = 0,
-                   Qt::Axis axis = Qt::ZAxis);
+                   Qt::Axis axis = Qt::ZAxis,
+                   int id = -1);
 
     int loadPhotos(const QStringList &photosList);
+
+    void removePhoto(const QString &fileName);
 
     //BgdLayer *getBgdLayer(void) const {return m_bgdLabel;}
 
     //const LabelsVector &getLayerLabels(void){return m_layerLabels;}
 
-    bool replace(const ThumbChildWidget *thumb,
-                 const QString &fileName,
-                 PhotoLayer **layer = NULL);
+    void replace(AlbumChildWidget &album,
+                 const ThumbChildWidget *thumb,
+                 PhotoLayer *label = NULL);
 
     void compose(int count = -1, const QString &fileName = QString());
 

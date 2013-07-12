@@ -27,7 +27,9 @@ TemplateChildWidget::TemplateChildWidget(int index,
     {
         connect(&m_sql, SIGNAL(finished()), &m_sql, SLOT(quit()));
         connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
-        useZip(m_tmaker, ZipUsageRead, m_tmplFile + " page.dat");
+
+        QString args;
+        useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, "page.dat"));
     }
     else
     {
@@ -48,7 +50,9 @@ TemplateChildWidget::TemplateChildWidget(const QString &file, DraggableLabel *la
     m_picLabel = label;
     connect(&m_sql, SIGNAL(finished()), &m_sql, SLOT(quit()));
     connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
-    useZip(m_tmaker, ZipUsageRead, m_tmplFile + " page.dat");
+
+    QString args;
+    useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, "page.dat"));
 }
 
 const QVariantMap &TemplateChildWidget::getChanges(void)
@@ -209,8 +213,10 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 
         if (!getTmplPic(m_tmplPic))
         {
-            m_currFile = m_tmplPic = /*results["name"].toString() + PIC_FMT*/ PIC_NAME;
-            useZip(m_tmaker, ZipUsageRead, m_tmplFile + " " + m_tmplPic);
+            m_currFile = m_tmplPic = PIC_NAME;
+
+            QString args;
+            useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, m_tmplPic));
         }
         else
         {
@@ -388,6 +394,48 @@ bool TemplateChildWidget::moveTo(QString &fileName, QString dirName, bool overwr
     return true;
 }
 
+bool TemplateChildWidget::deleteDir(const QString &dir, bool all)
+{
+    QDir directory(dir);
+    if (dir.isEmpty() || !directory.exists())
+    {
+        return true;
+    }
+
+    QStringList files = directory.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
+    QList<QString>::iterator f = files.begin();
+    bool error = false;
+
+    while (f != files.end())
+    {
+        QString filePath = QDir::convertSeparators(directory.path() + '/' + (*f));
+        QFileInfo fi(filePath);
+        if (fi.isFile() || fi.isSymLink())
+        {
+            QFile::setPermissions(filePath, QFile::WriteOwner);
+            if (!QFile::remove(filePath))
+            {
+                error = true;
+            }
+        }
+        else if (fi.isDir())
+        {
+            if (!deleteDir(filePath))
+            {
+                error = true;
+            }
+        }
+        ++f;
+    }
+
+    if (all)
+    {
+        return directory.rmdir(QDir::convertSeparators(directory.path()));
+    }
+
+    return error;
+}
+
 void TemplateChildWidget::parseTest(const QVariantMap &data)
 {
     QVariantMap::const_iterator iter = data.constBegin();
@@ -500,7 +548,8 @@ const QVariantMap &TemplateChildWidget::loadPictures()
             m_currFile += ".png";
         }
 
-        useZip(m_tmaker, ZipUsageRead, m_tmplFile + " " + m_currFile);
+        QString args;
+        useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, m_currFile));
         //qDebug() << __FILE__ << __LINE__ << m_currFile;
     }
 

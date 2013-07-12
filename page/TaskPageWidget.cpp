@@ -444,23 +444,15 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
                     {
                         focusScene->updateScenes(m_scensVector);
 
-                        if (m_photosScene == focusScene || m_templatesScene == focusScene)
-                        {
-                            focusScene->removeProxyWidgets(false, !m_editPage->isVisible() ? NULL : m_editPage);
-                        }
-                        else
-                        {
-                            focusScene->removeProxyWidgets(false);
-                        }
-
                         if (!m_editPage->isVisible())
                         {
+                            focusScene->removeProxyWidgets(false);
                             focusScene->adjustViewLayout();
                         }
                         else
                         {
+                            focusScene->removeProxyWidgets(false, m_editPage);
                             focusScene->adjustViewLayout(m_editPage->getViewWidth());
-                            //m_editPage->updateAlbum();
                             m_editPage->updatePage();
                         }
 
@@ -804,7 +796,6 @@ void TaskPageWidget::on_addAlbumPushButton_clicked()
 void TaskPageWidget::on_createPushButton_clicked()
 {
 #if 1
-    //QString taskFile = m_taskParser.getParsingFile(), outDir = taskFile.left(taskFile.length() - 5);
     ProxyWidgetsMap proxyWidgets = m_albumsScene->getProxyWidgets();
     int count = 0, num = 0;
     uchar locations[2] = {0};
@@ -822,7 +813,6 @@ void TaskPageWidget::on_createPushButton_clicked()
     QString asking = tr("本套相册共有 %1 页，入册照片 %2 张，相册中剩余 %3 个空位。确定要开始生成吗？").arg(proxyWidgets.size()).arg(count).arg(num);
     if (QMessageBox::RejectRole == QMessageBox::question(this, tr("操作提示"), asking, tr("确定"), tr("取消")))
     {
-        //m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在生成相册..."));
         return;
     }
 
@@ -830,7 +820,7 @@ void TaskPageWidget::on_createPushButton_clicked()
     QString fileName, taskDir, outDir, childDir, targetFile = m_taskParser.getParsingFile();
 
     outDir = targetFile.left(targetFile.length() - 5);
-    deleteDir(outDir);
+    TemplateChildWidget::deleteDir(outDir);
 
     childDir = tr("%1\\output").arg(outDir);
     taskDir = outDir.left(outDir.lastIndexOf(QDir::separator()));
@@ -867,54 +857,25 @@ void TaskPageWidget::on_createPushButton_clicked()
     QStringList args;
     args << taskDir << outDir << childDir << fileName;
     m_maker.begin(args);
-    m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在生成相册..."));
+
+    QString info = tr("正在生成相册...");
+
+    if (!m_loadingDlg || (m_loadingDlg && info != m_loadingDlg->getInfo()))
+    {
+        if (m_loadingDlg)
+        {
+            delete m_loadingDlg;
+        }
+
+        m_loadingDlg = new LoadingDialog;
+    }
+
+    m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), info);
 #else
     // for test
     m_maker.begin(QStringList());
     m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在生成相册..."));
 #endif
-}
-
-bool TaskPageWidget::deleteDir(const QString &dir, bool all)
-{
-    QDir directory(dir);
-    if (dir.isEmpty() || !directory.exists())
-    {
-        return true;
-    }
-
-    QStringList files = directory.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
-    QList<QString>::iterator f = files.begin();
-    bool error = false;
-
-    while (f != files.end())
-    {
-        QString filePath = QDir::convertSeparators(directory.path() + '/' + (*f));
-        QFileInfo fi(filePath);
-        if (fi.isFile() || fi.isSymLink())
-        {
-            QFile::setPermissions(filePath, QFile::WriteOwner);
-            if (!QFile::remove(filePath))
-            {
-                error = true;
-            }
-        }
-        else if (fi.isDir())
-        {
-            if (!deleteDir(filePath))
-            {
-                error = true;
-            }
-        }
-        ++f;
-    }
-
-    if (all)
-    {
-        return directory.rmdir(QDir::convertSeparators(directory.path()));
-    }
-
-    return error;
 }
 
 void TaskPageWidget::process(int index, const QStringList &args)
@@ -929,7 +890,7 @@ void TaskPageWidget::process(int index, const QStringList &args)
     //QCoreApplication::postEvent(this, new QEvent(CustomEvent_MAKE_BEGIN));
 
     outDir = targetFile.left(targetFile.length() - 5);
-    deleteDir(outDir);
+    TemplateChildWidget::deleteDir(outDir);
 
     childDir = tr("%1\\output").arg(outDir);
     taskDir = outDir.left(outDir.lastIndexOf(QDir::separator()));
@@ -1003,7 +964,7 @@ void TaskPageWidget::process(int index, const QStringList &args)
     args = tr("%1\\package.xc %2").arg(outDir).arg(childDir);
     TemplateChildWidget::useZip(tmaker, TemplateChildWidget::ZipUsageCompress, args, true);
 
-    deleteDir(childDir);
+    TemplateChildWidget::deleteDir(childDir);
 
     args = tr("%1\\%2.xc %3").arg(taskDir).arg(fileName).arg(outDir);
     TemplateChildWidget::useZip(tmaker, TemplateChildWidget::ZipUsageCompress, args, true);
@@ -1048,14 +1009,17 @@ void TaskPageWidget::process(int index, const QStringList &args)
         }
 
         QProcess tmaker;
+
         TemplateChildWidget::useZip(tmaker,
                                     TemplateChildWidget::ZipUsageCompress,
-                                    tr("%1\\package.xc %2").arg(outDir).arg(childDir),
+                                    tr("\"%1\\package.xc\" \"%2\"").arg(outDir).arg(childDir),
                                     true);
-        deleteDir(childDir);
+
+        TemplateChildWidget::deleteDir(childDir);
+
         TemplateChildWidget::useZip(tmaker,
                                     TemplateChildWidget::ZipUsageCompress,
-                                    tr("%1\\%2.xc %3").arg(taskDir).arg(fileName).arg(outDir),
+                                    tr("\"%1\\%2.xc\" \"%3\"").arg(taskDir).arg(fileName).arg(outDir),
                                     true);
 
         m_loadingDlg->showProcess(false);

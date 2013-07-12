@@ -8,6 +8,7 @@
 class QGraphicsView;
 class EditPageWidget;
 class PictureGraphicsScene;
+
 typedef QList<QGraphicsItem *> GraphicsItemsList;
 typedef QMap<int, PictureProxyWidget *> ProxyWidgetsMap;
 typedef QVector<PictureGraphicsScene *> GraphicsScenesVector;
@@ -67,6 +68,8 @@ public:
 
     const GraphicsItemsList &m2l(const ProxyWidgetsMap &proxyWidgets);
     const ProxyWidgetsMap &l2m(ProxyWidgetsMap &proxyWidgets);
+
+    PictureProxyWidget *getProxyWidget(const ProxyWidgetsMap &proxyWidgets, const QString &picFile);
 
     ProxyWidgetsMap &getProxyWidgets(void){return m_proxyWidgets;}
 

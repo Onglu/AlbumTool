@@ -83,6 +83,21 @@ void PictureGraphicsScene::insertProxyWidget(int index,
     }
 }
 
+PictureProxyWidget *PictureGraphicsScene::getProxyWidget(const ProxyWidgetsMap &proxyWidgets, const QString &picFile)
+{
+    PictureChildWidget *childWidgt = NULL;
+
+    foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
+    {
+        if ((childWidgt = proxyWidget->getChildWidgetPtr()) && picFile == childWidgt->getPictureLabel()->getPictureFile())
+        {
+            return proxyWidget;
+        }
+    }
+
+    return NULL;
+}
+
 inline int PictureGraphicsScene::getViewWidth() const
 {
     if (LayoutMode_Horizontality == m_layout)
@@ -248,18 +263,25 @@ void PictureGraphicsScene::removeProxyWidget(PictureProxyWidget *proxyWidget)
 {
     if (proxyWidget)
     {
-//        if (SceneType_Templates == m_type)
-//        {
-//            foreach (PictureProxyWidget *resultsWidget, m_resultsWidgets)
-//            {
-//                if (resultsWidget == proxyWidget)
-//                {
-//                    m_resultsWidgets.remove(resultsWidget->getChildWidget().getIndex());
-//                }
-//            }
-//        }
-
         removeItem(proxyWidget);
+
+        if (SceneType_Templates == m_type)
+        {
+            int index = 1;
+
+            foreach (PictureProxyWidget *resultWidget, m_resultsWidgets)
+            {
+                if (proxyWidget == resultWidget)
+                {
+                    m_resultsWidgets.remove(index);
+                    l2m(m_resultsWidgets);
+                    break;
+                }
+
+                index++;
+            }
+        }
+
         delete proxyWidget;
         proxyWidget = NULL;
         l2m(m_proxyWidgets);
@@ -279,83 +301,115 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
             if (proxyWidget)
             {
                 PictureChildWidget &childWidget = proxyWidget->getChildWidget();
-                DraggableLabel *picLabel = NULL;
+                DraggableLabel *picLabel = childWidget.getPictureLabel();
+                QString picFile;
 
-                /***
-                 * If delete a photo or a template from the photos scene or the templates scene, we should update
-                 * the album views and thumb views at the same time.
-                 */
-                if (SceneType_Albums > m_type && (picLabel = childWidget.getPictureLabel()))
+                if (picLabel)
                 {
-                    bool empty = false;
-                    QString picFile = picLabel->getPictureFile();
-                    ProxyWidgetsMap &albumProxyWidgets = m_scensVector.at(SceneType_Albums)->getProxyWidgets();
-
-                    foreach (PictureProxyWidget *albumProxyWidget, albumProxyWidgets)
+                    /***
+                     * If delete a photo or a template from the photos scene or the templates scene, we should update
+                     * the album views and thumb views at the same time.
+                     */
+                    if (SceneType_Albums > m_type)
                     {
-                        albumProxyWidget->excludeItem(picFile);
-                        empty = albumProxyWidget->isEmpty();
-                    }
+                        int n = 0;
+                        ProxyWidgetsMap &albumProxyWidgets = m_scensVector.at(SceneType_Albums)->getProxyWidgets();
 
-                    if (empty) // Clear all?
-                    {
-                        ProxyWidgetsMap &photoProxyWidgets = m_scensVector.at(SceneType_Photos)->getProxyWidgets();
-                        foreach (PictureProxyWidget *photoProxyWidget, photoProxyWidgets)
+                        picFile = picLabel->getPictureFile();
+
+                        foreach (PictureProxyWidget *albumProxyWidget, albumProxyWidgets)
                         {
-                            photoProxyWidget->clearTimes();
+                            albumProxyWidget->excludeItem(picFile);
+                            if (albumProxyWidget->isEmpty())
+                            {
+                                n++;
+                            }
                         }
 
-                        ProxyWidgetsMap &tmplProxyWidgets = m_scensVector.at(SceneType_Templates)->getProxyWidgets();
-                        foreach (PictureProxyWidget *tmplProxyWidget, tmplProxyWidgets)
+                        qDebug() << __FILE__ << __LINE__ << n;
+
+                        if (n == albumProxyWidgets.size()) // None photos and templates is existing in per album page
                         {
-                            tmplProxyWidget->clearTimes();
+                            ProxyWidgetsMap &photoProxyWidgets = m_scensVector.at(SceneType_Photos)->getProxyWidgets();
+                            foreach (PictureProxyWidget *photoProxyWidget, photoProxyWidgets)
+                            {
+                                photoProxyWidget->clearTimes();
+                            }
+
+                            ProxyWidgetsMap &tmplProxyWidgets = m_scensVector.at(SceneType_Templates)->getProxyWidgets();
+                            foreach (PictureProxyWidget *tmplProxyWidget, tmplProxyWidgets)
+                            {
+                                tmplProxyWidget->clearTimes();
+                            }
+                        }
+
+                        if (SceneType_Templates == m_type)
+                        {
+                            removeProxyWidget(getProxyWidget(m_proxyWidgets, picFile));
+
+                            int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
+                            if (-1 != pos)
+                            {
+                                picFile.replace(pos, strlen(".png"), PKG_FMT);
+                                m_filesList.removeOne(picFile);
+                                //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
+                            }
+
+                            itemsList = all ? items() : selectedItems();
+
+                            continue;
+                        }
+                        else
+                        {
+                            if (pEditPage && !picFile.isEmpty())
+                            {
+                                //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
+                                pEditPage->removeThumbs(picFile);
+                            }
+
+                            m_filesList.removeOne(picFile);
                         }
                     }
 
-                    if (pEditPage)
+                    if (SceneType_Albums <= m_type)
                     {
-                        //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
-                        pEditPage->removeThumbs(picFile);
-                    }
+                        /***
+                         * If delete a photo from a albums scene or a thumbs scene, we should update the view of the
+                         * corresponding photo item.
+                         */
+                        QStringList photosList, tmplsList;
 
-                    if (SceneType_Templates == m_type)
-                    {
-                        int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
-                        if (-1 != pos)
+                        if (SceneType_Albums == m_type)
                         {
-                            picFile = picFile.replace(pos, strlen(".png"), PKG_FMT);
+                            AlbumChildWidget &albumWidget = static_cast<AlbumChildWidget &>(childWidget);
+                            photosList = albumWidget.getPhotosList();
+                            tmplsList.append(albumWidget.getTmplLabel().getPictureFile());
+                        }
+
+                        if (SceneType_Thumbs == m_type && !all/* Not is clear */)
+                        {
+                            photosList.append(picFile = picLabel->getPictureFile());
+                            m_filesList.removeOne(picFile);
+                        }
+
+                        if (photosList.size() || tmplsList.size())
+                        {
+                            excludeItems(SceneType_Photos, photosList);
+                            excludeItems(SceneType_Templates, tmplsList);
+                        }
+
+                        if (pEditPage && !picFile.isEmpty())
+                        {
+                            //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
+                            pEditPage->removeThumbs(picFile);
+                            itemsList = all ? items() : selectedItems();
+                            continue;
                         }
                     }
 
-                    m_filesList.removeOne(picFile);
+                    m_proxyWidgets.remove(childWidget.getIndex());
+                    childWidget.remove();
                 }
-
-                /***
-                 * If delete a photo from a albums scene or a thumbs scene, we should update the view of the
-                 * corresponding photo item.
-                 */
-                QStringList photosList, tmplsList;
-
-                if (SceneType_Albums == m_type)
-                {
-                    AlbumChildWidget &albumWidget = static_cast<AlbumChildWidget &>(childWidget);
-                    photosList = albumWidget.getPhotosList();
-                    tmplsList.append(albumWidget.getTmplLabel().getPictureFile());
-                }
-
-                if (SceneType_Thumbs == m_type && (picLabel = childWidget.getPictureLabel()) && !all/* Not is clear */)
-                {
-                    photosList.append(picLabel->getPictureFile());
-                }
-
-                if (photosList.size() || tmplsList.size())
-                {
-                    excludeItems(SceneType_Photos, photosList);
-                    excludeItems(SceneType_Templates, tmplsList);
-                }
-
-                m_proxyWidgets.remove(childWidget.getIndex());
-                childWidget.remove();
             }
 
             removeItem(item);

@@ -14,6 +14,8 @@ public:
                      QRect global = QRect(0, 0, 0, 0),
                      const QString &info = QString());
 
+    const QString &getInfo(void) const;
+
 private:
     QLabel *m_movieLabel, *m_textLabel;
 };

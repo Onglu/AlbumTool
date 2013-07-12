@@ -57,6 +57,7 @@ private:
     PictureChildWidget *m_pChildWidget;
     QTimeLine *m_pTimeLine;
     bool m_detachable;
+
     static QTransform m_trans;
     static QGraphicsScene *m_focusScene;
 };

@@ -31,12 +31,12 @@ public:
     /* If belongings is empty, so it indicates that is a delete operation */
     void changeTemplate(const QVariantMap &belongings = QVariantMap());
 
-    void changePhoto(const QString &photoName,
+    void changePhoto(const QString &fileName,
                      QRect rect,
                      qreal opacity = 1,
                      qreal angle = 0);
 
-    void removePhoto(const QString &photoFile);
+    void removePhoto(const QString &fileName);
 
     void setPhotosVector(const AlbumPhotos &photosVector)
     {

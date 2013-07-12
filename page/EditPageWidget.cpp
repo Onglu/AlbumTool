@@ -94,55 +94,11 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
         }
         qDebug() << __FILE__ << __LINE__ << photosVector;
 
-        m_layerLabel = PhotoLayer::getActive();
-#if 0
-        if (m_layerLabel)
-        {
-            const ThumbChildWidget *childWidget = getThumbWidget(replaced);
-            if (!childWidget)
-            {
-                return;
-            }
-
-            QVariantMap belongings = childWidget->getBelongings();
-            qreal angle = belongings["rotation_angle"].toReal();
-            Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-
-            m_layerLabel->changePhoto(replaced, angle, axis);
-            m_pAlbumPage->compose();
-
-            QString photoName;
-            Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
-            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
-            m_pAlbumWidget->changePhoto(photoName,
-                                        m_layerLabel->getFrame(),
-                                        m_layerLabel->getOpacity(),
-                                        m_layerLabel->getAngle());
-
-            m_layerLabel = NULL;
-            PhotoLayer::resetActive();
-        }
-#endif
-
-        if (m_pAlbumPage->replace(getThumbWidget(replaced), current, &m_layerLabel))
-        {
-            QString photoName;
-            Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
-            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
-            m_pAlbumWidget->changePhoto(photoName,
-                                        m_layerLabel->getFrame(),
-                                        m_layerLabel->getOpacity(),
-                                        m_layerLabel->getAngle());
-            m_layerLabel = NULL;
-            PhotoLayer::resetActive();
-        }
-
-        //m_pAlbumPage->compose();
+        m_pAlbumPage->replace(*m_pAlbumWidget, getThumbWidget(replaced), PhotoLayer::getReplaced(m_layerLabel));
+        m_layerLabel = NULL;
     }
     else if (ui->photosGraphicsView->isVisible())
     {
-        //m_photosList.removeOne(current);
-
         qDebug() << __FILE__ << __LINE__ << current << replaced;
 
         const ThumbChildWidget *childWidget = getThumbWidget(current);
@@ -151,36 +107,20 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
             return;
         }
 
-
-
-        //int index = childWidget->getIndex();
-//        m_layerLabel = m_pAlbumPage->photoLayer(childWidget->getIndex(), current);
-//        if (!m_layerLabel)
+//        m_layerLabel = NULL;
+//        if (m_pAlbumPage->replace(childWidget, m_layerLabel))
 //        {
-//            return;
+//            QString photoName;
+//            Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
+//            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
+//            m_pAlbumWidget->changePhoto(photoName,
+//                                        m_layerLabel->getFrame(),
+//                                        m_layerLabel->getOpacity(),
+//                                        m_layerLabel->getAngle());
+//            m_layerLabel = NULL;
 //        }
 
-//        QVariantMap belongings = childWidget->getBelongings();
-//        qreal angle = belongings["rotation_angle"].toReal();
-//        Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-
-//        m_layerLabel->changePhoto(replaced, angle, axis);
-//        m_pAlbumPage->compose();
-
-
-        m_layerLabel = NULL;
-        if (m_pAlbumPage->replace(childWidget, current, &m_layerLabel))
-        {
-            QString photoName;
-            Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
-            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
-            m_pAlbumWidget->changePhoto(photoName,
-                                        m_layerLabel->getFrame(),
-                                        m_layerLabel->getOpacity(),
-                                        m_layerLabel->getAngle());
-            m_layerLabel = NULL;
-        }
-
+        m_pAlbumPage->replace(*m_pAlbumWidget, childWidget);
         m_pAlbumWidget->replace(current, childWidget->getBelongings());
         m_container->replace(PictureGraphicsScene::SceneType_Photos, current, replaced);
         m_container->noticeChanged();
@@ -190,15 +130,6 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
         m_container->replace(PictureGraphicsScene::SceneType_Templates, current, replaced);
         m_pAlbumWidget->changeTemplate(m_templatePage->getBelongings());
         QCoreApplication::postEvent(this, new QEvent(CustomEvent_Item_Replaced));
-    }
-}
-
-void EditPageWidget::customEvent(QEvent *event)
-{
-    //ReplacerEvent *replacer = static_cast<ReplacerEvent *>(event);
-    if (CustomEvent_Item_Replaced == event->type())
-    {
-        switchPage(m_current);
     }
 }
 
@@ -335,10 +266,10 @@ void EditPageWidget::removeThumbs(const QString &picFile)
              && picFile == thumbLabel->getPictureFile())
         {
             qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
-            //m_photosList.removeOne(picFile);
-            m_pAlbumWidget->removePhoto(picFile);
             m_pThumbsScene->removeProxyWidget(proxyWidget);
             m_pThumbsScene->adjustViewLayout();
+            m_pAlbumPage->removePhoto(picFile);
+            m_pAlbumWidget->removePhoto(picFile);
             break;
         }
     }
@@ -371,56 +302,6 @@ const ThumbChildWidget *EditPageWidget::getThumbWidget(const QString &picFile) c
     return NULL;
 }
 
-void EditPageWidget::updateAlbum()
-{
-    Q_ASSERT(m_pAlbumWidget);
-
-    //AlbumPhotos photosVector(PHOTOS_NUMBER);
-    AlbumPhotos &photosVector = m_pAlbumWidget->getPhotosVector();
-    QStringList &photosList = m_pAlbumWidget->getPhotosList();
-    DraggableLabels &photoLabels = m_pAlbumWidget->getPhotoLabels();
-    ProxyWidgetsMap &thumbWidgetsMap = m_pThumbsScene->getProxyWidgets();
-
-    photosVector.clear();
-
-    /* Empty photos list */
-    photosList.clear();
-
-    for (int i = 0; i < PHOTOS_NUMBER; i++)
-    {
-        photoLabels.at(i)->reset();
-    }
-
-    foreach (PictureProxyWidget *proxyWidget, thumbWidgetsMap)
-    {
-        ThumbChildWidget &thumbWidget = static_cast<ThumbChildWidget &>(proxyWidget->getChildWidget());
-        DraggableLabel *thumbLabel = thumbWidget.getPictureLabel();
-        QPixmap pix = thumbLabel->getPicture();
-
-        if (pix.isNull())
-        {
-            continue;
-        }
-
-        int id = thumbWidget.getId();
-        photoLabels[id]->setPixmap(pix.scaled(QSize(45, 45), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-
-        QVariantMap belongings = thumbWidget.getBelongings();
-        QString picFile = belongings["picture_file"].toString();
-        qreal angle = belongings["rotation_angle"].toReal();
-        Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-        //int usedTimes = belongings["used_times"].toInt();
-        //int usedFlag = !m_photosList.contains(picFile, Qt::CaseInsensitive) ? 1 : 0;
-        //photosVector[id] = QString("%1|%2|%3|%4|%5").arg(picFile).arg(angle).arg(axis).arg(usedTimes).arg(usedFlag);
-        photosVector[id] = QString("%1|%2|%3|0").arg(picFile).arg(angle).arg(axis);
-        photosList.append(picFile);
-        //qDebug() << __FILE__ << __LINE__ << id << photosVector[id];
-    }
-
-    qDebug() << __FILE__ << __LINE__ << photosVector;
-    //m_pAlbumWidget->setPhotosVector(photosVector);
-}
-
 void EditPageWidget::updatePage()
 {
     if (m_pAlbumWidget)
@@ -446,13 +327,12 @@ bool EditPageWidget::switchPage(int index)
     m_pThumbsScene->removeProxyWidgets(true);
     m_pThumbsScene->getProxyWidgets().clear();
     m_pAlbumPage->clearLayers();
-    //m_photosList.clear();
 
     ui->indexLabel->setText(tr("第%1页/共%2页").arg(index).arg(count));
 
     if ((m_pAlbumWidget = static_cast<AlbumChildWidget *>(m_albumsMap[index])))
     {
-        int pid = 0, tid = 0, num = m_pAlbumWidget->getUsedNum();
+        int pid = 0, tid = 0, num = m_pAlbumWidget->getUsedNum(), locations = m_pAlbumWidget->getLocations();
         bool validTmpl = true;
         AlbumPhotos &photosVector = m_pAlbumWidget->getPhotosVector();
 
@@ -480,29 +360,12 @@ bool EditPageWidget::switchPage(int index)
             qreal angle = photoInfo.at(1).toDouble();
             Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
             int usedTimes = photoInfo.at(3).toInt();
-            //int usedFlag = photoInfo.at(4).toInt();
-
-//            if (validTmpl && ((num && num > pid && usedTimes) || !num))
-//            {
-//                if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis))
-//                {
-//                    photosVector[i] = QString("%1|%2|%3|%4|1").arg(photoFile).arg(angle).arg(axis).arg(usedTimes);
-//                    m_photosList.append(photoFile);
-//                }
-
-//                if (num == ++pid)
-//                {
-//                    num = 0;
-//                }
-
-//                //qDebug() << __FILE__ << __LINE__ << photosVector[i];
-//            }
 
             if (validTmpl)
             {
                 if (!num)
                 {
-                    if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis))
+                    if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1))
                     {
                         photosVector[i] = QString("%1|%2|%3|1").arg(photoFile).arg(angle).arg(axis);
                         pid++;
@@ -514,15 +377,26 @@ bool EditPageWidget::switchPage(int index)
                     {
                         for (int j = 0; j < usedTimes; j++)
                         {
-                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis))
+                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1))
                             {
+                                pid++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (num < locations)
+                        {
+                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1))
+                            {
+                                photosVector[i] = QString("%1|%2|%3|1").arg(photoFile).arg(angle).arg(axis);
                                 pid++;
                             }
                         }
                     }
                 }
 
-                qDebug() << __FILE__ << __LINE__ << num << pid << photosVector[i];
+                //qDebug() << __FILE__ << __LINE__ << num << pid << photosVector[i];
             }
 
 //            if (validTmpl && m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis))

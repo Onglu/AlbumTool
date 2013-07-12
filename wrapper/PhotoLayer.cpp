@@ -4,14 +4,15 @@
 #include <QDebug>
 #include <QTime>
 
-PhotoLayer *PhotoLayer::m_active = NULL;
+PhotoLayer *PhotoLayer::m_replaced = NULL;
 
 PhotoLayer::PhotoLayer(VisiableImgType type, QWidget *parent) : PictureLabel(parent),
     m_type(type),
     m_moveable(false),
     m_moved(false),
     m_ratioSize(QSizeF(1, 1)),
-    m_bgdRect(QRect(0, 0, 0, 0))
+    m_bgdRect(QRect(0, 0, 0, 0)),
+    m_id(0)
 {
 //    setFrameShape(QFrame::Box);
 //    setFrameShadow(QFrame::Raised);
@@ -21,7 +22,8 @@ PhotoLayer::PhotoLayer(VisiableImgType type, QWidget *parent) : PictureLabel(par
 bool PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
                            const QString &photoFile,
                            qreal angle,
-                           Qt::Axis axis)
+                           Qt::Axis axis,
+                           int id)
 {
     int width = 0, height = 0, cx = 0, cy = 0;
     QSize maskSize;
@@ -98,6 +100,8 @@ bool PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
             rotate(angle, axis);
         }
 
+        m_id = id;
+
         m_visiableRects[VisiableRectTypeCanvas].setRect(topLeft.x() - m_bgdRect.x(),
                                                         topLeft.y() - m_bgdRect.y(),
                                                         m_size.width(),
@@ -137,7 +141,6 @@ void PhotoLayer::changePhoto(const QString &file, qreal angle, Qt::Axis axis)
         {
             setOpacity(m_ori, m_opacity);
         }
-
 
         m_bk = m_ori.scaled(m_visiableRects[VisiableRectTypeFixed].size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
         m_size = m_bk.size();
@@ -474,6 +477,7 @@ void PhotoLayer::flush()
     m_angle = 0;
     m_axis = Qt::ZAxis;
     m_picFile = m_fileName = QString();
+    m_id = 0;
 
     clear();
 }
@@ -570,7 +574,7 @@ void PhotoLayer::dropEvent(QDropEvent *event)
 
         changePhoto(picFile, angle, axis);
 
-        m_active = this;
+        m_replaced = this;
 
         //qDebug() << __FILE__ << __LINE__ << m_picFile << m_size << angle << axis;
         qDebug() << __FILE__ << __LINE__ << currPic << picFile << m_visiableRects[VisiableRectTypeCanvas];

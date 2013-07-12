@@ -87,8 +87,6 @@ public:
 
     const QString &getPageId(void) const {return m_taskParser.getPageId();}
 
-    static bool deleteDir(const QString &dir, bool all = true);
-
 signals:
     void changed(int index);
     void maxShow(bool max);

@@ -95,12 +95,20 @@ public:
                   ZipUsageDecrypt
                  };
 
+    static const QString &args2(QString &args, const QString &arg1, const QString &arg2)
+    {
+        args = tr("\"%1\" \"%2\"").arg(arg1).arg(arg2);
+        return args;
+    }
+
     static void useZip(QProcess &tmaker,
                        ZipUsage usage,
                        const QString &arguments,
                        bool block = false);
 
     static bool moveTo(QString &fileName, QString dirName, bool overwrite = true);
+
+    static bool deleteDir(const QString &dir, bool all = true);
 
     static void parseTest(const QVariantMap &data);
 

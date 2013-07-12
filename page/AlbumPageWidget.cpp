@@ -5,7 +5,8 @@
 #include "defines.h"
 #include <QDebug>
 
-AlbumPageWidget::AlbumPageWidget(PhotoLayer::VisiableImgType type, QWidget *parent) : QWidget(parent)
+AlbumPageWidget::AlbumPageWidget(PhotoLayer::VisiableImgType type, QWidget *parent) :
+    QWidget(parent)
 {
     m_bgdLabel = new BgdLayer(type, this);
 
@@ -129,19 +130,6 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
     return (!m_layers.isEmpty() && !m_photoLayers.isEmpty());
 }
 
-PhotoLayer *AlbumPageWidget::photoLayer(int index, const QString &fileName) const
-{
-    for (int i = index - 1; i >= 0; i--)
-    {
-        if (fileName == m_layerLabels[i]->getPhoto())
-        {
-            return m_layerLabels[i];
-        }
-    }
-
-    return NULL;
-}
-
 void AlbumPageWidget::clearLayers()
 {
     m_layers.clear();
@@ -157,7 +145,8 @@ void AlbumPageWidget::clearLayers()
 bool AlbumPageWidget::loadPhoto(int index,
                                 const QString &photoFile,
                                 qreal angle,
-                                Qt::Axis axis)
+                                Qt::Axis axis,
+                                int id)
 {
     if (index < m_photoLayers.size())
     //if (!pid && pid < m_photoLayers.size()) // for test
@@ -169,7 +158,8 @@ bool AlbumPageWidget::loadPhoto(int index,
                                               m_photoLayers.at(index).toMap()
                                               ,photoFile,
                                               angle,
-                                              axis
+                                              axis,
+                                              id
                                               );
     }
 
@@ -205,27 +195,66 @@ int AlbumPageWidget::loadPhotos(const QStringList &photosList)
     return index;
 }
 
-bool AlbumPageWidget::replace(const ThumbChildWidget *thumb, const QString &fileName, PhotoLayer **layer)
+void AlbumPageWidget::removePhoto(const QString &fileName)
 {
-    if (!*layer)
+    bool ok = false;
+
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
     {
-        *layer = photoLayer(thumb->getIndex(), fileName);
+        if (fileName == m_layerLabels[i]->getPhotoFile())
+        {
+            ok = true;
+            m_layerLabels[i]->flush();
+        }
     }
 
-    if (*layer && thumb)
+    if (ok)
     {
-        QVariantMap belongings = thumb->getBelongings();
-        QString picFile = belongings["picture_file"].toString();
-        qreal angle = belongings["rotation_angle"].toReal();
-        Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-
-        (*layer)->changePhoto(picFile, angle, axis);
         compose();
-
-        return true;
     }
+}
 
-    return false;
+void AlbumPageWidget::replace(AlbumChildWidget &album, const ThumbChildWidget *thumb, PhotoLayer *label)
+{
+    if (thumb)
+    {
+        LabelsVector labels;
+
+        if (!label)
+        {
+            QString picFile = thumb->getPictureLabel()->getPictureFile();
+            for (int i = 0; i < PHOTOS_NUMBER; i++)
+            {
+                if (picFile == m_layerLabels[i]->getPhotoFile())
+                {
+                    labels << m_layerLabels[i];
+                }
+            }
+        }
+        else
+        {
+            label->setId(thumb->getIndex());
+            labels << label;
+        }
+
+        //qDebug() << __FILE__ << __LINE__ << labels.size();
+
+        for (int i = 0; i < labels.size(); i++)
+        {
+            QVariantMap belongings = thumb->getBelongings();
+            QString picFile = belongings["picture_file"].toString();
+            qreal angle = belongings["rotation_angle"].toReal();
+            Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
+
+            labels[i]->changePhoto(picFile, angle, axis);
+            compose();
+
+            QString photoName;
+            Converter::getFileName(labels[i]->getPictureFile(), photoName, false);
+            //qDebug() << __FILE__ << __LINE__ << i << picFile << photoName << labels[i]->getFrame();
+            album.changePhoto(photoName, labels[i]->getFrame(), labels[i]->getOpacity(), labels[i]->getAngle());
+        }
+    }
 }
 
 void AlbumPageWidget::compose(int count, const QString &fileName)

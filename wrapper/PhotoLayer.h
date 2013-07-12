@@ -41,7 +41,8 @@ public:
     bool loadPhoto(const QVariantMap &photoLayer,
                    const QString &photoFile = QString(),
                    qreal angle = 0,
-                   Qt::Axis axis = Qt::ZAxis);
+                   Qt::Axis axis = Qt::ZAxis,
+                   int id = -1);
 
     void changePhoto(const QString &photoFile,
                      qreal angle = 0,
@@ -49,7 +50,10 @@ public:
 
     bool hasPhoto(void) const {return !m_visiableImg.isNull();}
 
-    const QString &getPhoto(void) const {return m_picFile;}
+    const QString &getPhotoFile(void) const {return m_picFile;}
+
+    void setId(int id){m_id = id;}
+    int getId(void) const {return m_id;}
 
     QRect getVisiableRect(VisiableRectType type = VisiableRectTypeDefault) const
     {
@@ -96,8 +100,12 @@ public:
 
     void blend(void);
 
-    static PhotoLayer *getActive(void){return m_active;}
-    static void resetActive(void){m_active = NULL;}
+    static PhotoLayer *getReplaced(PhotoLayer *&layer)
+    {
+        layer = m_replaced;
+        m_replaced = NULL;
+        return layer;
+    }
 
 signals:
     void clicked(PhotoLayer &self, QPoint pos);
@@ -123,8 +131,9 @@ private:
     QRect m_bgdRect, m_maskRect, m_visiableRects[VISIABLE_RECT_TYPES];
     QImage m_visiableImg, m_maskImg, m_composedImg;
     QString m_picFile;
+    int m_id;
 
-    static PhotoLayer *m_active;
+    static PhotoLayer *m_replaced;
 };
 
 #endif // PHOTOLAYER_H

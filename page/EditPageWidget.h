@@ -34,9 +34,6 @@ public:
     /* Update the edit page views with the persent albums list */
     void updateViews(const ChildWidgetsMap &albumsMap, int current);
 
-    /* Update the pictures list for the persent selected album */
-    void updateAlbum(void);
-
     void updatePage(void);
 
 signals:
@@ -47,7 +44,14 @@ protected:
     void mouseMoveEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
     void resizeEvent(QResizeEvent *);
-    void customEvent(QEvent *);
+    void customEvent(QEvent *event)
+    {
+        //ReplacerEvent *replacer = static_cast<ReplacerEvent *>(event);
+        if (CustomEvent_Item_Replaced == event->type())
+        {
+            switchPage(m_current);
+        }
+    }
 
 private slots:
     void on_editPushButton_clicked();

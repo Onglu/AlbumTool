@@ -1,7 +1,7 @@
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QTextCodec>
-//#include <QtPlugin>
+#include <QtPlugin>
 #include "page/StartupPageWidget.h"
 
 //Q_IMPORT_PLUGIN(qsqlite)
