@@ -87,21 +87,15 @@ bool PhotoLayer::loadPhoto(const QVariantMap &photoLayer,
         m_maskImg = maskImg.scaled(maskSize, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
         m_maskRect = QRect(maskPos, maskSize);
 
-        if (1 != m_opacity)
-        {
-            m_opacity = photoLayer["opacity"].toReal();
-            setOpacity(m_ori, m_opacity);
-            setOpacity(m_bk, m_opacity);
-        }
+        m_opacity = photoLayer["opacity"].toFloat();
+        setOpacity(m_ori, m_opacity);
+        setOpacity(m_bk, m_opacity);
+        //qDebug() << __FILE__ << __LINE__ << m_opacity;
 
-        if (m_angle || Qt::ZAxis != m_axis)
-        {
-            m_angle = photoLayer["rotation"].toReal();
-            rotate(angle, axis);
-        }
+        m_angle = photoLayer["rotation"].toReal();
+        rotate(angle, axis);
 
         m_id = id;
-
         m_visiableRects[VisiableRectTypeCanvas].setRect(topLeft.x() - m_bgdRect.x(),
                                                         topLeft.y() - m_bgdRect.y(),
                                                         m_size.width(),
@@ -288,10 +282,18 @@ void PhotoLayer::updateCopiedRect()
     {
         from = qAbs(m_visiableRects[VisiableRectTypeFixed].x() - left);
         x = m_visiableRects[VisiableRectTypeFixed].x() > left ? from : 0;
-        width = m_size.width() - from;
-        if (m_visiableRects[VisiableRectTypeFixed].width() < width)
+        if (!x)
         {
-            width = m_visiableRects[VisiableRectTypeFixed].width();
+            width = m_visiableRects[VisiableRectTypeFixed].width() < m_size.width()
+                    ? m_visiableRects[VisiableRectTypeFixed].width() - from : m_size.width();
+        }
+        else
+        {
+            width = m_size.width() - from;
+            if (m_visiableRects[VisiableRectTypeFixed].width() < width)
+            {
+                width = m_visiableRects[VisiableRectTypeFixed].width();
+            }
         }
 
         qDebug() << __FILE__ << __LINE__ << left << from << x << width;
@@ -343,13 +345,13 @@ void PhotoLayer::updateCopiedRect()
 
     m_visiableRects[VisiableRectTypeDefault].setRect(left + x, top + y, width, height);
 
-    qDebug() << __FILE__ << __LINE__ << m_fileName
-             << m_visiableRects[VisiableRectTypeCanvas]
-             << m_visiableRects[VisiableRectTypeFixed]
-             << m_visiableRects[VisiableRectTypeCopied]
-             << m_visiableRects[VisiableRectTypeDefault]
-             //<< getActualRect(m_visiableRects[VisiableRectTypeCopied])
-             ;
+//    qDebug() << __FILE__ << __LINE__ << m_fileName
+//             << m_visiableRects[VisiableRectTypeCanvas]
+//             << m_visiableRects[VisiableRectTypeFixed]
+//             << m_visiableRects[VisiableRectTypeCopied]
+//             << m_visiableRects[VisiableRectTypeDefault]
+//             //<< getActualRect(m_visiableRects[VisiableRectTypeCopied])
+//             ;
 }
 
 void PhotoLayer::updateVisiableRect(QRect copiedRect)
@@ -439,13 +441,13 @@ void PhotoLayer::updateVisiableRect(QRect copiedRect)
 //        m_visiableImg.save(tr("C:\\Users\\Onglu\\Desktop\\test\\Visiable_%1_%2").arg(m_type).arg(filename));
     }
 
-    qDebug() << __FILE__ << __LINE__ << m_fileName
-             << m_visiableRects[VisiableRectTypeCanvas]
-             << m_visiableRects[VisiableRectTypeFixed]
-             << m_visiableRects[VisiableRectTypeCopied]
-             << m_visiableRects[VisiableRectTypeDefault]
-             //<< getActualRect(m_visiableRects[VisiableRectTypeCopied])
-                ;
+//    qDebug() << __FILE__ << __LINE__ << m_fileName
+//             << m_visiableRects[VisiableRectTypeCanvas]
+//             << m_visiableRects[VisiableRectTypeFixed]
+//             << m_visiableRects[VisiableRectTypeCopied]
+//             << m_visiableRects[VisiableRectTypeDefault]
+//             //<< getActualRect(m_visiableRects[VisiableRectTypeCopied])
+//                ;
 }
 
 void PhotoLayer::updateRect()
@@ -462,21 +464,36 @@ void PhotoLayer::updateRect()
     }
 }
 
-void PhotoLayer::flush()
+void PhotoLayer::flush(bool all)
 {
-    for (int i = 0; i < VISIABLE_RECT_TYPES; i++)
+    if (all)
     {
-        m_visiableRects[i] = QRect(0, 0, 0, 0);
+        for (int i = 0; i < VISIABLE_RECT_TYPES; i++)
+        {
+            m_visiableRects[i] = QRect(0, 0, 0, 0);
+        }
+
+        m_bgdRect = m_maskRect = QRect(0, 0, 0, 0);
+        m_visiableImg = m_maskImg = QImage();
+        m_ratioSize = QSizeF(1, 1);
+        m_opacity = 1;
+        m_angle = 0;
+        m_axis = Qt::ZAxis;
+        m_picFile = m_fileName = QString();
+        setGeometry(0, 0, 0, 0);
+    }
+    else
+    {
+        m_picFile = QString();
+        m_visiableImg = QImage();
+        m_visiableRects[VisiableRectTypeDefault] = m_visiableRects[VisiableRectTypeCopied] = QRect(0, 0, 0, 0);
+
+        m_size = m_visiableRects[VisiableRectTypeFixed].size();
+        setFixedSize(m_size);
+        move(m_bgdRect.x() + m_visiableRects[VisiableRectTypeFixed].x(),
+             m_bgdRect.y() + m_visiableRects[VisiableRectTypeFixed].y());
     }
 
-    m_maskRect = QRect(0, 0, 0, 0);
-    m_visiableImg = m_maskImg = QImage();
-    m_bgdRect = m_maskRect = QRect(0, 0, 0, 0);
-    m_ratioSize = QSizeF(1, 1);
-    m_opacity = 1;
-    m_angle = 0;
-    m_axis = Qt::ZAxis;
-    m_picFile = m_fileName = QString();
     m_id = 0;
 
     clear();

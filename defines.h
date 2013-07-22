@@ -24,8 +24,6 @@
 #define LOAD_FILES          2
 #define EXPORT_PAGES        3
 
-#define UPLOAD_URL          "http://192.168.2.120:8080/AlbumsBulterService/initiate"
-
 enum ViewType{ViewType_Photo, ViewType_Template, ViewType_Album};
 
 enum layer_type{LT_Background, LT_Photo, LT_Decoration, LT_Mask};

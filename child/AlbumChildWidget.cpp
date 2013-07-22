@@ -233,7 +233,7 @@ void AlbumChildWidget::changePhoto(const QString &fileName,
     QVariantList info, layers = page["layers"].toList(), changes = m_records["photo_layers"].toList();
     bool changed = false;
 
-    //qDebug() << __FILE__ << __LINE__ << "before:" << layers;
+    qDebug() << __FILE__ << __LINE__ << "before:" << /*layers*/opacity;
     //qDebug() << __FILE__ << __LINE__ << "before:" << fileName << rect;
 
     foreach (const QVariant &layer, layers)
@@ -321,7 +321,7 @@ TemplateChildWidget *AlbumChildWidget::getTmplWidget() const
 
 uchar AlbumChildWidget::getLocations(uchar locations[]) const
 {
-    int num = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE] - m_photosList.size();
+    int size = m_photosList.size(), num = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE] - size;
 
     memset(locations, 0, 2);
 
@@ -332,20 +332,23 @@ uchar AlbumChildWidget::getLocations(uchar locations[]) const
         locations[PORTRAIT_PICTURE] = m_locations[PORTRAIT_PICTURE];
         locations[LANDSCAPE_PICTURE] = m_locations[LANDSCAPE_PICTURE];
 
-        for (int i = 0; i < PHOTOS_NUMBER; i++)
+        if (size)
         {
-            int o = m_photoLabels.at(i)->getOrientation();
-            if (PORTRAIT_PICTURE <= o && LANDSCAPE_PICTURE >= o)
+            for (int i = 0; i < PHOTOS_NUMBER; i++)
             {
-                if (locations[o])
+                int o = m_photoLabels.at(i)->getOrientation();
+                if (PORTRAIT_PICTURE <= o && LANDSCAPE_PICTURE >= o)
                 {
-                    locations[o]--;
-                }
-                else
-                {
-                    if (locations[o ^ 1])
+                    if (locations[o])
                     {
-                        locations[o ^ 1]--;
+                        locations[o]--;
+                    }
+                    else
+                    {
+                        if (locations[o ^ 1])
+                        {
+                            locations[o ^ 1]--;
+                        }
                     }
                 }
 
@@ -353,7 +356,8 @@ uchar AlbumChildWidget::getLocations(uchar locations[]) const
             }
         }
 
-        //qDebug() << __FILE__ << __LINE__ << m_index << locations[PORTRAIT_PICTURE] << locations[LANDSCAPE_PICTURE];
+        //qDebug() << __FILE__ << __LINE__ << m_index << num;
+
         return num;
     }
 
@@ -429,8 +433,7 @@ bool AlbumChildWidget::output(const QString &dir)
     bool ok = false;
     AlbumPageWidget *album = new AlbumPageWidget(PhotoLayer::VisiableImgTypeOriginal);
 
-    if (/*1 == m_index &&*/ // for test
-        album->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
+    if (album->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
     {
         QString path = tr("%1\\%2").arg(dir).arg(1 == m_index ? "cover" : "page");
 
@@ -450,6 +453,12 @@ bool AlbumChildWidget::output(const QString &dir)
         }
 
         int pid = 0;
+        uchar locations = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];
+        if (!locations)
+        {
+            goto end;
+        }
+
         for (int i = 0; i < PHOTOS_NUMBER; i++)
         {
             QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
@@ -461,29 +470,22 @@ bool AlbumChildWidget::output(const QString &dir)
             QString photoFile = photoInfo.at(0);
             qreal angle = photoInfo.at(1).toDouble();
             Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
-            int usedTimes = photoInfo.at(3).toInt();
+            uint usedTimes = photoInfo.at(3).toUInt();
+
+            //qDebug() << __FILE__ << __LINE__ << m_index << usedTimes << photoFile;
 
             do
             {
-                if (usedTimes && album->loadPhoto(pid, photoFile, angle, axis))
+                if (album->exportPhoto(pid, photoFile, path, angle, axis))
                 {
-                    QPixmap pix = album->m_layerLabels[pid]->getPicture(false);
-                    QSize size = pix.size();
-
-                    if (MAX_PIC_SIZE < size.width())
-                    {
-                        size.setWidth(MAX_PIC_SIZE);
-                    }
-
-                    if (MAX_PIC_SIZE < size.width())
-                    {
-                        size.setHeight(MAX_PIC_SIZE);
-                    }
-
-                    pix.scaled(size, Qt::KeepAspectRatio).save(tr("%1\\%2").arg(path).arg(album->m_layerLabels[pid]->getPictureFile()));
                     pid++;
                 }
                 else
+                {
+                    break;
+                }
+
+                if (!usedTimes)
                 {
                     break;
                 }
@@ -510,6 +512,7 @@ bool AlbumChildWidget::output(const QString &dir)
         //qDebug() << __FILE__ << __LINE__ << "changes:" << m_records["photo_layers"].toList();
     }
 
+end:
     delete album;
 
     return ok;

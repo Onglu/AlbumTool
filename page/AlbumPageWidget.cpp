@@ -187,12 +187,47 @@ int AlbumPageWidget::loadPhotos(const QStringList &photosList)
                                                 photoInfo.at(0),
                                                 photoInfo.at(1).toDouble(),
                                                 (Qt::Axis)photoInfo.at(2).toInt());
+
+//                QString picFile = photoInfo.at(0);
+//                qreal angle = photoInfo.at(1).toDouble();
+//                Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
+//                qDebug() << __FILE__ << __LINE__ << picFile << angle << axis;
+//                m_layerLabels[i]->changePhoto(photoInfo.at(0), photoInfo.at(1).toDouble(), (Qt::Axis)photoInfo.at(2).toInt());
+
                 index++;
             }
         }
     }
 
     return index;
+}
+
+bool AlbumPageWidget::exportPhoto(int index,
+                                  const QString &fileName,
+                                  const QString &savePath,
+                                  qreal angle,
+                                  Qt::Axis axis)
+{
+    if (loadPhoto(index, fileName, angle, axis))
+    {
+        QPixmap pix = m_layerLabels[index]->getPicture(false);
+        QSize size = pix.size();
+
+        if (MAX_PIC_SIZE < size.width())
+        {
+            size.setWidth(MAX_PIC_SIZE);
+        }
+
+        if (MAX_PIC_SIZE < size.width())
+        {
+            size.setHeight(MAX_PIC_SIZE);
+        }
+
+        //qDebug() << __FILE__ << __LINE__ << index;
+        return pix.scaled(size, Qt::KeepAspectRatio).save(tr("%1\\%2").arg(savePath).arg(m_layerLabels[index]->getPictureFile()));
+    }
+
+    return false;
 }
 
 void AlbumPageWidget::removePhoto(const QString &fileName)
@@ -204,7 +239,7 @@ void AlbumPageWidget::removePhoto(const QString &fileName)
         if (fileName == m_layerLabels[i]->getPhotoFile())
         {
             ok = true;
-            m_layerLabels[i]->flush();
+            m_layerLabels[i]->flush(false);
         }
     }
 

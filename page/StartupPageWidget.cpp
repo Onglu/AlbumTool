@@ -9,7 +9,7 @@
 #include <QtSql>
 #include "wrapper/utility.h"    // for test
 
-MainWindow *StartupPageWidget::m_pMW = NULL;
+MainWindow *StartupPageWidget::m_mainWnd = NULL;
 
 StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *parent) : QWidget(parent, f)
 {
@@ -26,7 +26,7 @@ StartupPageWidget::StartupPageWidget(Qt::WindowFlags f, QSize fixed, QWidget *pa
         m_pCloseBtn->setFlat(true);
         m_pCloseBtn->setIcon(QIcon(":/images/close.png"));
         m_pCloseBtn->move(fixed.width() - btnSize.width(), 0);
-        connect(m_pCloseBtn, SIGNAL(clicked()), SLOT(openMw()));
+        connect(m_pCloseBtn, SIGNAL(clicked()), SLOT(openWnd()));
     }
 
     m_pNewBtn = new QPushButton(tr("新建任务"));
@@ -93,20 +93,20 @@ const QString &StartupPageWidget::getTaskFile(uchar mode, QString &taskFile, QSt
 
     if (Task_New == mode)
     {
-        taskFile = QFileDialog::getSaveFileName(parentWidget(), tr("新建任务"), m_taskDir, tr("相册任务(*.xcrw)"));
+        taskFile = QFileDialog::getSaveFileName(parentWidget(), tr("新建任务"), m_taskDir, tr("相册任务(*%1)").arg(TASK_FMT));
         FileParser(taskFile).clear();
     }
 
     if (Task_Open == mode)
     {
-        taskFile = QFileDialog::getOpenFileName(parentWidget(), tr("打开任务"), m_taskDir, tr("相册任务(*.xcrw)"));
+        taskFile = QFileDialog::getOpenFileName(parentWidget(), tr("打开任务"), m_taskDir, tr("相册任务(*%1)").arg(TASK_FMT));
     }
 
     if (Task_SaveAs == mode)
     {
         srcFile = taskFile;
-        taskFile = QFileDialog::getSaveFileName(parentWidget(), tr("另存为..."), srcFile, tr("相册任务(*.xcrw)"));
-        if (taskFile.isEmpty() || !m_pMW || m_pMW->hasOpened(QDir::toNativeSeparators(taskFile)))
+        taskFile = QFileDialog::getSaveFileName(parentWidget(), tr("另存为..."), srcFile, tr("相册任务(*%1)").arg(TASK_FMT));
+        if (taskFile.isEmpty() || !m_mainWnd || m_mainWnd->hasOpened(QDir::toNativeSeparators(taskFile)))
         {
             return (taskFile = srcFile);
         }
@@ -129,14 +129,14 @@ const QString &StartupPageWidget::getTaskFile(uchar mode, QString &taskFile, QSt
     return taskFile;
 }
 
-void StartupPageWidget::openMw(QString taskFile, QString taskName)
+void StartupPageWidget::openWnd(QString taskFile, QString taskName)
 {
-    if (!m_pMW)
+    if (!m_mainWnd)
     {
-        m_pMW = new MainWindow(taskFile, taskName);
+        m_mainWnd = new MainWindow(taskFile, taskName);
     }
 
-    m_pMW->show();
+    m_mainWnd->show();
     close();
 }
 
@@ -144,12 +144,12 @@ void StartupPageWidget::newTask()
 {
     QString taskFile, taskName;
     getTaskFile(Task_New, taskFile, taskName);
-    openMw(taskFile, taskName);
+    openWnd(taskFile, taskName);
 }
 
 void StartupPageWidget::openTask()
 {
     QString taskFile, taskName;
     getTaskFile(Task_Open, taskFile, taskName);
-    openMw(taskFile, taskName);
+    openWnd(taskFile, taskName);
 }

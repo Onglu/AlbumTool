@@ -1,6 +1,24 @@
 #include "utility.h"
 #include <QDebug>
 #include <QtSql>
+#include <QTextCodec>
+
+void Converter::setEncode(bool local)
+{
+    QTextCodec *codec = QTextCodec::codecForName("utf-8"); // utf-8, GB18030
+    QTextCodec::setCodecForTr(codec);
+
+    if (local)
+    {
+        QTextCodec::setCodecForLocale(QTextCodec::codecForLocale());
+        QTextCodec::setCodecForCStrings(QTextCodec::codecForLocale());
+    }
+    else
+    {
+        QTextCodec::setCodecForLocale(codec);
+        QTextCodec::setCodecForCStrings(codec);
+    }
+}
 
 const QStringList &Converter::v2l(const QVector<QString> strVector, QStringList &strList)
 {
@@ -58,7 +76,7 @@ bool SqlHelper::connectDb()
         db.setDatabaseName(BACKEND_DB);
         if (!(connected = db.open()))
         {
-            m_error = /*"connect database failed"*/ db.lastError().databaseText();
+            m_error = db.lastError().databaseText();
             return false;
         }
     }

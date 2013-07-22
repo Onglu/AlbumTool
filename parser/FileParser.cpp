@@ -10,16 +10,13 @@ using namespace QtJson;
 
 bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVariantList &albums)
 {
-    QFile file(m_fileName);
-    if (!file.open(QIODevice::ReadOnly))
+    if (!openFile(QIODevice::ReadOnly))
     {
         QMessageBox::critical(m_parent, tr("打开失败"), tr("请检查文件是否存在！"), tr("确定"));
         return false;
     }
 
-    m_locker = FileLocker(m_fileName);
-
-    QDataStream in(&file);
+    QDataStream in(this);
     quint32 magic, version;
 
     try
@@ -42,7 +39,7 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
     }
     catch (int err)
     {
-        QMessageBox::critical(m_parent, tr("打开失败"), tr("任务文件格式无效！错误码：%d").arg(err), tr("确定"));
+        QMessageBox::critical(m_parent, tr("打开失败"), tr("任务文件格式无效！\n错误码：%1").arg(err), tr("确定"));
         return false;
     }
 
@@ -78,13 +75,12 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
 
 void FileParser::saveTask()
 {
-    QFile file(m_fileName);
-    if (!file.open(QIODevice::WriteOnly))
+    if (!openFile(QIODevice::WriteOnly, false))
     {
         return;
     }
 
-    QDataStream out(&file);
+    QDataStream out(this);
 
     // Write a header with a "magic number" and a version
     out << (quint32)MAGIC_NUMBER;
@@ -116,13 +112,12 @@ void FileParser::saveTask(const QVariantList &photos,
                           const QVariantList &templates,
                           const QVariantList &albums)
 {
-    QFile file(m_fileName);
-    if (!file.open(QIODevice::WriteOnly))
+    if (!openFile(QIODevice::WriteOnly, false))
     {
         return;
     }
 
-    QDataStream out(&file);
+    QDataStream out(this);
 
     // Write a header with a "magic number" and a version
     out << (quint32)MAGIC_NUMBER;

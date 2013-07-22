@@ -1,12 +1,30 @@
 #include <QApplication>
 #include <QDesktopWidget>
-#include <QTextCodec>
+//#include <QTextCodec>
 #include <QtPlugin>
 #include "page/StartupPageWidget.h"
+#include "wrapper/utility.h"
 
 //Q_IMPORT_PLUGIN(qsqlite)
 
 QRect g_appRect;
+
+//void setEncode(bool local)
+//{
+//    QTextCodec *codec = QTextCodec::codecForName("utf-8"); // utf-8, GB18030
+//    QTextCodec::setCodecForTr(codec);
+
+//    if (local)
+//    {
+//        QTextCodec::setCodecForLocale(QTextCodec::codecForLocale());
+//        QTextCodec::setCodecForCStrings(QTextCodec::codecForLocale());
+//    }
+//    else
+//    {
+//        QTextCodec::setCodecForLocale(codec);
+//        QTextCodec::setCodecForCStrings(codec);
+//    }
+//}
 
 int main(int argc, char *argv[])
 {
@@ -16,10 +34,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationDomain("jizhiyou.com");
     QCoreApplication::setApplicationName("Album");
 
-    QTextCodec *codec = QTextCodec::codecForName("utf-8"); // utf-8, GB18030
-    QTextCodec::setCodecForTr(codec);
-    QTextCodec::setCodecForLocale(/*codec*/ QTextCodec::codecForLocale());
-    QTextCodec::setCodecForCStrings(/*codec*/ QTextCodec::codecForLocale());
+    Converter::setEncode(true);
 
     g_appRect = QApplication::desktop()->availableGeometry();
     //g_rcDesktop = app.desktop()->availableGeometry();

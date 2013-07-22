@@ -55,6 +55,8 @@ public:
     void setId(int id){m_id = id;}
     int getId(void) const {return m_id;}
 
+    float getOpacity(void) const {return m_opacity;}
+
     QRect getVisiableRect(VisiableRectType type = VisiableRectTypeDefault) const
     {
         return m_visiableRects[type];
@@ -96,7 +98,7 @@ public:
 
     void updateRect(void);
 
-    void flush(void);
+    void flush(bool all = true);
 
     void blend(void);
 
@@ -125,6 +127,7 @@ private:
 
     const VisiableImgType m_type;
     bool m_moveable, m_moved;
+    float m_opacity;
 
     QSize m_default;
     QSizeF m_ratioSize; // Visiable size devides actual size

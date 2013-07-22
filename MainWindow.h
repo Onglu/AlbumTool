@@ -14,6 +14,7 @@ class MainWindow;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
 public:
     explicit MainWindow(const QString &taskFile, const QString &taskName, QWidget *parent = 0);
     ~MainWindow();

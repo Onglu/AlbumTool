@@ -61,7 +61,7 @@ void BgdLayer::compose(const QString &fileName)
                 painter.setOpacity(opacity);
                 painter.drawImage(label->getVisiableRect(), label->getVisiableImg());
                 //img.save(tr("C:\\Users\\Onglu\\Desktop\\test\\Composed_%1x%2_%3").arg(rect1.width()).arg(rect1.height()).arg(file));
-                //qDebug() << __FILE__ << __LINE__ << "photo:" << file << rect;
+                //qDebug() << __FILE__ << __LINE__ << "photo:" << file << opacity;
             }
 
             index++;

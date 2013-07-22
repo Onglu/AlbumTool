@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "PreviewDialog.h"
-#include "AlbumManageDialog.h"
+#include "manage/AlbumManageDialog.h"
 #include "page/StartupPageWidget.h"
 #include "page/TaskPageWidget.h"
 #include <QDebug>
@@ -12,13 +12,14 @@ extern QRect g_appRect;
 
 MainWindow::MainWindow(const QString &taskFile, const QString &taskName, QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    m_albums(NULL)
 {
     ui->setupUi(this);
 
     //ui->menuBar->hide();
 
-    m_albums = new AlbumManageDialog(this);
+    m_albums = new AlbumManageDialog;
 
 //    m_pLabel = new QLabel(tr("准备"));    // Ready
 //    //m_pLabel->setMinimumSize(m_pLabel->sizeHint());
@@ -53,6 +54,7 @@ MainWindow::MainWindow(const QString &taskFile, const QString &taskName, QWidget
 
 MainWindow::~MainWindow()
 {
+    delete m_albums;
     delete ui;
 }
 
@@ -91,6 +93,8 @@ void MainWindow::closeEvent(QCloseEvent *event)
             return;
         }
     }
+
+    delete (StartupPageWidget::getWnd());
 }
 
 inline bool MainWindow::closePage(int index)
@@ -265,5 +269,26 @@ void MainWindow::on_manageTemplateAction_triggered()
 
 void MainWindow::on_manageAlbumAction_triggered()
 {
+//    if (!m_albums)
+//    {
+//        m_albums = new AlbumManageDialog(this);
+//    }
     //m_albums->show();
+
+    QStringList albums;
+//    int count = ui->tabWidget->count();
+
+//    for (int i = 0; i < count; i++)
+//    {
+//        TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i));
+//        QString album = taskPage->getAlbum();
+//        if (!album.isEmpty())
+//        {
+//            albums << album;
+//        }
+//    }
+
+    albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc");
+
+    m_albums->openWnd(albums);
 }

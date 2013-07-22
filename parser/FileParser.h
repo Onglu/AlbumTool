@@ -5,10 +5,12 @@
 #include <QFile>
 #include <QSettings>
 
-#define Task_New    1
-#define Task_Open   2
-#define Task_Save   3
-#define Task_SaveAs 4
+#define Task_New        1
+#define Task_Open       2
+#define Task_Save       3
+#define Task_SaveAs     4
+
+#define TASK_FMT        ".xcrw"
 
 class FileLocker
 {
@@ -19,8 +21,12 @@ public:
 
     FileLocker &operator=(const FileLocker &fl)
     {
-        m_file = fl.m_file;
-        m_fp = fl.m_fp;
+        if (this != &fl)
+        {
+            m_file = fl.m_file;
+            m_fp = fl.m_fp;
+        }
+
         return *this;
     }
 
@@ -29,9 +35,13 @@ public:
         if (m_file != file)
         {
             unlock();
-            if (!file.isEmpty())
+            m_file = file;
+        }
+        else
+        {
+            if (m_fp)
             {
-                m_file = file;
+                return;
             }
         }
 
@@ -59,8 +69,60 @@ class FileParser: public QFile
 {
 public:
     explicit FileParser(QWidget *parent = 0) : QFile(NULL), m_parent(parent){}
-    FileParser(const QString &fileName, QWidget *parent = 0) : QFile(fileName), m_fileName(fileName), m_parent(parent){}
-    ~FileParser(void){m_locker.unlock();close();}
+    FileParser(const QString &fileName, QWidget *parent = 0) : QFile(fileName), m_fileName(fileName), m_parent(parent)
+    {
+        setFileName(m_fileName);
+    }
+    ~FileParser(void){closeFile();}
+
+    FileParser &operator=(const FileParser &fp)
+    {
+        if (this != &fp)
+        {
+            closeFile();
+            setFileName(fp.m_fileName);
+            m_parent = fp.m_parent;
+            m_fileName = fp.m_fileName;
+            m_locker = fp.m_locker;
+        }
+
+        return *this;
+    }
+
+    bool openFile(OpenMode mode, bool lock = true)
+    {
+        if (isOpen())
+        {
+            close();
+        }
+
+        bool ret = open(mode);
+        if (ret)
+        {
+            m_locker.lock(m_fileName);
+        }
+
+//        if (ret)
+//        {
+//            if (QIODevice::ReadOnly == mode)
+//            {
+//                m_locker.lock(m_fileName);
+//            }
+
+//            if (QIODevice::WriteOnly == mode)
+//            {
+//                m_locker.unlock();
+//            }
+//        }
+
+        return ret;
+    }
+
+    void closeFile(void)
+    {
+        m_locker.unlock();
+        close();
+    }
 
     bool openTask(QVariantList &photos, QVariantList &templates, QVariantList &albums);
 
@@ -96,7 +158,7 @@ public:
         m_locker.lock(m_fileName);
     }
 
-    QString getParsingFile(void) const {return m_fileName;}
+    //QString getParsingFile(void) const {return m_fileName;}
 
     const QString &getPageId(void) const {return m_pageId;}
 
@@ -108,6 +170,11 @@ public:
                     bool multiSel = true);
 
     static const QString &getFileMd5(const QString &filePath, QString &md5);
+
+    const QString &getFileMd5(QString &md5) const
+    {
+        return getFileMd5(m_fileName, md5);
+    }
 
 private:
     QWidget *m_parent;

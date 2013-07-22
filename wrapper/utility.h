@@ -15,6 +15,8 @@ class Converter
 public:
     Converter(){}
 
+    static void setEncode(bool local);
+
     static const QStringList &v2l(const QVector<QString> strVector, QStringList &strList);
     static int num(const QStringList &strList, bool empty = false/* equal with its size */);
     static qreal rotation(qreal &current, qreal degree)

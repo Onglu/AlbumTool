@@ -244,7 +244,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
             if (!pix.isNull() && file.open(QIODevice::ReadOnly))
             {
                 //m_pictures.insert(m_currFile, file.readAll());
-                m_pictures.insert(m_currFile, qCompress(file.readAll(), 9));
+                m_pictures.insert(m_currFile, qCompress(file.readAll(), 5));
                 file.remove();
             }
 

@@ -181,7 +181,7 @@ void EditPageWidget::mouseReleaseEvent(QMouseEvent *event)
 
             QString photoName;
             Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
-            //qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getFrame();
+            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getOpacity();
             m_pAlbumWidget->changePhoto(photoName,
                                         m_layerLabel->getFrame(),
                                         m_layerLabel->getOpacity(),
@@ -265,7 +265,7 @@ void EditPageWidget::removeThumbs(const QString &picFile)
         if ((thumbLabel = proxyWidget->getChildWidget().getPictureLabel())
              && picFile == thumbLabel->getPictureFile())
         {
-            qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
+            //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
             m_pThumbsScene->removeProxyWidget(proxyWidget);
             m_pThumbsScene->adjustViewLayout();
             m_pAlbumPage->removePhoto(picFile);

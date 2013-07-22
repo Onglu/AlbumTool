@@ -64,7 +64,12 @@ public:
     ~TaskPageWidget();
 
     bool isValid(void){return m_taskParser.isValid();}
-    bool hasOpened(const QString &taskFile) const {return (taskFile == m_taskParser.getParsingFile());}
+
+    bool hasOpened(const QString &taskFile) const
+    {
+        return (taskFile == QDir::toNativeSeparators(m_taskParser.fileName()));
+    }
+
     bool isEditing(void) const {return m_editPage->isVisible();}
 
     void setTabId(int tabId){m_tabId = tabId;}
@@ -85,7 +90,9 @@ public:
 
     TemplateChildWidget *getTmplWidget(const QString &tmplFile) const;
 
-    const QString &getPageId(void) const {return m_taskParser.getPageId();}
+    QString getPageId(void) const {return m_taskParser.getPageId();}
+
+    QString getAlbum(void);
 
 signals:
     void changed(int index);
@@ -144,6 +151,7 @@ private:
     FileParser m_taskParser;
     LoaderThread *m_photosLoader, *m_templatesLoader, *m_albumsLoader;
     TaskPage::MakerThread m_maker;
+    QString m_album;
 
     QVariantMap m_package;
     QStringList m_pictures;

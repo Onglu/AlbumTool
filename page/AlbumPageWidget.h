@@ -25,6 +25,12 @@ public:
 
     int loadPhotos(const QStringList &photosList);
 
+    bool exportPhoto(int index,
+                     const QString &fileName,
+                     const QString &savePath,
+                     qreal angle = 0,
+                     Qt::Axis axis = Qt::ZAxis);
+
     void removePhoto(const QString &fileName);
 
     //BgdLayer *getBgdLayer(void) const {return m_bgdLabel;}

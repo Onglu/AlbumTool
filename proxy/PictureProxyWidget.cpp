@@ -1,5 +1,6 @@
 #include "PictureProxyWidget.h"
 #include "child/PictureChildWidget.h"
+#include "wrapper/PictureGraphicsScene.h"
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include <QDebug>
@@ -93,6 +94,8 @@ void PictureProxyWidget::selectItem(bool bSingle)
     {
         return;
     }
+
+    //qDebug() << __FILE__ << __LINE__ << bSingle;
 
     if (bSingle)
     {

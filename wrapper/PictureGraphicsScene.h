@@ -91,6 +91,7 @@ private:
     ProxyWidgetsMap m_proxyWidgets, m_resultsWidgets;
     GraphicsItemsList m_itemsList;  // Just only used for m2l() convertion
     QStringList m_filesList;
+
     bool m_loadFinished;
     QGraphicsView *m_pView;
 };

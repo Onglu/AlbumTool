@@ -22,7 +22,7 @@ public:
 
     void setOpacity(QPixmap &pix, qreal opacity);
     void setOpacity(qreal opacity){m_opacity = opacity;}
-    qreal getOpacity(void) const {return m_opacity;}
+    virtual float getOpacity(void) const {return m_opacity;}
 
     void rotate(qreal angle, Qt::Axis axis = Qt::ZAxis);
     void setAngle(qreal angle){m_angle = angle;}
@@ -46,10 +46,11 @@ protected:
     QString m_fileName;
     QPixmap m_ori, m_bk;
     Qt::Axis m_axis;
-    qreal m_angle, m_opacity;
+    qreal m_angle;
+    //float m_opacity;
 
 private:
-
+    float m_opacity;
 };
 
 #endif // PICTURELABEL_H

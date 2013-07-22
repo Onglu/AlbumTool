@@ -68,7 +68,7 @@ private slots:
 
     void on_deletePushButton_clicked();
 
-    void selectThumb(bool bSingle){m_thumbsSceneFocused = bSingle;}
+    void selectThumb(bool){m_thumbsSceneFocused = true;}
 
     /* Replaced picture file */
     void onReplaced(const QString &current, const QString &replaced);

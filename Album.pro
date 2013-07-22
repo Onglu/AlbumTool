@@ -38,7 +38,9 @@ SOURCES += main.cpp\
     wrapper/BgdLayer.cpp \
     page/AlbumPageWidget.cpp \
     LoadingDialog.cpp \
-    AlbumManageDialog.cpp
+    manage/AlbumTaskWidget.cpp \
+    manage/AlbumManageDialog.cpp \
+    manage/AlbumInfoWidget.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -65,7 +67,9 @@ HEADERS  += \
     wrapper/BgdLayer.h \
     page/AlbumPageWidget.h \
     LoadingDialog.h \
-    AlbumManageDialog.h
+    manage/AlbumTaskWidget.h \
+    manage/AlbumManageDialog.h \
+    manage/AlbumInfoWidget.h
 
 FORMS    += \
     MainWindow.ui \
@@ -75,7 +79,9 @@ FORMS    += \
     page/TemplatePageWidget.ui \
     page/TaskPageWidget.ui \
     page/EditPageWidget.ui \
-    AlbumManageDialog.ui
+    manage/AlbumTaskWidget.ui \
+    manage/AlbumManageDialog.ui \
+    manage/AlbumInfoWidget.ui
 
 RESOURCES += \
     images.qrc
