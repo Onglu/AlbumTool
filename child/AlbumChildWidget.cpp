@@ -426,11 +426,11 @@ void AlbumChildWidget::open(ChildWidgetsMap &widgetsMap)
     }
 }
 
-bool AlbumChildWidget::output(const QString &dir)
+int AlbumChildWidget::output(const QString &dir)
 {
     //qDebug() << __FILE__ << __LINE__ << "output album" << m_index << TemplateChildWidget::isCover(getData()) << this->size() << getSize();
 
-    bool ok = false;
+    int pid = 0;
     AlbumPageWidget *album = new AlbumPageWidget(PhotoLayer::VisiableImgTypeOriginal);
 
     if (album->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
@@ -444,7 +444,7 @@ bool AlbumChildWidget::output(const QString &dir)
 
         QDir().mkpath(path);
 
-        QFile jf(tr("%1\\page.dat").arg(path));
+        QFile jf(tr("%1\\%2").arg(path).arg(PAGE_DATA));
         if (jf.open(QIODevice::WriteOnly | QIODevice::Text))
         {
             QByteArray result = QtJson::serialize(getData());
@@ -452,7 +452,7 @@ bool AlbumChildWidget::output(const QString &dir)
             jf.close();
         }
 
-        int pid = 0;
+        //int pid = 0;
         uchar locations = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];
         if (!locations)
         {
@@ -507,15 +507,13 @@ bool AlbumChildWidget::output(const QString &dir)
             }
             ++iter;
         }
-
-        ok = true;
         //qDebug() << __FILE__ << __LINE__ << "changes:" << m_records["photo_layers"].toList();
     }
 
 end:
     delete album;
 
-    return ok;
+    return pid;
 }
 
 inline void AlbumChildWidget::showPhotos(bool visible)

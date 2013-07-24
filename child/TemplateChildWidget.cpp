@@ -29,7 +29,7 @@ TemplateChildWidget::TemplateChildWidget(int index,
         connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
 
         QString args;
-        useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, "page.dat"));
+        useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, PAGE_DATA));
     }
     else
     {
@@ -52,7 +52,7 @@ TemplateChildWidget::TemplateChildWidget(const QString &file, DraggableLabel *la
     connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
 
     QString args;
-    useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, "page.dat"));
+    useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, PAGE_DATA));
 }
 
 const QVariantMap &TemplateChildWidget::getChanges(void)

@@ -579,6 +579,8 @@ void PhotoLayer::dropEvent(QDropEvent *event)
     QString currPic = m_picFile;
     DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
 
+    //qDebug() << __FILE__ << __LINE__ << currPic << picLabel->getPictureFile();
+
     if (picLabel && picLabel->meetDragDrop(DRAGGABLE_PHOTO) && !children().contains(picLabel)
         && picLabel->hasPicture() && currPic != picLabel->getPictureFile())
     {

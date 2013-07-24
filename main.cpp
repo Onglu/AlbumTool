@@ -1,6 +1,6 @@
 #include <QApplication>
 #include <QDesktopWidget>
-//#include <QTextCodec>
+#include <QTextCodec>
 #include <QtPlugin>
 #include "page/StartupPageWidget.h"
 #include "wrapper/utility.h"
@@ -9,32 +9,18 @@
 
 QRect g_appRect;
 
-//void setEncode(bool local)
-//{
-//    QTextCodec *codec = QTextCodec::codecForName("utf-8"); // utf-8, GB18030
-//    QTextCodec::setCodecForTr(codec);
-
-//    if (local)
-//    {
-//        QTextCodec::setCodecForLocale(QTextCodec::codecForLocale());
-//        QTextCodec::setCodecForCStrings(QTextCodec::codecForLocale());
-//    }
-//    else
-//    {
-//        QTextCodec::setCodecForLocale(codec);
-//        QTextCodec::setCodecForCStrings(codec);
-//    }
-//}
-
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    QTextCodec *codec = QTextCodec::codecForName("utf-8"); // utf-8, GB18030
+    QTextCodec::setCodecForTr(codec);
+    QTextCodec::setCodecForLocale(QTextCodec::codecForLocale());
+    QTextCodec::setCodecForCStrings(QTextCodec::codecForLocale());
+
     QCoreApplication::setOrganizationName("Jizhiyou");
     QCoreApplication::setOrganizationDomain("jizhiyou.com");
     QCoreApplication::setApplicationName("Album");
-
-    Converter::setEncode(true);
 
     g_appRect = QApplication::desktop()->availableGeometry();
     //g_rcDesktop = app.desktop()->availableGeometry();

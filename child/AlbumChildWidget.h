@@ -52,7 +52,8 @@ public:
 
     void open(ChildWidgetsMap &widgetsMap);
 
-    bool output(const QString &dir);
+    /* return the number of photos that are put in per album page */
+    int output(const QString &dir);
 
     TemplateChildWidget *getTmplWidget(void) const;
     DraggableLabel &getTmplLabel(void){return *m_tmplLabel;}

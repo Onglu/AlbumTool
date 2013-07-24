@@ -10,8 +10,6 @@
 #define Task_Save       3
 #define Task_SaveAs     4
 
-#define TASK_FMT        ".xcrw"
-
 class FileLocker
 {
 public:

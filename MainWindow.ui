@@ -88,11 +88,10 @@
    </widget>
    <widget class="QMenu" name="settingMenu">
     <property name="title">
-     <string>设置(&amp;S)</string>
+     <string>管理(&amp;M)</string>
     </property>
     <addaction name="manageTemplateAction"/>
     <addaction name="manageAlbumAction"/>
-    <addaction name="optionAction"/>
    </widget>
    <addaction name="fileMenu"/>
    <addaction name="editMenu"/>
@@ -114,12 +113,10 @@
    <addaction name="saveAction"/>
    <addaction name="separator"/>
    <addaction name="importTemplatesAction"/>
-   <addaction name="manageTemplateAction"/>
-   <addaction name="separator"/>
    <addaction name="importAlbumsAction"/>
-   <addaction name="manageAlbumAction"/>
    <addaction name="separator"/>
-   <addaction name="optionAction"/>
+   <addaction name="manageTemplateAction"/>
+   <addaction name="manageAlbumAction"/>
   </widget>
   <widget class="QStatusBar" name="statusBar">
    <property name="styleSheet">
@@ -181,24 +178,24 @@
   </action>
   <action name="importTemplatesAction">
    <property name="text">
-    <string>导入模板(&amp;F9)</string>
+    <string>导入模板(&amp;T)</string>
    </property>
    <property name="toolTip">
-    <string>导入模板(F9)</string>
+    <string>导入模板(T)</string>
    </property>
    <property name="shortcut">
-    <string>F9</string>
+    <string>Ctrl+T</string>
    </property>
   </action>
   <action name="importAlbumsAction">
    <property name="text">
-    <string>导入相册(&amp;F10)</string>
+    <string>导入相册(&amp;P)</string>
    </property>
    <property name="toolTip">
-    <string>模板管理(F10)</string>
+    <string>模板管理(P)</string>
    </property>
    <property name="shortcut">
-    <string>F10</string>
+    <string>Ctrl+P</string>
    </property>
   </action>
   <action name="closeAction">
@@ -225,14 +222,6 @@
   <action name="manageAlbumAction">
    <property name="text">
     <string>相册管理(&amp;A)</string>
-   </property>
-  </action>
-  <action name="optionAction">
-   <property name="text">
-    <string>选项(&amp;O)</string>
-   </property>
-   <property name="toolTip">
-    <string>配置选项</string>
    </property>
   </action>
  </widget>

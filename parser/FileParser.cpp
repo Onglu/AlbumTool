@@ -39,7 +39,7 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
     }
     catch (int err)
     {
-        QMessageBox::critical(m_parent, tr("打开失败"), tr("任务文件格式无效！\n错误码：%1").arg(err), tr("确定"));
+        QMessageBox::critical(m_parent, tr("打开失败"), tr("任务文件格式无效！错误码：%1").arg(err), tr("确定"));
         return false;
     }
 

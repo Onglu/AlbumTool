@@ -6,6 +6,7 @@
 #include <QtCore/qmath.h>
 #include <QDebug>
 #include <QGraphicsView>
+#include <QMessageBox>
 
 PictureGraphicsScene::PictureGraphicsScene(const QBrush &bkclr,
                                            LayoutMode layout,

@@ -324,6 +324,8 @@ bool EditPageWidget::switchPage(int index)
         return ok;
     }
 
+    ui->deletePushButton->setEnabled(1 != index);
+
     m_pThumbsScene->removeProxyWidgets(true);
     m_pThumbsScene->getProxyWidgets().clear();
     m_pAlbumPage->clearLayers();

@@ -434,6 +434,24 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
                 if (Qt::Key_Delete == keyEvent->key())
                 {
                     int n = focusScene->selectedItems().size();
+
+                    if (focusArea == tr("相册") && n != focusScene->items().size())
+                    {
+                        items = focusScene->items();
+                        foreach (QGraphicsItem *item, items)
+                        {
+                            if ((proxyWidget = static_cast<PictureProxyWidget *>(item))
+                                    && proxyWidget->isSelected() && 1 == proxyWidget->getChildWidget().getIndex())
+                            {
+                                QMessageBox::information(this,
+                                                         tr("操作失败"),
+                                                         tr("不允许删除相册封面页！"),
+                                                         tr("确定"));
+                                return QWidget::eventFilter(watched, event);
+                            }
+                        }
+                    }
+
                     //qDebug() << __FILE__ << __LINE__;
                     if (!focusArea.isEmpty())
                     {
@@ -814,6 +832,7 @@ void TaskPageWidget::on_createPushButton_clicked()
     taskDir = outDir.left(outDir.lastIndexOf(QDir::separator()));
     Converter::getFileName(taskFile, fileName, false);
     m_album = tr("%1\\%2.xc").arg(taskDir).arg(fileName);
+    m_photosNum = 0;
 
     if (QFile::exists(m_album))
     {
@@ -836,6 +855,7 @@ void TaskPageWidget::on_createPushButton_clicked()
     m_pages.clear();
 
     m_package.insert("ver", "1.0");
+    m_package.insert("id", m_taskParser.getPageId());
     m_package.insert("name", fileName);
     m_package.insert("pageCount", 0);
     m_package.insert("createTime", QDateTime::currentDateTime().toString("yyyyMMddhhmm"));
@@ -847,15 +867,15 @@ void TaskPageWidget::on_createPushButton_clicked()
     m_maker.begin(args);
 
     QString info = tr("正在生成相册...");
-    if (!m_loadingDlg || (m_loadingDlg && info != m_loadingDlg->getInfo()))
-    {
-        if (m_loadingDlg)
-        {
-            delete m_loadingDlg;
-        }
+//    if (!m_loadingDlg || (m_loadingDlg && info != m_loadingDlg->getInfo()))
+//    {
+//        if (m_loadingDlg)
+//        {
+//            delete m_loadingDlg;
+//        }
 
-        m_loadingDlg = new LoadingDialog;
-    }
+//        m_loadingDlg = new LoadingDialog;
+//    }
     m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), info);
 #else
     // for test
@@ -888,7 +908,8 @@ void TaskPageWidget::process(int index, const QStringList &args)
     {
         m_maker.end();
 
-        m_package["pageCount"] = m_pictures.size();
+        int pagesNum = m_pictures.size();
+        m_package["pageCount"] = pagesNum;
         m_package.insert("pages", m_pages);
 
         QFile jf(tr("%1\\package.dat").arg(childDir));
@@ -913,10 +934,27 @@ void TaskPageWidget::process(int index, const QStringList &args)
                                     tr("\"%1\" \"%2\"").arg(m_album).arg(outDir),
                                     true);
 
+        QString guid = m_package["id"].toString();
+        QString sql = tr("select id from album_info where fileurl='%1'").arg(m_album);
+        int id = SqlHelper::getId(sql);
+
+        if (id)
+        {
+            sql = tr("update album_info set fileguid='%1', pagesnum=%2, photosnum=%3 where id=%4").arg(guid).arg(pagesNum).arg(m_photosNum).arg(id);
+        }
+        else
+        {
+            sql = tr("insert into album_info(fileurl,fileguid,pagesnum,photosnum) values('%1','%2',%3,%4)").arg(m_album).arg(guid).arg(pagesNum).arg(m_photosNum);
+        }
+
+        QSqlQuery query;
+        query.exec(sql);
+
         m_loadingDlg->showProcess(false);
         ui->previewPushButton->setEnabled(true);
 
         qDebug("\n");
+        qDebug() << __FILE__ << __LINE__ << sql;
         qDebug() << __FILE__ << __LINE__ << "compress album package costs" << m_tm.elapsed() << "ms in total";
 
         return;
@@ -924,8 +962,10 @@ void TaskPageWidget::process(int index, const QStringList &args)
 
     qDebug() << __FILE__ << __LINE__ << "out album page" << index << "costs" << t.elapsed() << "ms";
 
+    int photosNum;
     AlbumChildWidget *childWidget = static_cast<AlbumChildWidget *>(proxyWidgets[index]->getChildWidgetPtr());
-    if (childWidget && childWidget->output(childDir))
+
+    if (childWidget && (photosNum = childWidget->output(childDir)))
     {
         QVariantMap data = childWidget->getData();
         QString picFile;
@@ -946,6 +986,7 @@ void TaskPageWidget::process(int index, const QStringList &args)
         }
 
         m_pictures << picFile;
+        m_photosNum += photosNum;
     }
 #endif
 

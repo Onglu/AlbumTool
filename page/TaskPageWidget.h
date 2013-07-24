@@ -152,6 +152,7 @@ private:
     LoaderThread *m_photosLoader, *m_templatesLoader, *m_albumsLoader;
     TaskPage::MakerThread m_maker;
     QString m_album;
+    int m_photosNum;
 
     QVariantMap m_package;
     QStringList m_pictures;

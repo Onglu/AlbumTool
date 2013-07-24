@@ -8,7 +8,13 @@
 
 #define MAKER_NAME          "tmaker.exe"
 #define TEMP_FILE           "/DDECF6B7F103CFC11B2.png"
+
+#define PAGE_DATA           "page.dat"
+#define PACKAGE_DATA        "package.dat"
+
+#define TASK_FMT            ".xcrw"
 #define PKG_FMT             ".xcmb"
+
 #define PIC_FMT             ".jpg"
 #define PIC_NAME            "preview.png"
 #define PKG_PASSWORD        "123123"

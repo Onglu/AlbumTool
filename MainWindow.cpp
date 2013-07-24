@@ -288,7 +288,7 @@ void MainWindow::on_manageAlbumAction_triggered()
 //        }
 //    }
 
-    albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc");
+    albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc") << tr("E:\\images\\赵六.xc") << tr("E:\\images\\孙七.xc");
 
     m_albums->openWnd(albums);
 }

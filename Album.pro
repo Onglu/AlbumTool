@@ -40,7 +40,8 @@ SOURCES += main.cpp\
     LoadingDialog.cpp \
     manage/AlbumTaskWidget.cpp \
     manage/AlbumManageDialog.cpp \
-    manage/AlbumInfoWidget.cpp
+    manage/AlbumInfoWidget.cpp \
+    manage/FindUserDialog.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -69,7 +70,8 @@ HEADERS  += \
     LoadingDialog.h \
     manage/AlbumTaskWidget.h \
     manage/AlbumManageDialog.h \
-    manage/AlbumInfoWidget.h
+    manage/AlbumInfoWidget.h \
+    manage/FindUserDialog.h
 
 FORMS    += \
     MainWindow.ui \
@@ -81,7 +83,8 @@ FORMS    += \
     page/EditPageWidget.ui \
     manage/AlbumTaskWidget.ui \
     manage/AlbumManageDialog.ui \
-    manage/AlbumInfoWidget.ui
+    manage/AlbumInfoWidget.ui \
+    manage/FindUserDialog.ui
 
 RESOURCES += \
     images.qrc
