@@ -13,13 +13,13 @@ extern QRect g_appRect;
 MainWindow::MainWindow(const QString &taskFile, const QString &taskName, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_albums(NULL)
+    m_am(NULL)
 {
     ui->setupUi(this);
 
     //ui->menuBar->hide();
 
-    m_albums = new AlbumManageDialog;
+    m_am = new AlbumManageDialog;
 
 //    m_pLabel = new QLabel(tr("准备"));    // Ready
 //    //m_pLabel->setMinimumSize(m_pLabel->sizeHint());
@@ -54,7 +54,7 @@ MainWindow::MainWindow(const QString &taskFile, const QString &taskName, QWidget
 
 MainWindow::~MainWindow()
 {
-    delete m_albums;
+    delete m_am;
     delete ui;
 }
 
@@ -144,6 +144,13 @@ inline void MainWindow::addPage(AddMethod method, QString taskFile, QString task
         TaskPageWidget *taskPage = new TaskPageWidget(count, taskFile, this);
         ui->tabWidget->addTab(taskPage, taskName);
         ui->tabWidget->setCurrentIndex(count);
+
+        QString album = taskPage->getAlbum();
+        if (!album.isEmpty() && m_am->isVisible())
+        {
+            m_am->openWnd(QStringList() << album);
+        }
+
         connect(taskPage, SIGNAL(changed(int)), SLOT(onChanged(int)));
         connect(taskPage, SIGNAL(maxShow(bool)), SLOT(showMax(bool)));
     }
@@ -269,26 +276,21 @@ void MainWindow::on_manageTemplateAction_triggered()
 
 void MainWindow::on_manageAlbumAction_triggered()
 {
-//    if (!m_albums)
-//    {
-//        m_albums = new AlbumManageDialog(this);
-//    }
-    //m_albums->show();
-
     QStringList albums;
-//    int count = ui->tabWidget->count();
+    int count = ui->tabWidget->count();
 
-//    for (int i = 0; i < count; i++)
-//    {
-//        TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i));
-//        QString album = taskPage->getAlbum();
-//        if (!album.isEmpty())
-//        {
-//            albums << album;
-//        }
-//    }
+    for (int i = 0; i < count; i++)
+    {
+        TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i));
+        QString album = taskPage->getAlbum();
+        if (!album.isEmpty())
+        {
+            albums << album;
+        }
+    }
 
-    albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc") << tr("E:\\images\\赵六.xc") << tr("E:\\images\\孙七.xc");
+    // for test
+    //albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc") << tr("E:\\images\\赵六.xc") << tr("E:\\images\\孙七.xc");
 
-    m_albums->openWnd(albums);
+    m_am->openWnd(albums);
 }

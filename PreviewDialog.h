@@ -5,6 +5,8 @@
 #include <QImageReader>
 
 class QGraphicsScene;
+typedef QMap<QString, QPixmap> PicturesMap;
+typedef QList<QPixmap> PicturesList;
 
 namespace Ui {
 class PreviewDialog;
@@ -16,10 +18,12 @@ class PreviewDialog : public QDialog
     
 public:
     explicit PreviewDialog(QWidget *parent = 0);
-    PreviewDialog(const QStringList &pictures, int current, QWidget *parent = 0);
+    PreviewDialog(const QStringList &files, int current, QWidget *parent = 0);
     ~PreviewDialog();
 
-    void updateList(const QStringList &pictures, int current);
+    void updateList(const QStringList &files, int current);
+
+    void updateList(const PicturesList &pictures);
 
     int getCurrent(void) const {return m_current;}
     
@@ -60,6 +64,9 @@ signals:
 
 private:
     void switchPage(int index);
+
+    void switchPage(const QPixmap &picture);
+
     void rotate(qreal angle, Qt::Axis axis = Qt::ZAxis);
 
     Ui::PreviewDialog *ui;
@@ -75,7 +82,8 @@ private:
     Qt::TransformationMode m_transformMode;
 
     int m_current;
-    QStringList m_picturesList;
+    QStringList m_filesList;
+    PicturesList m_picturesList;
     QGraphicsScene *m_scene;
 };
 

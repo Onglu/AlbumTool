@@ -690,11 +690,13 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
         else
         {
             int count = 0;
+            int pagesNum = 0;
+            int photosNum = 0;
             //QString taskFile = m_taskParser.getParsingFile(), outDir = taskFile.left(taskFile.length() - 5);
 
             foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
             {
-                const AlbumChildWidget *childWidget = (AlbumChildWidget *)proxyWidget->getChildWidgetPtr();
+                AlbumChildWidget *childWidget = (AlbumChildWidget *)proxyWidget->getChildWidgetPtr();
                 if (childWidget)
                 {
                     if (childWidget->getData().isEmpty())
@@ -707,10 +709,17 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
                     int n = childWidget->getLocations(locations);
                     if (0 < n)
                     {
+                        photosNum += childWidget->getPhotosList().size();
                         num += n;
                         portrait += locations[PORTRAIT_PICTURE];
                         landscape += locations[LANDSCAPE_PICTURE];
                     }
+                    else
+                    {
+                        photosNum += childWidget->getLocations();
+                    }
+
+                    pagesNum++;
                     //qDebug() << __FILE__ << __LINE__ << childWidget->getIndex() << locations[0] << locations[1] << landscape << portrait;
                 }
             }
@@ -718,6 +727,8 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
             //qDebug() << __FILE__ << __LINE__ << count;
             ui->createPushButton->setEnabled(!(count == proxyWidgets.size()));
             //ui->previewPushButton->setEnabled(!m_pictures.isEmpty());
+
+            addAlbum(0 < pagesNum ? pagesNum - 1 : pagesNum, photosNum, num);
         }
 
         QString info = tr("共有 %1 个空位，需要竖幅照片 %2 张，横幅照片 %3 张").arg(num).arg(portrait).arg(landscape);
@@ -863,7 +874,7 @@ void TaskPageWidget::on_createPushButton_clicked()
     m_tm.start();
 
     QStringList args;
-    args << outDir << childDir;
+    args << outDir << childDir << QString("%1").arg(num);
     m_maker.begin(args);
 
     QString info = tr("正在生成相册...");
@@ -909,6 +920,11 @@ void TaskPageWidget::process(int index, const QStringList &args)
         m_maker.end();
 
         int pagesNum = m_pictures.size();
+        if (pagesNum)
+        {
+            pagesNum -= 1;
+        }
+
         m_package["pageCount"] = pagesNum;
         m_package.insert("pages", m_pages);
 
@@ -934,27 +950,11 @@ void TaskPageWidget::process(int index, const QStringList &args)
                                     tr("\"%1\" \"%2\"").arg(m_album).arg(outDir),
                                     true);
 
-        QString guid = m_package["id"].toString();
-        QString sql = tr("select id from album_info where fileurl='%1'").arg(m_album);
-        int id = SqlHelper::getId(sql);
-
-        if (id)
-        {
-            sql = tr("update album_info set fileguid='%1', pagesnum=%2, photosnum=%3 where id=%4").arg(guid).arg(pagesNum).arg(m_photosNum).arg(id);
-        }
-        else
-        {
-            sql = tr("insert into album_info(fileurl,fileguid,pagesnum,photosnum) values('%1','%2',%3,%4)").arg(m_album).arg(guid).arg(pagesNum).arg(m_photosNum);
-        }
-
-        QSqlQuery query;
-        query.exec(sql);
-
+        addAlbum(pagesNum, m_photosNum, args.at(2).toInt());
         m_loadingDlg->showProcess(false);
         ui->previewPushButton->setEnabled(true);
 
         qDebug("\n");
-        qDebug() << __FILE__ << __LINE__ << sql;
         qDebug() << __FILE__ << __LINE__ << "compress album package costs" << m_tm.elapsed() << "ms in total";
 
         return;
@@ -1011,6 +1011,30 @@ QString TaskPageWidget::getAlbum()
     }
 
     return m_album;
+}
+
+void TaskPageWidget::addAlbum(int pagesNum, int photosNum, int blankNum)
+{
+    if (getAlbum().isEmpty())
+    {
+        return;
+    }
+
+    QString guid = m_taskParser.getPageId();
+    QString sql = tr("select id from album_info where fileurl='%1'").arg(m_album);
+    int id = SqlHelper::getId(sql);
+
+    if (id)
+    {
+        sql = tr("update album_info set fileguid='%1', pagesnum=%2, photosnum=%3, blanknum=%4 where id=%5").arg(guid).arg(pagesNum).arg(photosNum).arg(blankNum).arg(id);
+    }
+    else
+    {
+        sql = tr("insert into album_info(fileurl,fileguid,pagesnum,photosnum,blanknum) values('%1','%2',%3,%4,%5)").arg(m_album).arg(guid).arg(pagesNum).arg(photosNum).arg(blankNum);
+    }
+
+    QSqlQuery query;
+    query.exec(sql);
 }
 
 void TaskPageWidget::on_previewPushButton_clicked()

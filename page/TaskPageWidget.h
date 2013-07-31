@@ -140,6 +140,8 @@ private:
 
     void countLocations(PictureGraphicsScene::SceneType type);
 
+    void addAlbum(int pagesNum, int photosNum, int blankNum);
+
     Ui::TaskPageWidget *ui;
     int m_tabId;
     bool m_collapsed, m_changed;

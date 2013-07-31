@@ -56,7 +56,7 @@ private:
     Ui::MainWindow *ui;
     QLabel *m_pLabel, *m_pSsLabel;
     QSettings m_Settings;
-    AlbumManageDialog *m_albums;
+    AlbumManageDialog *m_am;
 };
 
 #endif // MAINWINDOW_H

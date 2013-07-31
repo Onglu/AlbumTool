@@ -5,7 +5,7 @@
 #include "page/StartupPageWidget.h"
 #include "wrapper/utility.h"
 
-//Q_IMPORT_PLUGIN(qsqlite)
+Q_IMPORT_PLUGIN(qsqlite)
 
 QRect g_appRect;
 

@@ -5,6 +5,12 @@
 #include <QVariantList>
 #include <QTimer>
 
+#define NO_RESULT                   9999
+#define SERVER_REPLY_SUCCESS        10000
+#define NO_SUCH_USER                10003
+#define EXISTING_TELNO              10007
+#define INVALID_TELNO               10015
+
 class QHttp;
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -32,14 +38,28 @@ public:
 
     void updateList(void);
 
-    void setInfo(AlbumTaskWidget &album);
+    const QStringList &getAlbumsList(void) const {return m_albumsList;}
+
+    void setAlbumInfo(AlbumTaskWidget &task, bool view = false);
+
+    void findUser(const QString &telephone);
+
+    void addUser(const QString &telephone,
+                 const QString &realname,
+                 uchar sex = 0);
 
     QString getUserKey(void) const {return m_userKey;}
 
     int getUserId(void) const {return m_uid;}
 
     int getBusinessId(const QString &name) const;
-    
+
+    QString getBusinessName(int id, QString &name) const;
+
+    const QStringList &getBusinesses(QStringList &businesses) const;
+
+    AlbumTaskWidget *getCurrTask(void) const {return m_currTask;}
+
 protected:
     void closeEvent(QCloseEvent *);
 
@@ -58,17 +78,19 @@ private slots:
 
     void replyFinished(QNetworkReply *reply);
 
-    void finish(bool ok);
+    void accept(bool ok, const QString &business, bool sample);
+
+    void on_keywordLineEdit_textChanged(const QString &arg1);
+
+    void on_searchPushButton_clicked();
 
 private:
     void switchPage(void);
 
-    void createAlbum(int bid, bool sample = false);
-
     Ui::AlbumManageDialog *ui;
 
-    AlbumInfoWidget *m_info;
-    AlbumTaskWidget *m_album;
+    AlbumInfoWidget *m_setPage, *m_editPage;
+    AlbumTaskWidget *m_currTask;
 
     WidgetItemsList m_itemsList;
     QStringList m_albumsList;

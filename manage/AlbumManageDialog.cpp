@@ -13,9 +13,12 @@
 #define WIDGET_ITEM_HEIGHT      74
 #define USER_LOGIN_URL          "http://192.168.2.120:8080/SwfUpload2/employeelogin?"
 #define GET_BESINESS_URL        "http://192.168.2.120:8080/SwfUpload2/business/all/all_business.html"
-#define USER_CREATE_URL         "http://192.168.2.120:8080/SwfUpload2/create"
 #define CREATE_ALBUM_URL        "http://192.168.2.120:8080/SwfUpload2/createalbums?"
 #define CREATE_SAMPLE_URL       "http://192.168.2.120:8080/SwfUpload2/createsample?"
+#define UPDATE_ALBUMSAMPLE_URL  "http://192.168.2.120:8080/SwfUpload2/updatealbumsample?"
+#define GET_ALBUMSAMPLE_URL     "http://192.168.2.120:8080/SwfUpload2/getalbumsampleinfo?"
+#define FIND_USER_URL           "http://192.168.2.120:8080/SwfUpload2/finduser?"
+#define CREATE_USER_URL         "http://192.168.2.120:8080/SwfUpload2/createuser?"
 
 using namespace QtJson;
 
@@ -28,7 +31,6 @@ public:
         setSizeHint(QSize(0, WIDGET_ITEM_HEIGHT));
         if (parent)
         {
-            parent->addItem(this);
             parent->setItemWidget(this, widget);
         }
     }
@@ -53,13 +55,13 @@ AlbumManageDialog::AlbumManageDialog(QWidget *parent) :
     ui(new Ui::AlbumManageDialog),
     m_loadingDlg(new LoadingDialog),
     m_logined(false),
-    m_album(NULL)
+    m_currTask(NULL)
 {
     ui->setupUi(this);
 
     ui->nameLabel->hide();
 
-    //ui->mainFrame->setEnabled(false);
+    ui->mainFrame->setEnabled(false);
 
     setMinimumSize(850, 600);
 
@@ -68,10 +70,16 @@ AlbumManageDialog::AlbumManageDialog(QWidget *parent) :
     m_manager = new QNetworkAccessManager(this);
     connect(m_manager, SIGNAL(finished(QNetworkReply*)), SLOT(replyFinished(QNetworkReply*)));
 
-    m_info = new AlbumInfoWidget(this);
-    ui->verticalLayout->addWidget(m_info);
-    m_info->hide();
-    connect(m_info, SIGNAL(hidden(bool)), SLOT(finish(bool)));
+    m_setPage = new AlbumInfoWidget(false, this);
+    ui->verticalLayout->addWidget(m_setPage);
+    m_setPage->hide();
+
+    m_editPage = new AlbumInfoWidget(true, this);
+    ui->verticalLayout->addWidget(m_editPage);
+    m_editPage->hide();
+
+    connect(m_setPage, SIGNAL(accepted(bool,QString,bool)), SLOT(accept(bool,QString,bool)));
+    connect(m_editPage, SIGNAL(accepted(bool,QString,bool)), SLOT(accept(bool,QString,bool)));
 }
 
 AlbumManageDialog::~AlbumManageDialog()
@@ -97,7 +105,10 @@ void AlbumManageDialog::openWnd(const QStringList &albums)
         }
     }
 
-    show();
+    if (isHidden())
+    {
+        show();
+    }
 }
 
 void AlbumManageDialog::addTask(const QString &album)
@@ -160,25 +171,35 @@ void AlbumManageDialog::updateList()
     }
 }
 
-void AlbumManageDialog::setInfo(AlbumTaskWidget &album)
+void AlbumManageDialog::setAlbumInfo(AlbumTaskWidget &task, bool view)
 {
-    m_album = &album;
+    if (m_currTask != &task)
+    {
+        m_currTask = &task;
+    }
 
     ui->mainFrame->hide();
 
-    QStringList businesses;
-    foreach (const QVariant &businesse, m_businessesList)
+    if (!view)
     {
-        QVariantMap values = businesse.toMap();
-        QString name = values["name"].toString();
-        if (!name.isEmpty())
+        QStringList businesses;
+        m_setPage->openWnd(getBusinesses(businesses));
+    }
+    else
+    {
+        int aid = m_currTask->getAlbumId();
+        if (aid)
         {
-            businesses << name;
+            m_url = QString("%1employeeid=%2&userkey=%3&type=%4&id=%5").arg(GET_ALBUMSAMPLE_URL).arg(m_uid).arg(m_userKey).arg(m_currTask->getAlbumType()).arg(aid);
+            QUrl url(m_url);
+            QNetworkRequest request(url);
+            m_manager->get(request);
+        }
+        else
+        {
+            m_editPage->openWnd();
         }
     }
-
-    //qDebug() << __FILE__ << __LINE__ << businesses;
-    m_info->openWnd(businesses);
 }
 
 int AlbumManageDialog::getBusinessId(const QString &name) const
@@ -193,6 +214,36 @@ int AlbumManageDialog::getBusinessId(const QString &name) const
     }
 
     return 0;
+}
+
+QString AlbumManageDialog::getBusinessName(int id, QString &name) const
+{
+    foreach (const QVariant &businesse, m_businessesList)
+    {
+        QVariantMap values = businesse.toMap();
+        if (id == values["id"].toInt())
+        {
+            name = values["name"].toString();
+            break;
+        }
+    }
+
+    return name;
+}
+
+const QStringList &AlbumManageDialog::getBusinesses(QStringList &businesses) const
+{
+    foreach (const QVariant &businesse, m_businessesList)
+    {
+        QVariantMap values = businesse.toMap();
+        QString name = values["name"].toString();
+        if (!name.isEmpty())
+        {
+            businesses << name;
+        }
+    }
+
+    return businesses;
 }
 
 void AlbumManageDialog::on_loginPushButton_clicked()
@@ -210,10 +261,8 @@ void AlbumManageDialog::on_loginPushButton_clicked()
         }
 
         m_url = tr("%1username=%2&password=%3").arg(USER_LOGIN_URL).arg(name).arg(pass);
-
         QUrl url(m_url);
         QNetworkRequest request(url);
-
         if (m_manager->get(request))
         {
             this->setEnabled(false);
@@ -235,12 +284,42 @@ void AlbumManageDialog::on_loginPushButton_clicked()
     }
 }
 
+void AlbumManageDialog::findUser(const QString &telephone)
+{
+    m_url = QString("%1telephone=%2&employeeid=%3&userkey=%4").arg(FIND_USER_URL).arg(telephone).arg(m_uid).arg(m_userKey);
+    QUrl url(m_url);
+    QNetworkRequest request(url);
+    if (m_manager->get(request))
+    {
+        m_watcher.start(MAX_TIMEOUT);
+        m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在查找..."));
+    }
+}
+
+void AlbumManageDialog::addUser(const QString &telephone,
+                                const QString &realname,
+                                uchar sex)
+{
+    m_url = tr("%1telephone=%2&realname=%3&male=%4&employeeid=%5&userkey=%6").arg(CREATE_USER_URL).arg(telephone).arg(realname).arg(sex).arg(m_uid).arg(m_userKey);
+    QUrl url(m_url);
+    QNetworkRequest request(url);
+    m_manager->get(request);
+}
+
 void AlbumManageDialog::over()
 {
     m_watcher.stop();
     m_loadingDlg->showProcess(false);
-    this->setEnabled(true);
-    QMessageBox::information(this, tr("登陆超时"), tr("用户登陆超时，请稍后重试。"), tr("确定"));
+
+    if (m_url.startsWith(USER_LOGIN_URL))
+    {
+        this->setEnabled(true);
+        QMessageBox::information(this, tr("登陆超时"), tr("用户登陆超时，请稍后重试。"), tr("确定"));
+    }
+    else if (m_url.startsWith(FIND_USER_URL))
+    {
+        QMessageBox::information(this, tr("查找超时"), tr("查找操作已超时，请稍后重试。"), tr("确定"));
+    }
 }
 
 void AlbumManageDialog::replyFinished(QNetworkReply *reply)
@@ -250,7 +329,12 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
     QVariantMap result = QtJson::parse(QString(ba)).toMap();
     int code = result["protocol"].toInt();
 
-    //qDebug() << __FILE__ << __LINE__ << ba << m_url;
+    if (m_url.isEmpty())
+    {
+        m_url = reply->url().toString();
+    }
+
+    //qDebug() << __FILE__ << __LINE__ << m_url;
     reply->deleteLater();
 
     if (m_url.startsWith(USER_LOGIN_URL))
@@ -299,25 +383,59 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
     }
     else
     {
-        if (SERVER_REPLY_SUCCESS != code)
-        {
-            QMessageBox::information(this, tr("操作失败"), tr("错误码：%1").arg(code), tr("确定"));
-            goto end;
-        }
+//        if (SERVER_REPLY_SUCCESS != code)
+//        {
+//            QMessageBox::information(this, tr("操作失败"), tr("错误码：%1").arg(code), tr("确定"));
+//            goto end;
+//        }
 
-        if (m_url.startsWith(GET_BESINESS_URL))
+        qDebug() << __FILE__ << __LINE__ << m_url /*<< result*/;
+
+        if (m_url.startsWith(GET_BESINESS_URL) && SERVER_REPLY_SUCCESS == code)
         {
             m_businessesList = result["retValue"].toList();
             //qDebug() << __FILE__ << __LINE__ << m_businessesList;
         }
 
-        if (m_url.startsWith(USER_CREATE_URL))
+        if (m_currTask)
         {
             QVariantMap value = result["retValue"].toMap();
-            if (!value.isEmpty() && m_album)
+
+            if (m_url.startsWith(GET_ALBUMSAMPLE_URL))
             {
-                m_album->start(value["id"].toInt(), m_url.startsWith(CREATE_ALBUM_URL) ? USER_ALBUM : SAMPLE_ALBUM);
-                m_album = NULL;
+                if (SERVER_REPLY_SUCCESS == code)
+                {
+                    m_currTask->setAlbumInfo(value);
+                }
+
+                m_editPage->openWnd();
+            }
+
+            if (m_url.startsWith(CREATE_ALBUM_URL) || m_url.startsWith(CREATE_SAMPLE_URL) || m_url.startsWith(UPDATE_ALBUMSAMPLE_URL))
+            {
+                if (SERVER_REPLY_SUCCESS != code)
+                {
+                    QMessageBox::information(this, tr("操作失败"), tr("创建相册失败，错误码：%1").arg(code), tr("确定"));
+                }
+                else
+                {
+                    if (!value.isEmpty())
+                    {
+                        m_currTask->start(value["id"].toInt());
+                    }
+                }
+            }
+
+            if (m_url.startsWith(FIND_USER_URL))
+            {
+                m_watcher.stop();
+                m_loadingDlg->showProcess(false);
+                m_setPage->bindUser(value, code);
+            }
+
+            if (m_url.startsWith(CREATE_USER_URL) && SERVER_REPLY_SUCCESS == code)
+            {
+                m_setPage->bindUser(value);
             }
         }
     }
@@ -328,45 +446,132 @@ end:
     QTextCodec::setCodecForCStrings(QTextCodec::codecForLocale());
 }
 
-void AlbumManageDialog::createAlbum(int bid, bool sample)
+void AlbumManageDialog::accept(bool ok, const QString &business, bool sample)
 {
-    if (!m_album)
+    int bid = 0;
+    bool editing = m_editPage->isEditing();
+
+    if (ok && m_currTask && (bid = getBusinessId(business)))
     {
-        return;
+        QString ids(QChar(0));
+        quint64 size = 0;
+        int pagesNum = 0;
+        int photosNum = 0;
+
+        if (!sample)
+        {
+            if (m_currTask->getUsersId(ids).isEmpty())
+            {
+                QMessageBox::information(this, tr("操作失败"), tr("关联用户列表失败，请重新进行设置！"), tr("确定"));
+                return;
+            }
+            else
+            {
+                size = m_currTask->getSize();
+                pagesNum = m_currTask->getPagesNum();
+                photosNum = m_currTask->getPhotosNum();
+            }
+        }
+
+        QString name = m_currTask->getName();
+        QString uuid = m_currTask->getUuid();
+        QString md5 = m_currTask->getMd5();
+        uchar type = sample ? SAMPLE_ALBUM : USER_ALBUM;
+
+        if (editing)
+        {
+            m_url = tr("%1userkey=%2&businessid=%3&name=%4&summary=none&fileguid=%5&md5=%6&size=%7&pagenum=%8&photonum=%9&cusids=%10&employeeid=%11&oldtype=%12&newtype=%13&id=%14").arg(UPDATE_ALBUMSAMPLE_URL).arg(m_userKey).arg(bid).arg(name).arg(uuid).arg(md5).arg(size).arg(pagesNum).arg(photosNum).arg(ids).arg(m_uid).arg(m_currTask->getAlbumType()).arg(type).arg(m_currTask->getAlbumId());
+        }
+        else
+        {
+            if (sample)
+            {
+                m_url = tr("%1userkey=%2&businessid=%3&name=%4&summary=none&fileguid=%5&md5=%6&employeeid=%7").arg(CREATE_SAMPLE_URL).arg(m_userKey).arg(bid).arg(name).arg(uuid).arg(md5).arg(m_uid);
+            }
+            else
+            {
+                m_url = tr("%1userkey=%2&businessid=%3&name=%4&summary=none&fileguid=%5&md5=%6&size=%7&pagenum=%8&photonum=%9&cusids=%10&employeeid=%11").arg(CREATE_ALBUM_URL).arg(m_userKey).arg(bid).arg(name).arg(uuid).arg(md5).arg(size).arg(pagesNum).arg(photosNum).arg(ids).arg(m_uid);
+            }
+        }
+
+        //qDebug() << __FILE__ << __LINE__ << editing << m_url;
+
+        QUrl url(m_url);
+        QNetworkRequest request(url);
+        if (m_manager->get(request))
+        {
+            m_currTask->setRelevance(type, business);
+        }
     }
 
-    if (sample)
+    if (m_editPage->isVisible())
     {
-        m_url = tr("%1userkey=%2&businessid=%3&name=%4&summary=none&fileguid=%5&md5=%6&employeeid=%7").arg(CREATE_SAMPLE_URL).arg(m_userKey).arg(bid).arg(m_album->getName()).arg(m_album->getUuid()).arg(m_album->getMd5()).arg(m_uid);
-    }
-    else
-    {
-        m_url = tr("%1userkey=%2&businessid=%3&name=%4&summary=none&fileguid=%5&md5=%6&size=%7&pagenum=%8&photonum=%9&cusids=%10&employeeid=%11").arg(CREATE_ALBUM_URL).arg(m_userKey).arg(bid).arg(m_album->getName()).arg(m_album->getUuid()).arg(m_album->getMd5()).arg(m_album->getSize()).arg(m_album->getPagesNum()).arg(m_album->getPhotosNum()).arg("1,2").arg(m_uid);
+        m_editPage->hide();
     }
 
-    qDebug() << __FILE__ << __LINE__ << m_url;
-
-    QUrl url(m_url);
-    QNetworkRequest request(url);
-    m_manager->get(request);
-}
-
-void AlbumManageDialog::finish(bool ok)
-{
-    if (ok && m_album)
+    if (m_setPage->isVisible())
     {
-        createAlbum(getBusinessId(m_info->getBusinessName()), m_info->isSampleAlbum());
+        m_setPage->hide();
+        if (editing)
+        {
+            m_editPage->openWnd();
+            return;
+        }
+        else
+        {
+            if (!ok && m_currTask)
+            {
+                m_currTask = NULL;
+            }
+        }
     }
 
-    m_info->hide();
     ui->mainFrame->show();
 }
 
 void AlbumManageDialog::closeEvent(QCloseEvent *)
 {
-    if (m_info->isVisible())
+    if (m_editPage->isVisible())
     {
-        m_info->hide();
+        m_editPage->hide();
         ui->mainFrame->show();
+    }
+
+    if (m_setPage->isVisible())
+    {
+        m_setPage->hide();
+        ui->mainFrame->show();
+    }
+}
+
+void AlbumManageDialog::on_keywordLineEdit_textChanged(const QString &arg1)
+{
+    int i = 0;
+    bool v = arg1.isEmpty();
+    ui->searchPushButton->setEnabled(!v);
+
+    do
+    {
+        TaskWidgetItem *taskItem = static_cast<TaskWidgetItem *>(m_itemsList.at(i));
+        if (taskItem)
+        {
+            taskItem->setHidden(false);
+        }
+    } while (v && ++i < m_itemsList.size());
+}
+
+void AlbumManageDialog::on_searchPushButton_clicked()
+{
+    QString keyword = ui->keywordLineEdit->text();
+
+    for (int i = 0; i < m_itemsList.size(); ++i)
+    {
+        TaskWidgetItem *taskItem = static_cast<TaskWidgetItem *>(m_itemsList.at(i));
+        if (taskItem)
+        {
+            QString name = taskItem->getWidget()->getName();
+            bool v = name.contains(keyword, Qt::CaseInsensitive) || keyword.contains(name, Qt::CaseInsensitive);
+            taskItem->setHidden(!v);
+        }
     }
 }

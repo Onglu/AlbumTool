@@ -84,6 +84,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="editPushButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -163,13 +166,13 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>320</width>
+         <width>340</width>
          <height>21</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>320</width>
+         <width>340</width>
          <height>21</height>
         </size>
        </property>
@@ -194,13 +197,13 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>320</width>
+         <width>340</width>
          <height>20</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>320</width>
+         <width>340</width>
          <height>20</height>
         </size>
        </property>
@@ -255,6 +258,9 @@
    </item>
    <item>
     <widget class="QPushButton" name="viewPushButton">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
        <horstretch>0</horstretch>

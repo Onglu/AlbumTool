@@ -91,6 +91,7 @@ public:
 
     uchar getLocations(void) const {return m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];}
 
+    /* Get the available photo locations of this abum */
     uchar getLocations(uchar locations[]) const;
 
     QSize getSize(void) const;

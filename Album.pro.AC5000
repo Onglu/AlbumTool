@@ -13,7 +13,7 @@ TEMPLATE = app
 DEFINES += FROM_PACKAGE
 #TRANSLATIONS ＋＝ ./temp/zh_CN.ts
 
-QTPLUGIN += qsqlite
+#QTPLUGIN += qsqlite
 
 SOURCES += main.cpp\
     MainWindow.cpp \
@@ -41,7 +41,7 @@ SOURCES += main.cpp\
     manage/AlbumTaskWidget.cpp \
     manage/AlbumManageDialog.cpp \
     manage/AlbumInfoWidget.cpp \
-    manage/UserInfoDialog.cpp
+    manage/FindUserDialog.cpp
 
 HEADERS  += \
     MainWindow.h \
@@ -71,8 +71,7 @@ HEADERS  += \
     manage/AlbumTaskWidget.h \
     manage/AlbumManageDialog.h \
     manage/AlbumInfoWidget.h \
-    manage/UserInfoDialog.h \
-    manage/UserInfoDialog.h
+    manage/FindUserDialog.h
 
 FORMS    += \
     MainWindow.ui \
@@ -84,8 +83,7 @@ FORMS    += \
     page/EditPageWidget.ui \
     manage/AlbumTaskWidget.ui \
     manage/AlbumManageDialog.ui \
-    manage/AlbumInfoWidget.ui \
-    manage/UserInfoDialog.ui
+    manage/AlbumInfoWidget.ui
 
 RESOURCES += \
     images.qrc

@@ -1,6 +1,8 @@
 #include "AlbumTaskWidget.h"
 #include "ui_AlbumTaskWidget.h"
 #include "AlbumManageDialog.h"
+#include "AlbumInfoWidget.h"
+#include "PreviewDialog.h"
 #include "wrapper/utility.h"
 #include "parser/FileParser.h"
 #include "parser/json.h"
@@ -15,8 +17,10 @@
 
 #define INTERVAL_TIME               100     // ms
 #define FILE_DATA_CHUNK             /*1024*/100 * 1024
+#define UPDATE_NAME_URL             "http://192.168.2.120:8080/SwfUpload2/updatename?"
 #define UPLOAD_FILE_URL             "http://192.168.2.120:8080/SwfUpload2/fileupload"
 #define GET_UPLOAD_FILE_SIZE_URL    "http://192.168.2.120:8080/SwfUpload2/getuploadedsize?md5="
+#define PUBLISH_URL                 "http://192.168.2.120:8080/SwfUpload2/release?"
 
 using namespace QtJson;
 
@@ -24,13 +28,17 @@ AlbumTaskWidget::AlbumTaskWidget(const QString &album, AlbumManageDialog *contai
     QWidget(0),
     ui(new Ui::AlbumTaskWidget),
     m_container(container),
+    m_file(new FileParser(album)),
+    m_pagesNum(0),
+    m_photosNum(0),
+    m_blankNum(0),
     m_tid(0),
     m_aid(0),
     m_atype(USER_ALBUM),
     m_state(Initialize),
     m_totalBytes(0),
     m_sentBytes(0),
-    m_file(new FileParser(album))
+    m_changed(false)
 {
     Q_ASSERT(m_container);
 
@@ -41,6 +49,8 @@ AlbumTaskWidget::AlbumTaskWidget(const QString &album, AlbumManageDialog *contai
 
     QString name;
     ui->nameLabel->setText(Converter::getFileName(album, name, false));
+
+    loadRecords();
 
     m_manager = new QNetworkAccessManager(this);
     connect(m_manager, SIGNAL(finished(QNetworkReply*)), SLOT(replyFinished(QNetworkReply*)));
@@ -53,8 +63,6 @@ AlbumTaskWidget::AlbumTaskWidget(const QString &album, AlbumManageDialog *contai
     TemplateChildWidget::useZip(m_tmaker,
                                 TemplateChildWidget::ZipUsageRead,
                                 tr("\"%1\" cover.png").arg(album));
-
-    loadRecords();
 }
 
 AlbumTaskWidget::~AlbumTaskWidget()
@@ -65,10 +73,10 @@ AlbumTaskWidget::~AlbumTaskWidget()
         m_state = Pause;
     }
 
-    if (m_tid && m_aid)
+    if (m_changed && m_tid && m_aid)
     {
         QSqlQuery query;
-        QString sql = tr("update albums_upload_record set albumid=%1, name='%2', state=%3, finishsize=%4, type=%5 where id=%6").arg(m_aid).arg(ui->nameLabel->text()).arg(m_state).arg(m_sentBytes).arg(m_atype).arg(m_tid);
+        QString sql = tr("update albums_upload_record set albumid=%1, name='%2', state=%3, finishsize=%4, type=%5, business='%6' where id=%7").arg(m_aid).arg(ui->nameLabel->text()).arg(m_state).arg(m_sentBytes).arg(m_atype).arg(m_business).arg(m_tid);
         query.exec(sql);
         qDebug() << __FILE__ << __LINE__ << sql;
     }
@@ -97,6 +105,31 @@ void AlbumTaskWidget::moveOver()
     ui->editPushButton->setIcon(icon);
 }
 
+void AlbumTaskWidget::onPreview()
+{
+    if (!m_pagesNum)
+    {
+        return;
+    }
+
+    if (m_pagesNum != m_pictures.size() - 1)
+    {
+        QString album = QDir::toNativeSeparators(m_file->fileName());
+        for (int i = 1; i <= m_pagesNum; i++)
+        {
+            TemplateChildWidget::useZip(m_tmaker,
+                                        TemplateChildWidget::ZipUsageRead,
+                                        tr("\"%1\" page%2.png").arg(album).arg(i));
+        }
+    }
+    else
+    {
+        PreviewDialog dlg(this);
+        dlg.updateList(m_pictures);
+        dlg.exec();
+    }
+}
+
 void AlbumTaskWidget::processFinished(int ret, QProcess::ExitStatus exitStatus)
 {
     Q_UNUSED(ret);
@@ -113,18 +146,31 @@ void AlbumTaskWidget::processFinished(int ret, QProcess::ExitStatus exitStatus)
     if (content.startsWith("picture:"))
     {
         QString name = content.mid(8);
-        //qDebug() << __FILE__ << __LINE__ << name;
-
         QPixmap pix(name);
+
+        if (!ui->coverLabel->pixmap())
+        {
+            if (!pix.isNull())
+            {
+                ui->coverLabel->setPixmap(pix.scaled(ui->coverLabel->size(),
+                                                     Qt::KeepAspectRatio,
+                                                     Qt::SmoothTransformation));
+            }
+            else
+            {
+                ui->coverLabel->setText(tr("无法显示"));
+            }
+        }
+
         if (!pix.isNull())
         {
-            ui->coverLabel->setPixmap(pix.scaled(ui->coverLabel->size(),
-                                                 Qt::KeepAspectRatio,
-                                                 Qt::SmoothTransformation));
-        }
-        else
-        {
-            ui->coverLabel->setText(tr("无法显示"));
+            m_pictures << pix;
+            if (m_pagesNum && m_pagesNum == m_pictures.size() - 1)
+            {
+                PreviewDialog dlg(this);
+                dlg.updateList(m_pictures);
+                dlg.exec();
+            }
         }
 
         QFile::remove(name);
@@ -136,6 +182,7 @@ void AlbumTaskWidget::loadRecords()
     if (!m_file || !m_file->isValid())
     {
         qDebug() << __FILE__ << __LINE__ << "album package is invalid!";
+        return;
     }
 
     SqlHelper sh;
@@ -152,7 +199,7 @@ void AlbumTaskWidget::loadRecords()
 
     QSqlQuery query;
     QString album = QDir::toNativeSeparators(m_file->fileName());
-    QString sql = tr("select fileguid,pagesnum,photosnum from album_info where fileurl='%1'").arg(album);
+    QString sql = tr("select fileguid,pagesnum,photosnum,blanknum from album_info where fileurl='%1'").arg(album);
 
     m_uuid.clear();
 
@@ -162,6 +209,7 @@ void AlbumTaskWidget::loadRecords()
         m_uuid = query.value(0).toString();
         m_pagesNum = query.value(1).toInt();
         m_photosNum = query.value(2).toInt();
+        m_blankNum = query.value(3).toInt();
     }
 
     if (m_uuid.isEmpty())
@@ -171,7 +219,7 @@ void AlbumTaskWidget::loadRecords()
 
     m_file->getFileMd5(m_md5);
 
-    sql = tr("select id,albumid,name,finishsize,filesize,state,type from albums_upload_record where fileurl='%1' and filemd5='%2'").arg(album).arg(m_md5);
+    sql = tr("select id,albumid,name,finishsize,filesize,state,type,business from albums_upload_record where fileurl='%1' and filemd5='%2'").arg(album).arg(m_md5);
     query.exec(sql);
     while (query.next())
     {
@@ -181,7 +229,6 @@ void AlbumTaskWidget::loadRecords()
         m_sentBytes = query.value(3).toULongLong();
         m_totalBytes = query.value(4).toULongLong();
         m_state = (TaskState)query.value(5).toInt();
-        m_atype = (uchar)query.value(6).toInt();
 
         if (Pause == m_state)
         {
@@ -195,23 +242,34 @@ void AlbumTaskWidget::loadRecords()
         {
             ui->stateLabel->setText(tr("已完成上传"));
             ui->actionPushButton->setText(tr("发布"));
+            ui->editPushButton->setEnabled(true);
+            ui->viewPushButton->setEnabled(true);
         }
         else if (Published == m_state)
         {
             ui->stateLabel->setText(tr("已完成发布"));
             ui->actionPushButton->setText(tr("发布"));
             ui->actionPushButton->setEnabled(false);
+            ui->editPushButton->setEnabled(true);
+            ui->viewPushButton->setEnabled(true);
         }
-        //qDebug() << __FILE__ << __LINE__ << m_state;
+
+        m_atype = (uchar)query.value(6).toInt();
+        if (!m_atype)
+        {
+            m_atype = USER_ALBUM;
+        }
+
+        m_business = query.value(7).toString();
     }
 
-    //qDebug() << __FILE__ << __LINE__ << sql << m_tid;
+    //qDebug() << __FILE__ << __LINE__ << m_atype;
     if (m_tid)
     {
         return;
     }
 
-    sql = tr("select id,albumid,name,type from albums_upload_record where fileurl='%1'").arg(album);
+    sql = tr("select id,albumid,name,type,business from albums_upload_record where fileurl='%1'").arg(album);
     query.exec(sql);
     while (query.next())
     {
@@ -219,6 +277,12 @@ void AlbumTaskWidget::loadRecords()
         m_aid = query.value(1).toInt();
         ui->nameLabel->setText(query.value(2).toString());
         m_atype = (uchar)query.value(3).toInt();
+        if (!m_atype)
+        {
+            m_atype = USER_ALBUM;
+        }
+
+        m_business = query.value(4).toString();
     }
 
     m_totalBytes = m_file->size();
@@ -238,32 +302,43 @@ void AlbumTaskWidget::loadRecords()
     //qDebug() << __FILE__ << __LINE__ << sql << m_tid;
 }
 
-void AlbumTaskWidget::start(int aid, uchar atype)
+void AlbumTaskWidget::setRelevance(uchar atype, const QString &business)
 {
-    if (aid)
-    {
-        m_aid = aid;
-    }
-
     if (USER_ALBUM <= atype && SAMPLE_ALBUM >= atype)
     {
         m_atype = atype;
     }
 
-    qDebug() << __FILE__ << __LINE__ << m_aid << m_atype;
+    m_business = business;
+}
 
-    m_error = m_times = 0;
-    m_sentBytes = m_readBytes = 0;
+void AlbumTaskWidget::start(int aid)
+{
+    qDebug() << __FILE__ << __LINE__ << m_aid << aid;
 
-    ui->stateLabel->setText(tr("正在等待上传..."));
-    ui->progressBar->show();
-    ui->progressBar->setMaximum(m_totalBytes);
-    ui->progressBar->setValue(m_sentBytes);
-    ui->actionPushButton->setEnabled(false);
+    if (0 < aid)
+    {
+        m_aid = aid;
+    }
 
-    m_sender.start(INTERVAL_TIME);
-    m_watcher.start(1000);
-    m_time.start();
+    if (Initialize == m_state)
+    {
+        m_changed = true;
+        m_error = m_times = 0;
+        m_sentBytes = m_readBytes = 0;
+
+        ui->stateLabel->setText(tr("正在等待上传..."));
+        ui->progressBar->show();
+        ui->progressBar->setMaximum(m_totalBytes);
+        ui->progressBar->setValue(m_sentBytes);
+        ui->editPushButton->setEnabled(false);
+        ui->actionPushButton->setEnabled(false);
+        ui->viewPushButton->setEnabled(false);
+
+        m_sender.start(INTERVAL_TIME);
+        m_watcher.start(1000);
+        m_time.start();
+    }
 }
 
 void AlbumTaskWidget::on_actionPushButton_clicked()
@@ -271,6 +346,7 @@ void AlbumTaskWidget::on_actionPushButton_clicked()
     switch (m_state)
     {
     case Pause:
+        m_changed = true;
         ui->stateLabel->setText(tr("正在等待上传..."));
         ui->actionPushButton->setEnabled(false);
         getUploadFileSize();
@@ -278,7 +354,7 @@ void AlbumTaskWidget::on_actionPushButton_clicked()
     case Initialize:
         if (!m_aid)
         {
-            m_container->setInfo(*this);
+            m_container->setAlbumInfo(*this);
         }
         else
         {
@@ -293,8 +369,16 @@ void AlbumTaskWidget::on_actionPushButton_clicked()
         ui->actionPushButton->setText(tr("继续"));
         break;
     case Finished:
-        break;
-    case Published:
+        {
+            QUrl url(tr("%1userkey=%2&employeeid=%3&id=%4&type=%5").arg(PUBLISH_URL).arg(m_container->getUserKey()).arg(m_container->getUserId()).arg(m_aid).arg(m_atype));
+            QNetworkRequest request(url);
+            if (m_manager->get(request))
+            {
+                ui->editPushButton->setEnabled(false);
+                ui->actionPushButton->setEnabled(false);
+                ui->viewPushButton->setEnabled(false);
+            }
+        }
         break;
     }
 }
@@ -463,79 +547,141 @@ void AlbumTaskWidget::over()
     }
 }
 
+void AlbumTaskWidget::setAlbumInfo(const QVariantMap &value)
+{
+    if (value.isEmpty())
+    {
+        return;
+    }
+
+    m_atype = (uchar)value["type"].toInt();
+    m_business = value["businessname"].toString();
+    m_users.clear();
+
+    QVariantList users = value["customerliset"].toList();
+    foreach (const QVariant &user, users)
+    {
+        QVariantMap record = user.toMap();
+        int id = record["id"].toInt();
+        m_users[id] = tr(" 手机号码：%1\t\t姓名：%2\t\t初始密码：%3").arg(record["telephone"].toString()).arg(record["realname"].toString()).arg(record["initpassword"].toString());
+    }
+
+    //qDebug() << __FILE__ << __LINE__ << value;
+    //qDebug() << __FILE__ << __LINE__ << m_users;
+}
+
 void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
 {
     QByteArray ba = reply->readAll();
     QVariantMap result = QtJson::parse(QString(ba)).toMap();
     int code = result["protocol"].toInt();
+    QString url = reply->url().toString();
 
     m_error = reply->error();
-    //qDebug() << __FILE__ << __LINE__ << m_error << ba;
+    //qDebug() << __FILE__ << __LINE__ << m_error << ba << url;
     reply->deleteLater();
 
-    if (SERVER_REPLY_SUCCESS != code)
+    if (url.startsWith(UPDATE_NAME_URL))
     {
-        m_error = 1;
-        return;
-    }
-
-    if (!ui->actionPushButton->isEnabled())
-    {
-        ui->actionPushButton->setEnabled(true);
-        ui->actionPushButton->setText(tr("暂停"));
-        m_container->updateList();
-    }
-
-    if (Pause == m_state)
-    {
-        QVariantMap value = result["retValue"].toMap();
-        if (!value.isEmpty())
+        if (SERVER_REPLY_SUCCESS != code)
         {
-            quint64 offset = value["size"].toULongLong();
-            m_sentBytes = FILE_DATA_CHUNK < offset ? offset - FILE_DATA_CHUNK : offset;
-            m_error = m_times = 0;
-            m_state = Start;
-            m_sender.start(INTERVAL_TIME);
-            m_watcher.start(1000);
-            m_time.start();
-            qDebug() << __FILE__ << __LINE__ << "start position:" << m_sentBytes;
-        }
-    }
-    else
-    {
-        if (m_totalBytes == m_sentBytes)
-        {
-            m_state = Finished;
-            ui->stateLabel->setText(tr("已完成上传"));
-            ui->progressBar->hide();
-            ui->actionPushButton->setText(tr("发布"));
-            m_container->updateList();
+            QMessageBox::information(this, tr("更改失败"), tr("相册名称更改失败，错误码：%1").arg(code), tr("确定"));
         }
         else
         {
-            if (m_readBytes)
+            ui->nameLabel->setText(m_name);
+        }
+
+        return;
+    }
+    else if (url.startsWith(PUBLISH_URL))
+    {
+        if (SERVER_REPLY_SUCCESS != code)
+        {
+            QMessageBox::information(this, tr("发布失败"), tr("相册发布失败，错误码：%1").arg(code), tr("确定"));
+            ui->actionPushButton->setEnabled(true);
+        }
+        else
+        {
+            QMessageBox::information(this, tr("发布成功"), tr("本相册已经成功发布到服务器。"), tr("确定"));
+            m_state = Published;
+            ui->stateLabel->setText(tr("已完成发布"));
+        }
+
+        ui->editPushButton->setEnabled(true);
+        ui->viewPushButton->setEnabled(true);
+
+        return;
+    }
+    else
+    {
+        if (SERVER_REPLY_SUCCESS != code)
+        {
+            m_error = 1;
+            return;
+        }
+
+        if (!ui->actionPushButton->isEnabled())
+        {
+            ui->actionPushButton->setEnabled(true);
+            ui->actionPushButton->setText(tr("暂停"));
+            m_container->updateList();
+        }
+
+        if (Pause == m_state)
+        {
+            QVariantMap value = result["retValue"].toMap();
+            if (!value.isEmpty())
             {
-                float passed = (float)m_time.elapsed() / 1000;
-                float time = (m_totalBytes - m_sentBytes) / m_readBytes * passed;
-                QString units;
-
-                if (60 <= time)
-                {
-                    time /= 60;
-                    units = tr("分钟");
-                }
-                else
-                {
-                    units = tr("秒");
-                }
-
-                //qDebug() << __FILE__ << __LINE__ << passed << time << units << m_readBytes / 1024 / passed;
-                ui->stateLabel->setText(tr("正在上传（传输速度 %1 KB/s，剩余时间 %2 %3）").arg(m_readBytes / 1024 / passed).arg(time).arg(units));
-                //ui->stateLabel->setText(tr("传输进度 %1 KB / %2 KB").arg(m_sentBytes / 1024).arg(m_totalBytes / 1024));
+                quint64 offset = value["size"].toULongLong();
+                m_sentBytes = FILE_DATA_CHUNK < offset ? offset - FILE_DATA_CHUNK : offset;
+                m_error = m_times = 0;
+                m_state = Start;
+                m_sender.start(INTERVAL_TIME);
+                m_watcher.start(1000);
+                m_time.start();
+                qDebug() << __FILE__ << __LINE__ << "start position:" << m_sentBytes;
             }
+        }
+        else
+        {
+            if (m_totalBytes == m_sentBytes)
+            {
+                m_state = Finished;
+                ui->stateLabel->setText(tr("已完成上传"));
+                ui->progressBar->hide();
+                ui->actionPushButton->setText(tr("发布"));
+                m_container->updateList();
+                ui->editPushButton->setEnabled(true);
+                ui->viewPushButton->setEnabled(true);
+            }
+            else
+            {
+                if (m_readBytes)
+                {
+                    float passed = (float)m_time.elapsed() / 1000;
+                    int speed = m_readBytes / 1024 / passed;
+                    float time = (m_totalBytes - m_sentBytes) / m_readBytes * passed;
+                    //float time = (m_totalBytes - m_sentBytes) / speed;
+                    QString units;
 
-            m_state = Start;
-            ui->progressBar->setValue(m_sentBytes);
+                    if (60 <= time)
+                    {
+                        time /= 60;
+                        units = tr("分钟");
+                    }
+                    else
+                    {
+                        units = tr("秒");
+                    }
+
+                    //qDebug() << __FILE__ << __LINE__ << passed << speed << "KB/s " << time << units;
+                    ui->stateLabel->setText(tr("正在上传（传输速度 %1 KB/s，剩余时间 %2 %3）").arg(speed).arg(time).arg(units));
+                }
+
+                m_state = Start;
+                ui->progressBar->setValue(m_sentBytes);
+            }
         }
     }
 }
@@ -549,17 +695,59 @@ void AlbumTaskWidget::on_editPushButton_clicked()
 
 void AlbumTaskWidget::on_nameLineEdit_editingFinished()
 {
-    QString text = ui->nameLineEdit->text();
-    if (!text.isEmpty() && ui->nameLabel->text() != text)
+    QString name = ui->nameLineEdit->text();
+    if (!name.isEmpty() && ui->nameLabel->text() != name)
     {
-        ui->nameLabel->setText(text);
+        ui->nameLabel->setText(name);
+        setName(name);
     }
 
     ui->nameLabel->show();
     ui->nameLineEdit->hide();
 }
 
+void AlbumTaskWidget::setName(const QString &name)
+{
+    if (name != ui->nameLabel->text() && !name.isEmpty())
+    {
+        m_name = name;
+        QUrl url(tr("%1employeeid=%2&userkey=%3&name=%4&id=%5&type=%6").arg(UPDATE_NAME_URL).arg(m_container->getUserId()).arg(m_container->getUserKey()).arg(name).arg(m_aid).arg(m_atype));
+        QNetworkRequest request(url);
+        m_manager->get(request);
+    }
+}
+
 QString AlbumTaskWidget::getName() const
 {
     return ui->nameLabel->text();
+}
+
+QString AlbumTaskWidget::getUsersId(QString &ids)
+{
+    int i = 0;
+    UserInfoItems::const_iterator iter = m_users.constBegin();
+
+    ids.clear();
+
+    while (iter != m_users.constEnd())
+    {
+        if (!i)
+        {
+            ids = QString("%1").arg(iter.key());
+        }
+        else
+        {
+            ids.append(QString(",%1").arg(iter.key()));
+        }
+
+        ++i;
+        ++iter;
+    }
+
+    return ids;
+}
+
+void AlbumTaskWidget::on_viewPushButton_clicked()
+{
+    m_container->setAlbumInfo(*this, true);
 }

@@ -21,6 +21,7 @@ PreviewDialog::PreviewDialog(QWidget *parent):
     m_scene(NULL)
 {
     ui->setupUi(this);
+    resize(800, 600);
     //setGeometry(g_rcDesktop);
     //showMaximized();
 
@@ -44,19 +45,19 @@ PreviewDialog::PreviewDialog(QWidget *parent):
     //ui->pictureLabel->setPixmap(m_bk);
 }
 
-PreviewDialog::PreviewDialog(const QStringList &pictures, int current, QWidget *parent):
+PreviewDialog::PreviewDialog(const QStringList &files, int current, QWidget *parent):
     QDialog(parent, Qt::WindowMinimizeButtonHint | Qt::WindowMaximizeButtonHint),
     ui(new Ui::PreviewDialog),
     m_nTimerId(0),
     m_bFit(false),
     m_bDraggable(false),
-    m_picturesList(pictures),
+    m_filesList(files),
     m_scene(NULL)
 {
     ui->setupUi(this);
     showMaximized();
 
-    if (0 <= current && current < pictures.size())
+    if (0 <= current && current < files.size())
     {
         switchPage(current);
     }
@@ -94,16 +95,6 @@ void PreviewDialog::timerEvent(QTimerEvent *)
 //    ui->tooltipLabel->hide();
 //    ui->tooltipLabel->setMask(m_ori.mask());
     //ui->tooltipLabel->setAttribute(Qt::WA_TranslucentBackground, true);
-}
-
-void PreviewDialog::updateList(const QStringList &pictures, int current)
-{
-    m_scene = PictureProxyWidget::getFocusScene();
-    m_picturesList = pictures;
-    if (0 <= current && current < pictures.size())
-    {
-        switchPage(m_current = current);
-    }
 }
 
 void PreviewDialog::mousePressEvent(QMouseEvent *event)
@@ -338,20 +329,65 @@ void PreviewDialog::on_fullScreenPushButton_clicked()
     }
 }
 
+void PreviewDialog::updateList(const QStringList &files, int current)
+{
+    m_scene = PictureProxyWidget::getFocusScene();
+    m_filesList = files;
+    if (0 <= current && current < files.size())
+    {
+        switchPage(m_current = current);
+    }
+}
+
+void PreviewDialog::updateList(const PicturesList &pictures)
+{
+    m_picturesList = pictures;
+    m_current = 0;
+    switchPage(m_picturesList.at(0));
+}
+
+void PreviewDialog::switchPage(const QPixmap &picture)
+{
+    if (picture.isNull())
+    {
+        ui->pictureLabel->setText(tr("无法显示"));
+        return;
+    }
+
+    ui->pictureLabel->clear();
+
+    QSize size = picture.size();
+    QString name = !m_current ? "cover" : QString("page%1").arg(m_current);
+    setWindowTitle(tr("%1（%2x%3像素） - 第%5/%6张").arg(name).arg(size.width()).arg(size.height()).arg(m_current + 1).arg(m_picturesList.size()));
+
+    if (1440 < size.width() || 900 < size.height())
+    {
+        m_transformMode = Qt::FastTransformation;
+    }
+    else
+    {
+        m_transformMode = Qt::SmoothTransformation;
+    }
+
+    m_ori = picture;
+    m_bk = m_ori.scaled(size, Qt::KeepAspectRatio, m_transformMode);
+    on_fitWindowPushButton_clicked();
+}
+
 inline void PreviewDialog::switchPage(int index)
 {
-    if (!m_picturesList.size())
+    if (!m_filesList.size())
     {
         close();
         return;
     }
 
-    QString fileName(m_picturesList.at(index));
+    QString fileName(m_filesList.at(index));
     QFile file(fileName);
     QPixmap pix(fileName);
 
     fileName = fileName.right(fileName.length() - fileName.lastIndexOf(QDir::separator()) - 1);
-    setWindowTitle(tr("%1（%2KB，%3x%4像素） - 第%5/%6张").arg(fileName).arg(file.size() / 1024).arg(pix.width()).arg(pix.height()).arg(index + 1).arg(m_picturesList.size()));
+    setWindowTitle(tr("%1（%2KB，%3x%4像素） - 第%5/%6张").arg(fileName).arg(file.size() / 1024).arg(pix.width()).arg(pix.height()).arg(index + 1).arg(m_filesList.size()));
 
     //qDebug() << "switchPage picture:" << fileName;
 
@@ -373,26 +409,44 @@ inline void PreviewDialog::switchPage(int index)
 
 void PreviewDialog::on_prevPushButton_clicked()
 {
+    int num = m_filesList.size();
     int index = m_current - 1;
 
-    if (0 > index)
+    if (num)
     {
-        index = m_picturesList.size() - 1;
-    }
+        if (0 > index)
+        {
+            index = num - 1;
+        }
 
-    switchPage(index);
+        switchPage(index);
+    }
+    else
+    {
+        m_current = 0 > index ? m_picturesList.size() - 1 : index;
+        switchPage(m_picturesList.at(m_current));
+    }
 }
 
 void PreviewDialog::on_nextPushButton_clicked()
 {
+    int num = m_filesList.size();
     int index = m_current + 1;
 
-    if (index >= m_picturesList.size())
+    if (num)
     {
-        index = 0;
-    }
+        if (index >= m_filesList.size())
+        {
+            index = 0;
+        }
 
-    switchPage(index);
+        switchPage(index);
+    }
+    else
+    {
+        m_current = index >= m_picturesList.size() ? 0 : index;
+        switchPage(m_picturesList.at(m_current));
+    }
 }
 
 inline void PreviewDialog::rotate(qreal angle, Qt::Axis axis)
@@ -441,11 +495,11 @@ void PreviewDialog::on_deletePushButton_clicked()
 {
     if (m_scene)
     {
-        emit itemDetached(m_scene, m_picturesList.at(m_current));
+        emit itemDetached(m_scene, m_filesList.at(m_current));
 
-        m_picturesList.removeAt(m_current);
+        m_filesList.removeAt(m_current);
 
-        if (m_current >= m_picturesList.size())
+        if (m_current >= m_filesList.size())
         {
             m_current = 0;
         }

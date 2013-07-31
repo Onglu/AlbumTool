@@ -8,7 +8,6 @@
 #include <QNetworkReply>
 #include "defines.h"
 
-#define SERVER_REPLY_SUCCESS        10000
 #define MAX_TIMEOUT                 30000
 #define USER_ALBUM                  1
 #define SAMPLE_ALBUM                2
@@ -17,6 +16,8 @@ class FileParser;
 class QHttp;
 class QNetworkAccessManager;
 class AlbumManageDialog;
+typedef QList<QPixmap> AlbumPictures;
+typedef QHash<int, QString> UserInfoItems;
 
 namespace Ui {
 class AlbumTaskWidget;
@@ -33,6 +34,8 @@ public:
     enum TaskState{Pause, Initialize, Start, Finished, Published};
     TaskState getState(void) const {return m_state;}
 
+    void setName(const QString &name);
+
     QString getName(void) const;
 
     QString getUuid(void) const {return m_uuid;}
@@ -43,9 +46,57 @@ public:
 
     int getPhotosNum(void) const {return m_photosNum;}
 
+    int getBlankNum(void) const {return m_blankNum;}
+
     quint64 getSize(void) const {return m_totalBytes;}
 
-    void start(int aid = 0, uchar atype = 0);
+    void setUsers(const UserInfoItems &users)
+    {
+        if (m_users != users)
+        {
+            m_users = users;
+        }
+    }
+
+    const UserInfoItems &getUsers(void){return m_users;}
+
+    QString getUsersId(QString &ids);
+
+    int getAlbumId(void) const {return m_aid;}
+
+    uchar getAlbumType(void)
+    {
+        if (!m_atype)
+        {
+            m_atype = USER_ALBUM;
+        }
+
+        return m_atype;
+    }
+
+    QString getBusinessName(void) const {return m_business.isEmpty() ? tr("无") : m_business;}
+
+    void setRelevance(uchar atype, const QString &business);
+
+    void getRelevance(uchar &atype, QString &business)
+    {
+        atype = m_atype;
+
+        if (m_business.isEmpty())
+        {
+            business = tr("无");
+        }
+        else
+        {
+            business = m_business;
+        }
+    }
+
+    void start(int aid = 0);
+
+    void setAlbumInfo(const QVariantMap &records);
+
+    void onPreview(void);
 
 protected:
     void enterEvent(QEvent *){moveOver();}
@@ -68,6 +119,8 @@ private slots:
 
     void on_nameLineEdit_editingFinished();
 
+    void on_viewPushButton_clicked();
+
 private:
     void moveOver();
 
@@ -80,16 +133,21 @@ private:
     Ui::AlbumTaskWidget *ui;
     AlbumManageDialog *m_container;
 
+    AlbumPictures m_pictures;
+    UserInfoItems m_users;
+    int m_pagesNum, m_photosNum, m_blankNum;
+
     QProcess m_tmaker;
     QTimer m_sender, m_watcher;
     QTime m_time;
 
     FileParser *m_file;
-    QString m_uuid, m_md5;
-    int m_pagesNum, m_photosNum, m_tid, m_aid;
-    uchar m_atype;
+    QString m_name, m_uuid, m_md5, m_business;
+    int m_tid, m_aid;
     quint64 m_totalBytes, m_sentBytes, m_readBytes;
     TaskState m_state;
+    uchar m_atype;
+    bool m_changed;
 
     QHttp *m_http;
     QNetworkAccessManager *m_manager;
