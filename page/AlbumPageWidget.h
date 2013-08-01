@@ -21,7 +21,8 @@ public:
                    const QString &fileName,
                    qreal angle = 0,
                    Qt::Axis axis = Qt::ZAxis,
-                   int id = -1);
+                   int id = -1,
+                   uchar usedTimes = 0);
 
     int loadPhotos(const QStringList &photosList);
 

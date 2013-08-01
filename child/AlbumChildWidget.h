@@ -63,6 +63,7 @@ public:
     QStringList &getPhotosList(void){return m_photosList;}
     const QString &getTmplFile(void) const {return m_tmplFile;}
 
+    /* Get the used number of the photo in the present album at the previous records */
     int getUsedNum(void) const
     {
         int num = 0;

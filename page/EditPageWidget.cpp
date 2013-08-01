@@ -372,6 +372,7 @@ bool EditPageWidget::switchPage(int index)
                         photosVector[i] = QString("%1|%2|%3|1").arg(photoFile).arg(angle).arg(axis);
                         pid++;
                     }
+                    qDebug() << __FILE__ << __LINE__ << num << pid << photosVector[i];
                 }
                 else
                 {
@@ -379,7 +380,7 @@ bool EditPageWidget::switchPage(int index)
                     {
                         for (int j = 0; j < usedTimes; j++)
                         {
-                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1))
+                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1, num))
                             {
                                 pid++;
                             }
@@ -389,7 +390,7 @@ bool EditPageWidget::switchPage(int index)
                     {
                         if (num < locations)
                         {
-                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1))
+                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1, num))
                             {
                                 photosVector[i] = QString("%1|%2|%3|1").arg(photoFile).arg(angle).arg(axis);
                                 pid++;
@@ -400,11 +401,6 @@ bool EditPageWidget::switchPage(int index)
 
                 //qDebug() << __FILE__ << __LINE__ << num << pid << photosVector[i];
             }
-
-//            if (validTmpl && m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis))
-//            {
-//                pid++;
-//            }
 
             ThumbChildWidget *childWidget = new ThumbChildWidget(++tid, DRAGGABLE_PHOTO, photoFile, angle, axis, m_container);
             m_pThumbsScene->insertProxyWidget(i + 1, new ThumbProxyWidget(childWidget), photoFile);

@@ -323,9 +323,8 @@ void AlbumTaskWidget::start(int aid)
 
     if (Initialize == m_state)
     {
-        m_changed = true;
         m_error = m_times = 0;
-        m_sentBytes = m_readBytes = 0;
+        m_sentBytes = m_readBytes = m_finishBytes = 0;
 
         ui->stateLabel->setText(tr("正在等待上传..."));
         ui->progressBar->show();
@@ -346,7 +345,6 @@ void AlbumTaskWidget::on_actionPushButton_clicked()
     switch (m_state)
     {
     case Pause:
-        m_changed = true;
         ui->stateLabel->setText(tr("正在等待上传..."));
         ui->actionPushButton->setEnabled(false);
         getUploadFileSize();
@@ -362,6 +360,7 @@ void AlbumTaskWidget::on_actionPushButton_clicked()
         }
         break;
     case Start:
+        m_finishBytes = 0;
         m_state = Pause;
         m_sender.stop();
         m_watcher.stop();
@@ -467,7 +466,7 @@ void AlbumTaskWidget::end()
     }
     else if (!m_error)
     {
-        m_time.restart();
+        //m_time.restart();
 
         if (FILE_DATA_CHUNK >= m_totalBytes)
         {
@@ -510,6 +509,7 @@ void AlbumTaskWidget::end()
     {
         //qDebug() << __FILE__ << __LINE__ << m_error;
         //m_file->closeFile();
+        m_finishBytes = 0;
         m_file->seek(0);
         m_sender.stop();
     }
@@ -565,9 +565,6 @@ void AlbumTaskWidget::setAlbumInfo(const QVariantMap &value)
         int id = record["id"].toInt();
         m_users[id] = tr(" 手机号码：%1\t\t姓名：%2\t\t初始密码：%3").arg(record["telephone"].toString()).arg(record["realname"].toString()).arg(record["initpassword"].toString());
     }
-
-    //qDebug() << __FILE__ << __LINE__ << value;
-    //qDebug() << __FILE__ << __LINE__ << m_users;
 }
 
 void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
@@ -580,6 +577,11 @@ void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
     m_error = reply->error();
     //qDebug() << __FILE__ << __LINE__ << m_error << ba << url;
     reply->deleteLater();
+
+    if (SERVER_REPLY_SUCCESS == code && !m_changed)
+    {
+        m_changed = true;
+    }
 
     if (url.startsWith(UPDATE_NAME_URL))
     {
@@ -635,6 +637,7 @@ void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
             {
                 quint64 offset = value["size"].toULongLong();
                 m_sentBytes = FILE_DATA_CHUNK < offset ? offset - FILE_DATA_CHUNK : offset;
+                m_finishBytes = m_readBytes = 0;
                 m_error = m_times = 0;
                 m_state = Start;
                 m_sender.start(INTERVAL_TIME);
@@ -657,12 +660,12 @@ void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
             }
             else
             {
-                if (m_readBytes)
+                float elapsed = (float)m_time.elapsed() / 1000;
+                m_finishBytes += m_readBytes;
+                if (m_finishBytes && (int)elapsed)
                 {
-                    float passed = (float)m_time.elapsed() / 1000;
-                    int speed = m_readBytes / 1024 / passed;
-                    float time = (m_totalBytes - m_sentBytes) / m_readBytes * passed;
-                    //float time = (m_totalBytes - m_sentBytes) / speed;
+                    int speed = m_finishBytes / 1024 / elapsed;
+                    int time = (m_totalBytes - m_sentBytes) / m_finishBytes * elapsed;
                     QString units;
 
                     if (60 <= time)
@@ -675,12 +678,14 @@ void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
                         units = tr("秒");
                     }
 
-                    //qDebug() << __FILE__ << __LINE__ << passed << speed << "KB/s " << time << units;
+                    //qDebug() << __FILE__ << __LINE__ << ":" << m_totalBytes - m_sentBytes << m_finishBytes << elapsed << speed << "KB/s " << time << units;
                     ui->stateLabel->setText(tr("正在上传（传输速度 %1 KB/s，剩余时间 %2 %3）").arg(speed).arg(time).arg(units));
+                    ui->progressBar->setValue(m_sentBytes);
+                    m_finishBytes = 0;
+                    m_time.restart();
                 }
 
                 m_state = Start;
-                ui->progressBar->setValue(m_sentBytes);
             }
         }
     }

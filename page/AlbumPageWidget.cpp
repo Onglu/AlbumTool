@@ -95,6 +95,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
             photoLayer.insert("opacity", opacity);
             photoLayer.insert("rotation", angle);
             photoLayer.insert("type", type);
+            photoLayer.insert("used", 0);
             photoLayers << photoLayer;
             m_layers << photoLayer;
         }
@@ -146,16 +147,77 @@ bool AlbumPageWidget::loadPhoto(int index,
                                 const QString &photoFile,
                                 qreal angle,
                                 Qt::Axis axis,
-                                int id)
+                                int id,
+                                uchar usedTimes)
 {
-    if (index < m_photoLayers.size())
+    if (index < PHOTOS_NUMBER)
     //if (!pid && pid < m_photoLayers.size()) // for test
     {
         //qDebug() << __FILE__ << __LINE__ << photoFile << angle << axis;
+
+        QVariantMap photoLayer;
+        int lid = index;
+
+#if 0
+        if (!usedTimes)
+        {
+            QPixmap pix(photoFile);
+            if (angle || Qt::ZAxis != axis)
+            {
+                pix = pix.transformed(QTransform().rotate(angle, axis));
+            }
+
+            bool portrait = pix.width() < pix.height() ? true : false;
+            int size = m_photoLayers.size();
+
+            for (int i = 0; i < size; i++)
+            {
+                photoLayer = m_photoLayers.at(i).toMap();
+                QVariantMap frame = photoLayer["frame"].toMap();
+                int width = frame["width"].toInt();
+                int height = frame["height"].toInt();
+                bool used = photoLayer["used"].toBool();
+
+                if (used)
+                {
+                    photoLayer.clear();
+                    continue;
+                }
+
+                if ((portrait && width < height) || (!portrait && width >= height))
+                {
+                    lid = i;
+                    break;
+                }
+            }
+
+            if (photoLayer.isEmpty())
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    photoLayer = m_photoLayers.at(i).toMap();
+                    if (!photoLayer["used"].toBool())
+                    {
+                        lid = i;
+                        break;
+                    }
+                }
+            }
+        }
+        else
+#endif
+        {
+            photoLayer = m_photoLayers.at(index).toMap();
+        }
+
+        photoLayer["used"] = 1;
+        m_photoLayers[lid] = photoLayer;
+
         m_layerLabels[index]->setCanvas(m_bgdLabel->getRatioSize(), m_bgdLabel->geometry());
         return m_layerLabels[index]->loadPhoto(//m_photoLayers.first().toMap()
                                             //m_photoLayers.last().toMap()
-                                              m_photoLayers.at(index).toMap()
+                                              //m_photoLayers.at(index).toMap()
+                                               photoLayer
                                               ,photoFile,
                                               angle,
                                               axis,
@@ -186,7 +248,8 @@ int AlbumPageWidget::loadPhotos(const QStringList &photosList)
                 m_layerLabels[index]->loadPhoto(m_photoLayers.at(index).toMap(),
                                                 photoInfo.at(0),
                                                 photoInfo.at(1).toDouble(),
-                                                (Qt::Axis)photoInfo.at(2).toInt());
+                                                (Qt::Axis)photoInfo.at(2).toInt(),
+                                                photoInfo.at(3).toInt());
 
 //                QString picFile = photoInfo.at(0);
 //                qreal angle = photoInfo.at(1).toDouble();
@@ -240,6 +303,22 @@ void AlbumPageWidget::removePhoto(const QString &fileName)
         {
             ok = true;
             m_layerLabels[i]->flush(false);
+
+            QString uuid = m_layerLabels[i]->getPictureFile();
+            int size = m_photoLayers.size();
+
+            for (int i = 0; i < size; i++)
+            {
+                QVariantMap photoLayer = m_photoLayers.at(i).toMap();
+                QString name = photoLayer["filename"].toString();
+                bool used = photoLayer["used"].toBool();
+                if (uuid == name && used)
+                {
+                    photoLayer["used"] = 0;
+                    m_photoLayers[i] = photoLayer;
+                    break;
+                }
+            }
         }
     }
 

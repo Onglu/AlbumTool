@@ -144,7 +144,7 @@ private:
     FileParser *m_file;
     QString m_name, m_uuid, m_md5, m_business;
     int m_tid, m_aid;
-    quint64 m_totalBytes, m_sentBytes, m_readBytes;
+    quint64 m_totalBytes, m_sentBytes, m_readBytes, m_finishBytes;
     TaskState m_state;
     uchar m_atype;
     bool m_changed;

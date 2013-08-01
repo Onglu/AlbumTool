@@ -9,6 +9,7 @@
 #include <QListWidget>
 #include <QTextCodec>
 #include <QMessageBox>
+#include <QCryptographicHash>
 
 #define WIDGET_ITEM_HEIGHT      74
 #define USER_LOGIN_URL          "http://192.168.2.120:8080/SwfUpload2/employeelogin?"
@@ -253,14 +254,19 @@ void AlbumManageDialog::on_loginPushButton_clicked()
     if (!m_logined)
     {
         QString name = ui->nameLineEdit->text();
-        QString pass = ui->passwdLineEdit->text();
-        if (name.isEmpty() || pass.isEmpty())
+        QString pwd = ui->passwdLineEdit->text();
+        if (name.isEmpty() || pwd.isEmpty())
         {
             QMessageBox::warning(this, tr("登陆失败"), tr("用户名及密码不能为空！"), tr("确定"));
             return;
         }
 
-        m_url = tr("%1username=%2&password=%3").arg(USER_LOGIN_URL).arg(name).arg(pass);
+        QString md5;
+        QByteArray bb;
+        bb = QCryptographicHash::hash(pwd.toAscii(), QCryptographicHash::Md5);
+        md5.append(bb.toHex());
+
+        m_url = tr("%1username=%2&password=%3").arg(USER_LOGIN_URL).arg(name).arg(md5);
         QUrl url(m_url);
         QNetworkRequest request(url);
         if (m_manager->get(request))
@@ -334,7 +340,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
         m_url = reply->url().toString();
     }
 
-    //qDebug() << __FILE__ << __LINE__ << m_url;
+    qDebug() << __FILE__ << __LINE__ << m_url;
     reply->deleteLater();
 
     if (m_url.startsWith(USER_LOGIN_URL))
@@ -389,7 +395,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
 //            goto end;
 //        }
 
-        qDebug() << __FILE__ << __LINE__ << m_url /*<< result*/;
+        //qDebug() << __FILE__ << __LINE__ << m_url /*<< result*/;
 
         if (m_url.startsWith(GET_BESINESS_URL) && SERVER_REPLY_SUCCESS == code)
         {

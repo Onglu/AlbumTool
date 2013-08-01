@@ -123,5 +123,6 @@ void BgdLayer::paintEvent(QPaintEvent *event)
     painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
     painter.fillRect(m_visiableRect, Qt::transparent);
     painter.drawRect(m_visiableRect.adjusted(delta, delta, -delta, -delta));
+    qDebug() << __FILE__ << __LINE__ << m_visiableRect;
     painter.end();
 }
