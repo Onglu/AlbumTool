@@ -16,7 +16,6 @@ AlbumChildWidget::AlbumChildWidget(int index, TaskPageWidget *parent) :
     ui(new Ui::AlbumChildWidget),
     m_photosVector(AlbumPhotos(PHOTOS_NUMBER)),
     m_tmplVisible(false),
-    m_locked(false),
     m_tmpl(NULL)
 {
     ui->setupUi(this);
@@ -36,7 +35,6 @@ AlbumChildWidget::AlbumChildWidget(int index,
     m_photosVector(photosList.toVector()),
     m_tmplFile(tmplFile),
     m_tmplVisible(false),
-    m_locked(false),
     m_tmpl(NULL)
 {
     ui->setupUi(this);
@@ -45,11 +43,15 @@ AlbumChildWidget::AlbumChildWidget(int index,
 
     setupWidgets(photosList, tmplFile, photoLayers);
 
-    int photosNum = m_photosList.size();
-    if (photosNum /*|| locations*/)
+    if (m_tmplLabel->hasPicture())
     {
-        //ui->usageLabel->setText(tr("%1/%2").arg(photosNum).arg(locations));
-        //ui->usageLabel->setToolTip(tr("照片数量：%1张，模板相位：%2个").arg(photosNum).arg(locations));
+        ui->photoLabel1->setVisible(false);
+        ui->photoLabel2->setVisible(false);
+        ui->photoLabel3->setVisible(false);
+        ui->photoLabel4->setVisible(false);
+        ui->photoLabel5->setVisible(false);
+        ui->photoLabel6->setVisible(false);
+        m_tmplLabel->setVisible(true);
     }
 }
 
@@ -107,6 +109,7 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
 
         m_photoLabels[i]->setContentsMargins(1, 1, 2, 2);
         m_photoLabels[i]->installEventFilter(this);
+        //m_photoLabels[i]->parentWidget()->show();
     }
 
     m_picLabel = m_photoLabels.last();
@@ -452,47 +455,67 @@ int AlbumChildWidget::output(const QString &dir)
             jf.close();
         }
 
-        //int pid = 0;
         uchar locations = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];
         if (!locations)
         {
             goto end;
         }
 
-        for (int i = 0; i < PHOTOS_NUMBER; i++)
+        if (m_photosList.isEmpty())
         {
-            QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
-            if (PHOTO_ATTRIBUTES != photoInfo.size())
+            QString fileName = tr("%1\\%2").arg(path).arg(PIC_NAME);
+            QString tmplPic;
+
+            if (m_tmpl->getTmplPic(tmplPic))
             {
-                continue;
+                QFile::copy(tmplPic, fileName);
+            }
+            else
+            {
+                QFile file(fileName);
+                file.open(QIODevice::WriteOnly);
+                file.close();
             }
 
-            QString photoFile = photoInfo.at(0);
-            qreal angle = photoInfo.at(1).toDouble();
-            Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
-            uint usedTimes = photoInfo.at(3).toUInt();
-
-            //qDebug() << __FILE__ << __LINE__ << m_index << usedTimes << photoFile;
-
-            do
-            {
-                if (album->exportPhoto(pid, photoFile, path, angle, axis))
-                {
-                    pid++;
-                }
-                else
-                {
-                    break;
-                }
-
-                if (!usedTimes)
-                {
-                    break;
-                }
-            } while (usedTimes > pid);
+            pid = -1;
         }
+        else
+        {
+            for (int i = 0; i < PHOTOS_NUMBER; i++)
+            {
+                QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
+                if (PHOTO_ATTRIBUTES != photoInfo.size())
+                {
+                    continue;
+                }
 
-        album->compose(pid, tr("%1\\preview.png").arg(path));
+                QString photoFile = photoInfo.at(0);
+                qreal angle = photoInfo.at(1).toDouble();
+                Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
+                uint usedTimes = photoInfo.at(3).toUInt();
+
+                //qDebug() << __FILE__ << __LINE__ << m_index << usedTimes << photoFile;
+
+                do
+                {
+                    if (album->exportPhoto(pid, photoFile, path, angle, axis))
+                    {
+                        pid++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+
+                    if (!usedTimes)
+                    {
+                        break;
+                    }
+                } while (usedTimes > pid);
+            }
+
+            album->compose(pid, tr("%1\\%2").arg(path).arg(PIC_NAME));
+        }
 
         QVariantMap pictures = m_tmpl->loadPictures();
         QVariantMap::const_iterator iter = pictures.constBegin();
@@ -578,35 +601,6 @@ bool AlbumChildWidget::meetDragDrop(QDropEvent *event)
     return false;
 }
 
-void AlbumChildWidget::dragEnterEvent(QDragEnterEvent *event)
-{
-    PictureChildWidget::dragEnterEvent(event);
-    if (m_dragging)
-    {
-        m_locked = true;
-    }
-}
-
-void AlbumChildWidget::dragLeaveEvent(QDragLeaveEvent *)
-{
-    if (m_locked)
-    {
-        bool tmplVisible = ui->templateLabel->isVisible();
-
-        /***
-         * show or hide tempalte based on its state before and after:
-         * case 1: tempalte is visiable at persent, but it is invisiable at previous;
-         * case 2: tempalte is invisiable at persent, but it is visiable at previous.
-         */
-        if (m_tmplVisible != tmplVisible && !m_dropped)
-        {
-            showPhotos(!m_tmplVisible); // restore the visiable state of the tempalte
-        }
-
-        m_locked = m_dragging = false;
-    }
-}
-
 void AlbumChildWidget::dropEvent(QDropEvent *event)
 {
     DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
@@ -653,6 +647,8 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
             //qDebug() << __FILE__ << __LINE__ << m_photosVector[index];
 
             m_container->noticeChanged();
+
+            m_tmplVisible = m_tmplLabel->hasPicture();
         }
         else
         {
@@ -661,6 +657,16 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
                 QMessageBox::information(parentWidget(),
                                          tr("操作失败"),
                                          tr("请拖入模板类型为手机封面（720x1080）的相册模板！"),
+                                         tr("确定"));
+                event->ignore();
+                return;
+            }
+
+            if (1 < m_index && TemplateChildWidget::isCover(belongings["page_data"].toMap()))
+            {
+                QMessageBox::information(parentWidget(),
+                                         tr("操作失败"),
+                                         tr("请拖入模板类型为手机内页的相册模板！"),
                                          tr("确定"));
                 event->ignore();
                 return;
@@ -696,8 +702,6 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
         {
             event->acceptProposedAction();
         }
-
-        m_dropped = true;
     }
 }
 
@@ -749,39 +753,9 @@ bool AlbumChildWidget::eventFilter(QObject *watched, QEvent *event)
     return PictureChildWidget::eventFilter(watched, event);
 }
 
-void AlbumChildWidget::switchView(bool enter)
+void AlbumChildWidget::switchView()
 {
-    bool tmplVisible;
-
-    if (!ui->photoLabel1->isVisible() && ui->templateLabel->isVisible())
-    {
-        tmplVisible = true;
-    }
-    else
-    {
-        tmplVisible = false;
-    }
-
-    if (enter)
-    {
-        /* show the view layer behind of the persent view */
-        if (!m_locked)
-        {
-            showPhotos(tmplVisible);
-        }
-    }
-    else
-    {
-        /* restore the view layer before entering */
-        if (!m_locked)
-        {
-            showPhotos(tmplVisible);
-        }
-        else
-        {
-            m_locked = false;
-        }
-    }
+    showPhotos(!ui->photoLabel1->isVisible() && ui->templateLabel->isVisible());
 }
 
 const QVariantMap &AlbumChildWidget::getChanges()
@@ -798,13 +772,13 @@ const QVariantMap &AlbumChildWidget::getChanges()
 void AlbumProxyWidget::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     PictureProxyWidget::hoverEnterEvent(event);
-    m_pChildWidget->switchView(true);
+    m_pChildWidget->switchView();
 }
 
 void AlbumProxyWidget::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {
     PictureProxyWidget::hoverLeaveEvent(event);
-    m_pChildWidget->switchView(false);
+    m_pChildWidget->switchView();
 }
 
 bool AlbumProxyWidget::excludeItem(const QString &picFile)

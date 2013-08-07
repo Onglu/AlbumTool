@@ -44,7 +44,7 @@ public:
         changeBanners();
     }
 
-    void switchView(bool enter);
+    void switchView(void);
 
     void clearBanners(void);
 
@@ -103,8 +103,6 @@ signals:
 
 protected:
     bool meetDragDrop(QDropEvent *event);
-    void dragEnterEvent(QDragEnterEvent *event);
-    void dragLeaveEvent(QDragLeaveEvent *event);
     void dropEvent(QDropEvent *event);
     bool eventFilter(QObject *watched, QEvent *event);
 

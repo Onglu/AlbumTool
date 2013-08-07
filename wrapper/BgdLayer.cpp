@@ -5,9 +5,6 @@
 void BgdLayer::loadPixmap(const QPixmap &pix)
 {
     QSize size = parentWidget() ? parentWidget()->size() : this->size();
-
-    //qDebug() << __FILE__ << __LINE__ << size;
-
     if (loadPicture(pix, size))
     {
         if (PhotoLayer::VisiableImgTypeScreen == m_type)
@@ -44,7 +41,7 @@ void BgdLayer::compose(const QString &fileName)
         qreal opacity = data["opacity"].toReal();
         qreal angle = data["angle"].toReal();
 
-        //qDebug() << __FILE__ << __LINE__ << "layer:" << filename;
+        //qDebug() << __FILE__ << __LINE__ << "layer:" << file;
 
         if (1 == data["type"].toInt())
         {
@@ -54,7 +51,7 @@ void BgdLayer::compose(const QString &fileName)
             }
 
             PhotoLayer *label = m_labels.at(index);
-            //qDebug() << __FILE__ << __LINE__ << index << label->hasPicture();
+            //qDebug() << __FILE__ << __LINE__ << index << label->hasPhoto();
             if (label && label->hasPhoto())
             {
                 painter.setTransform(QTransform().rotate(angle));
@@ -110,19 +107,23 @@ void BgdLayer::paintEvent(QPaintEvent *event)
     QLabel::paintEvent(event);
     QPainter painter;
     const int delta = 2;
-    QBrush borderColor = m_enter ? Qt::darkCyan : Qt::transparent;
 
-    if (m_borderColor == borderColor)
+    if (m_visiableRect.isNull())
     {
         return;
     }
 
     painter.begin(this);
-    painter.setPen(QPen(m_borderColor = borderColor, delta));
+    painter.setPen(QPen(m_borderColor, delta));
     painter.setRenderHints(QPainter::Antialiasing);
     painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
     painter.fillRect(m_visiableRect, Qt::transparent);
     painter.drawRect(m_visiableRect.adjusted(delta, delta, -delta, -delta));
-    qDebug() << __FILE__ << __LINE__ << m_visiableRect;
     painter.end();
+    //qDebug() << __FILE__ << __LINE__ << m_visiableRect;
+
+    if (m_borderColor == Qt::transparent)
+    {
+        m_visiableRect.setRect(0, 0, 0, 0);
+    }
 }

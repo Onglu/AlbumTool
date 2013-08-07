@@ -40,8 +40,11 @@ namespace TaskPage
 
             while (!m_abort)
             {
-                emit doing(++index, m_args);
-                msleep(20);
+                if (!m_args.isEmpty())
+                {
+                    emit doing(++index, m_args);
+                    msleep(20);
+                }
             }
         }
 
@@ -90,6 +93,8 @@ public:
 
     TemplateChildWidget *getTmplWidget(const QString &tmplFile) const;
 
+    EditPageWidget *getEditPage(void) const {return m_editPage;}
+
     QString getPageId(void) const {return m_taskParser.getPageId();}
 
     QString getAlbum(void);
@@ -128,8 +133,6 @@ private slots:
                  const QStringList &filesList,
                  const QString &file,
                  const QVariantList &changes);
-
-    //void loadingItem(void){showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));}
 
     void process(int index, const QStringList &args);
 

@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>EditPageWidget</class>
  <widget class="QWidget" name="EditPageWidget">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -14,7 +17,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>相册编辑</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">

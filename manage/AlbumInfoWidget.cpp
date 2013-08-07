@@ -109,7 +109,7 @@ void AlbumInfoWidget::openWnd(const QStringList &businesses)
         showUsers(false);
     }
 
-    //ui->telnoLineEdit->clear();
+    ui->telnoLineEdit->clear();
 }
 
 void AlbumInfoWidget::openWnd()

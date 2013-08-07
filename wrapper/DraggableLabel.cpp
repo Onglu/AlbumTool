@@ -1,10 +1,8 @@
 #include "DraggableLabel.h"
 #include "child/PictureChildWidget.h"
 #include <QMouseEvent>
-#include <QDebug>
 #include <QCursor>
 #include <QPainter>
-#include <QTime>
 
 DraggableLabel::DraggableLabel(QSize size, const QString &mimeType, QWidget *parent):
     QLabel(parent),
@@ -109,7 +107,6 @@ void DraggableLabel::mousePressEvent(QMouseEvent *event)
 
         if (meetDragDrop())
         {
-            setCursor(QCursor(Qt::OpenHandCursor));
             m_startPos = event->pos();
         }
     }
@@ -135,6 +132,8 @@ void DraggableLabel::mouseMoveEvent(QMouseEvent *event)
         return;
     }
 
+    setCursor(QCursor(Qt::DragMoveCursor));
+
     QByteArray data;
     QDataStream stream(&data, QIODevice::WriteOnly);
 
@@ -147,7 +146,6 @@ void DraggableLabel::mouseMoveEvent(QMouseEvent *event)
 
     QDrag *drag = new QDrag(this);
     drag->setMimeData(mimeData);
-    drag->setHotSpot(offset);
 
     QPixmap temp = pix.scaled(this->width() / 1.2, this->height() / 1.2, Qt::KeepAspectRatio);
     QPainter painter;
@@ -155,13 +153,12 @@ void DraggableLabel::mouseMoveEvent(QMouseEvent *event)
     painter.fillRect(temp.rect(), QColor(127, 127, 127, 127));
     painter.end();
     drag->setPixmap(temp);
+    drag->setHotSpot(QPoint(temp.width()/2, temp.height() / 2));
 
     if (Qt::CopyAction == drag->exec(Qt::CopyAction | Qt::MoveAction))
     {
         show();
     }
-
-    setCursor(QCursor(Qt::OpenHandCursor));
 }
 
 void DraggableLabel::mouseReleaseEvent(QMouseEvent *event)

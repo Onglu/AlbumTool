@@ -73,7 +73,7 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
                 m_bgdLabel->setGeometry(QRect(bgdPos, bgdSize));
                 m_bgdLabel->setAngle(angle);
                 m_bgdLabel->setOpacity(opacity);
-                //qDebug() << __FILE__ << __LINE__ << bgdSize << m_bgdLabel->geometry() << m_bgdLabel->getRatioSize();
+                //qDebug() << __FILE__ << __LINE__ << bgdSize << m_bgdLabel->geometry() << m_bgdLabel->getRatioSize() << bgdPix.isNull();
             }
             else
             {
@@ -116,14 +116,21 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
     {
         photoLayer = layer.toMap();
         maskFile = photoLayer["maskfile"].toString();
-        for (int j = 0; j < maskLayers.size(); j++)
+        if (".png" == maskFile)
         {
-            maskLayer = maskLayers.at(j).toMap();
-            if (maskFile == maskLayer["filename"].toString())
+            m_photoLayers << photoLayer;
+        }
+        else
+        {
+            for (int j = 0; j < maskLayers.size(); j++)
             {
-                photoLayer.insert("maskLayer", maskLayer);
-                m_photoLayers << photoLayer;
-                break;
+                maskLayer = maskLayers.at(j).toMap();
+                if (maskFile == maskLayer["filename"].toString())
+                {
+                    photoLayer.insert("maskLayer", maskLayer);
+                    m_photoLayers << photoLayer;
+                    break;
+                }
             }
         }
     }
@@ -158,7 +165,7 @@ bool AlbumPageWidget::loadPhoto(int index,
         QVariantMap photoLayer;
         int lid = index;
 
-#if 0
+#if 1
         if (!usedTimes)
         {
             QPixmap pix(photoFile);

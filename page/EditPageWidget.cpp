@@ -6,11 +6,12 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QMovie>
 
-#define ALBUM_PAGE  1
+extern QRect g_appRect;
 
 EditPageWidget::EditPageWidget(TaskPageWidget *container) :
-    QWidget(0),
+    QWidget(0, Qt::WindowCloseButtonHint),
     ui(new Ui::EditPageWidget),
     m_container(container),
     m_layerLabel(NULL),
@@ -44,15 +45,62 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
     m_templatePage = new TemplatePageWidget(true, m_container);
     m_templatePage->getView()->setScene(m_container->m_templatesScene);
     ui->mainHorizontalLayout->addWidget(m_templatePage);
-
-    on_editPushButton_clicked();
-
     connect(m_templatePage, SIGNAL(replaced(QString,QString)), SLOT(onReplaced(QString,QString)));
+
+    exec(false);
+
+    m_loading = new QWidget(this)/*(0, Qt::FramelessWindowHint)*/;
+
+    QLabel *movieLabel = new QLabel(m_loading);
+    movieLabel->setFixedSize(126, 22);
+
+    QMovie *movie = new QMovie(":/images/loading.gif");
+    movie->setSpeed(100);
+    movieLabel->setMovie(movie);
+
+    QLabel *textLabel = new QLabel(m_loading);
+    QFont font = textLabel->font();
+    font.setBold(true);
+    textLabel->setFixedHeight(16);
+    textLabel->setFont(font);
+    textLabel->setStyleSheet("color:blue;");
+
+    QVBoxLayout *vbl = new QVBoxLayout;
+    vbl->addWidget(movieLabel);
+    vbl->addWidget(textLabel);
+    vbl->setMargin(0);
+
+    m_loading->setFixedSize(126, 38);
+    m_loading->setLayout(vbl);
+    m_loading->setAttribute(Qt::WA_TranslucentBackground);
+
+    movieLabel->movie()->start();
+    textLabel->setText(tr("正在加载..."));
+    m_loading->hide();
+
+    connect(&m_processor, SIGNAL(timeout()), SLOT(end()));
 }
 
 EditPageWidget::~EditPageWidget()
 {
+    delete m_loading;
     delete ui;
+}
+
+void EditPageWidget::exec(bool open)
+{
+    const int top = 22;
+    const int height = g_appRect.height() - top;
+
+    setFixedSize(g_appRect.width(), height);
+    setGeometry(0, top, g_appRect.width(), height);
+
+    on_editPushButton_clicked();
+
+    if (open)
+    {
+        show();
+    }
 }
 
 void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
@@ -137,7 +185,7 @@ void EditPageWidget::onClicked(PhotoLayer &label, QPoint pos)
 {
     if (label.isMoveable())
     {
-        m_pAlbumPage->m_bgdLabel->enterCopiedRect(true, label.getVisiableRect(PhotoLayer::VisiableRectTypeFixed));
+        m_pAlbumPage->m_bgdLabel->updateBorder(BgdLayer::Pressed, label.getVisiableRect(PhotoLayer::VisiableRectTypeFixed));
         m_layerLabel = &label;
         m_startPos = pos;
         enableButtons(true);
@@ -149,6 +197,7 @@ void EditPageWidget::mousePressEvent(QMouseEvent *event)
     if (Qt::LeftButton == event->button() && m_layerLabel && m_layerLabel != childAt(event->pos()))
     {
         enableButtons(false);
+        m_pAlbumPage->m_bgdLabel->updateBorder(BgdLayer::Left);
         m_layerLabel = NULL;
     }
 }
@@ -158,6 +207,7 @@ void EditPageWidget::mouseMoveEvent(QMouseEvent *event)
     if (QApplication::startDragDistance() <= (event->pos() - m_startPos).manhattanLength()
         && m_layerLabel && m_layerLabel->isMoveable())
     {
+        //qDebug() << __FILE__ << __LINE__ << m_startPos << event->pos() << event->pos() - m_startPos;
         QPoint pos = m_layerLabel->geometry().topLeft();
         pos.rx() += event->pos().x() - m_startPos.x();
         pos.ry() += event->pos().y() - m_startPos.y();
@@ -173,20 +223,23 @@ void EditPageWidget::mouseReleaseEvent(QMouseEvent *event)
         bool moved = m_layerLabel->hasMoved();
 
         m_layerLabel->setMoveable(false);
-        m_pAlbumPage->m_bgdLabel->enterCopiedRect(false);
-
+        m_pAlbumPage->m_bgdLabel->updateBorder(BgdLayer::Released);
+#if 1
         if (moved)
         {
             m_pAlbumPage->m_bgdLabel->compose();
 
             QString photoName;
             Converter::getFileName(m_layerLabel->getPictureFile(), photoName, false);
-            qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getOpacity();
+            //qDebug() << __FILE__ << __LINE__ << photoName << m_layerLabel->getOpacity();
             m_pAlbumWidget->changePhoto(photoName,
                                         m_layerLabel->getFrame(),
                                         m_layerLabel->getOpacity(),
                                         m_layerLabel->getAngle());
         }
+#endif
+
+
     }
 }
 
@@ -312,6 +365,40 @@ void EditPageWidget::updatePage()
     }
 }
 
+void EditPageWidget::updateView()
+{
+//    QPoint offset((this->width() - m_loading->width()) / 2, (this->height() - m_loading->height()) / 2);
+//    m_loading->move(this->geometry().topLeft() + offset);
+//    m_loading->show();
+//    qDebug() << __FILE__ << __LINE__ << m_loading->geometry();
+}
+
+void EditPageWidget::customEvent(QEvent *event)
+{
+    //ReplacerEvent *replacer = static_cast<ReplacerEvent *>(event);
+    if (isHidden())
+    {
+        return;
+    }
+
+    QEvent::Type type = event->type();
+    if (CustomEvent_Item_Replaced == type)
+    {
+        switchPage(m_current);
+    }
+    else if (CustomEvent_Load_BEGIN == type)
+    {
+        QPoint offset((this->width() - m_loading->width()) / 2, (this->height() - m_loading->height()) / 2);
+        m_loading->move(this->geometry().topLeft() + offset);
+        m_loading->show();
+        qDebug() << __FILE__ << __LINE__ << m_loading->geometry();
+    }
+    else if (CustomEvent_Load_Finished == type)
+    {
+        m_loading->hide();
+    }
+}
+
 bool EditPageWidget::switchPage(int index)
 {
     bool ok = false;
@@ -338,7 +425,18 @@ bool EditPageWidget::switchPage(int index)
         bool validTmpl = true;
         AlbumPhotos &photosVector = m_pAlbumWidget->getPhotosVector();
 
+        QTime t;
+        t.start();
+
         //qDebug() << __FILE__ << __LINE__ << photosVector;
+
+//        QPoint offset((this->width() - m_loading->width()) / 2, (this->height() - m_loading->height()) / 2);
+//        m_loading->move(this->geometry().topLeft() + offset);
+//        m_loading->show();
+//        m_processor.start(100);
+        //m_processor.singleShot(3000, this, SLOT(end()));
+
+        //while(t.elapsed() < 200);
 
         if (!m_pAlbumPage->loadLayers(*m_pAlbumWidget))
         {
@@ -372,7 +470,7 @@ bool EditPageWidget::switchPage(int index)
                         photosVector[i] = QString("%1|%2|%3|1").arg(photoFile).arg(angle).arg(axis);
                         pid++;
                     }
-                    qDebug() << __FILE__ << __LINE__ << num << pid << photosVector[i];
+                    //qDebug() << __FILE__ << __LINE__ << num << pid << photosVector[i];
                 }
                 else
                 {
@@ -380,7 +478,8 @@ bool EditPageWidget::switchPage(int index)
                     {
                         for (int j = 0; j < usedTimes; j++)
                         {
-                            if (m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1, num))
+                            if (//!pid// for test &&
+                                m_pAlbumPage->loadPhoto(pid, photoFile, angle, axis, tid + 1, num))
                             {
                                 pid++;
                             }
@@ -424,6 +523,13 @@ bool EditPageWidget::switchPage(int index)
         m_templatePage->changeTemplate(m_pAlbumWidget->getTmplLabel().getBelongings());
 
         ok = true;
+
+        //while(t.elapsed() < 3000);
+
+        qDebug() << __FILE__ << __LINE__ << t.elapsed();
+        //m_processor.stop();
+        //m_loading->close();
+        //m_loading->hide();
     }
 
     return ok;
@@ -469,6 +575,30 @@ void EditPageWidget::on_backPushButton_clicked()
     m_container->m_photosScene->clearFocusSelection(false);
 
     emit editEntered(false);
+}
+
+void EditPageWidget::end()
+{
+    static int i = 0;
+
+    if (20 < ++i)
+    {
+        i = 0;
+        m_loading->close();
+        m_processor.stop();
+    }
+
+    qDebug() << __FILE__ << __LINE__ << m_loading->geometry() << i;
+
+//    if (!m_processor.isActive())
+//    {
+//        m_loading->close();
+//        return;
+//    }
+
+//    QPoint offset((this->width() - m_loading->width()) / 2, (this->height() - m_loading->height()) / 2);
+//    m_loading->move(this->geometry().topLeft() + offset);
+//    m_loading->show();
 }
 
 void EditPageWidget::on_previousPushButton_clicked()
@@ -521,7 +651,7 @@ void EditPageWidget::on_deletePushButton_clicked()
             }
         }
 
-        if (!switchPage(m_current))
+        if (!switchPage(m_albumsMap.size() < m_current ? 1 : ++m_current))
         {
             m_container->enterEdit(false);
         }

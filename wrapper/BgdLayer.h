@@ -9,7 +9,6 @@ class BgdLayer : public PictureLabel
 {
 public:
     BgdLayer(PhotoLayer::VisiableImgType type, QWidget *parent) : PictureLabel(parent),
-        m_enter(false),
         m_borderColor(Qt::transparent),
         m_type(type),
         m_actualSize(1, 1),
@@ -46,13 +45,22 @@ public:
         m_labels = labels;
     }
 
-    void enterCopiedRect(bool enter, QRect getVisiableRect = QRect())
-    {
-        m_enter = enter;
+    enum ActionState{Pressed, Released, Left};
 
-        if (enter)
+    void updateBorder(ActionState state, QRect visiableRect = QRect())
+    {
+        if (Pressed == state)
         {
-            m_visiableRect = getVisiableRect;
+            m_borderColor = Qt::darkCyan;
+            m_visiableRect = visiableRect;
+        }
+        else if (Released == state)
+        {
+            m_borderColor = Qt::green;
+        }
+        else
+        {
+            m_borderColor = Qt::transparent;
         }
 
         repaint();
@@ -71,7 +79,6 @@ protected:
     void paintEvent(QPaintEvent *event);
 
 private:
-    bool m_enter;
     QBrush m_borderColor;
     const PhotoLayer::VisiableImgType m_type;
     QImage m_srcImg;

@@ -86,7 +86,6 @@ protected:
                          QPoint pos = QPoint(0, 0));
 
     int m_index;
-    bool m_dragging, m_dropped;
 
     TaskPageWidget *m_container;
     QLabel *m_indexLabel;

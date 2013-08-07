@@ -121,6 +121,19 @@ inline bool MainWindow::closePage(int index)
 
         delete taskPage;
         taskPage = NULL;
+
+        if (-1 == ui->tabWidget->currentIndex())
+        {
+            ui->saveAction->setEnabled(false);
+        }
+        else
+        {
+            taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(index));
+            if (!taskPage || !taskPage->hasChanged())
+            {
+                ui->saveAction->setEnabled(false);
+            }
+        }
     }
 
     return true;
@@ -202,19 +215,19 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
         if (taskPage)
         {
             taskPage->setTabId(i);
-            if (!taskPage->isEditing())
-            {
-                n++;
-            }
+//            if (!taskPage->isEditing())
+//            {
+//                n++;
+//            }
         }
     }
 
-    if (!count || n == count - 1)
-    {
-        setMinimumSize(MINI_WIDTH, MINI_HEIGHT);
-        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        setGeometry(this->geometry());
-    }
+//    if (!count || n == count - 1)
+//    {
+//        setMinimumSize(MINI_WIDTH, MINI_HEIGHT);
+//        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+//        setGeometry(this->geometry());
+//    }
 }
 
 void MainWindow::on_newAction_triggered()

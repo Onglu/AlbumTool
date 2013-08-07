@@ -64,8 +64,8 @@ TaskPageWidget::TaskPageWidget(int tabId, const QString &taskFile, QWidget *pare
     m_scensVector.insert(PictureGraphicsScene::SceneType_Albums, m_albumsScene);
 
     m_editPage = new EditPageWidget(this);
-    ui->mainHorizontalLayout->addWidget(m_editPage);
-    m_editPage->hide();
+    //ui->mainHorizontalLayout->addWidget(m_editPage);
+    //m_editPage->hide();
     connect(m_editPage, SIGNAL(editEntered(bool)), SLOT(enterEdit(bool)));
 
     m_previewDlg = new PreviewDialog(this);
@@ -574,7 +574,14 @@ void TaskPageWidget::customEvent(QEvent *ce)
     }
     else if (CustomEvent_Load_BEGIN == type)
     {
-        m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));
+//        if (m_editPage->isVisible())
+//        {
+//            m_editPage->updateView();
+//        }
+//        else
+        {
+            m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));
+        }
     }
 }
 
@@ -692,6 +699,7 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
             int count = 0;
             int pagesNum = 0;
             int photosNum = 0;
+            bool isCreatable = false;
             //QString taskFile = m_taskParser.getParsingFile(), outDir = taskFile.left(taskFile.length() - 5);
 
             foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
@@ -703,6 +711,11 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
                     {
                         count++;
                         continue;
+                    }
+
+                    if (!isCreatable && 1 == childWidget->getIndex())
+                    {
+                        isCreatable = true;
                     }
 
                     uchar locations[2] = {0};
@@ -725,8 +738,9 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
             }
 
             //qDebug() << __FILE__ << __LINE__ << count;
-            ui->createPushButton->setEnabled(!(count == proxyWidgets.size()));
+            //ui->createPushButton->setEnabled(!(count == proxyWidgets.size()));
             //ui->previewPushButton->setEnabled(!m_pictures.isEmpty());
+            ui->createPushButton->setEnabled(isCreatable);
 
             addAlbum(0 < pagesNum ? pagesNum - 1 : pagesNum, photosNum, num);
         }
@@ -976,13 +990,13 @@ void TaskPageWidget::process(int index, const QStringList &args)
         {
             m_package.insert("cover", data);
             picFile = tr("%1\\cover.png").arg(outDir);
-            QFile::copy(tr("%1\\cover\\preview.png").arg(childDir), picFile);
+            QFile::copy(tr("%1\\cover\\%3").arg(childDir).arg(PIC_NAME), picFile);
         }
         else
         {
             m_pages << data;
             picFile = tr("%1\\page%2.png").arg(outDir).arg(index);
-            QFile::copy(tr("%1\\page%2\\preview.png").arg(childDir).arg(index), picFile);
+            QFile::copy(tr("%1\\page%2\\%3").arg(childDir).arg(index).arg(PIC_NAME), picFile);
         }
 
         m_pictures << picFile;
@@ -1066,25 +1080,26 @@ void TaskPageWidget::enterEdit(bool enter)
 {
     if (enter)
     {
-        ui->collapsePushButton->hide();
-        ui->photosGroupBox->hide();
-        ui->templatesGroupBox->hide();
-        ui->albumsGroupBox->hide();
-        emit maxShow(true);
-        m_editPage->show();
-        m_editPage->adjustViewLayout();
+//        ui->collapsePushButton->hide();
+//        ui->photosGroupBox->hide();
+//        ui->templatesGroupBox->hide();
+//        ui->albumsGroupBox->hide();
+//        emit maxShow(true);
+//        m_editPage->adjustViewLayout();
+        m_editPage->exec();
         m_editPage->m_templatePage->setTags(m_templatePage->isImmediate(), m_templatePage->getTags());
     }
     else
     {
-        emit maxShow(false);
-        ui->collapsePushButton->show();
-        ui->photosGroupBox->show();
-        ui->templatesGroupBox->show();
-        ui->albumsGroupBox->show();
+//        emit maxShow(false);
+//        ui->collapsePushButton->show();
+//        ui->photosGroupBox->show();
+//        ui->templatesGroupBox->show();
+//        ui->albumsGroupBox->show();
         m_templatePage->setTags(m_editPage->m_templatePage->isImmediate(), m_editPage->m_templatePage->getTags());
-        m_editPage->hide();
-        adjustSize();
+        //m_editPage->hide();
+        m_editPage->close();
+//        adjustSize();
     }
 }
 

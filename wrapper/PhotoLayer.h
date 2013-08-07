@@ -121,6 +121,8 @@ protected:
     void dropEvent(QDropEvent *event);
 
 private:
+    void updateCanvasRect(void);
+
     void updateVisiableRect(QRect copiedRect = QRect());
 
     void updateCopiedRect(void);

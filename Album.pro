@@ -13,7 +13,7 @@ TEMPLATE = app
 DEFINES += FROM_PACKAGE
 #TRANSLATIONS ＋＝ ./temp/zh_CN.ts
 
-#QTPLUGIN += qsqlite
+QTPLUGIN += qsqlite
 
 SOURCES += main.cpp\
     MainWindow.cpp \

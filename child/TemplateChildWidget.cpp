@@ -71,7 +71,7 @@ bool TemplateChildWidget::getTmplPic(QString &tmplPic)
 
     if (-1 != pos)
     {
-        tmplPic = fileName.replace(pos, strlen(PKG_FMT), /*PIC_FMT*/ ".png");
+        tmplPic = fileName.replace(pos, strlen(PKG_FMT), ".png");
         if (QFile::exists(tmplPic))
         {
             return true;
@@ -534,6 +534,9 @@ const QVariantMap &TemplateChildWidget::loadPictures()
     QTime tm;
     tm.start();
 
+    QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_BEGIN));
+    //QCoreApplication::postEvent(m_container, new QEvent(CustomEvent_Load_BEGIN));
+
     foreach (const QVariant &layer, layers)
     {
         QVariantMap data = layer.toMap();
@@ -552,6 +555,8 @@ const QVariantMap &TemplateChildWidget::loadPictures()
         useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, m_currFile));
         //qDebug() << __FILE__ << __LINE__ << m_currFile;
     }
+
+    QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_Finished));
 
     qDebug() << __FILE__ << __LINE__ << "costs" << tm.elapsed() << "ms after loaded" << m_pictures.size() << "pictures";
 

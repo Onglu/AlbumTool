@@ -100,7 +100,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>1</string>
+        <string/>
        </property>
        <property name="frame">
         <bool>true</bool>
@@ -135,7 +135,7 @@
         </sizepolicy>
        </property>
        <property name="text">
-        <string>1</string>
+        <string/>
        </property>
        <property name="frame">
         <bool>true</bool>

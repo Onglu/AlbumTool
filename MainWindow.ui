@@ -218,6 +218,9 @@
    <property name="text">
     <string>模板管理(&amp;T)</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="manageAlbumAction">
    <property name="text">

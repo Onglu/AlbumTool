@@ -16,8 +16,6 @@ PictureChildWidget::PictureChildWidget(const QString &file, QSize fixedSize, boo
     m_index(0),
     m_indexLabel(NULL),
     m_picLabel(NULL),
-    m_dragging(false),
-    m_dropped(false),
     m_borderColor(Qt::transparent)
 {
     Q_ASSERT(m_container);
@@ -153,7 +151,6 @@ bool PictureChildWidget::meetDragDrop(QDropEvent *event)
         return true;
     }
 
-    m_dragging = false;
     event->ignore();
 
     return false;
@@ -163,8 +160,6 @@ void PictureChildWidget::dragEnterEvent(QDragEnterEvent *event)
 {
     if (meetDragDrop(event))
     {
-        m_dragging = true;
-
         if (children().contains(event->source()))
         {
             event->setDropAction(Qt::MoveAction);
@@ -181,8 +176,6 @@ void PictureChildWidget::dragMoveEvent(QDragMoveEvent *event)
 {
     if (meetDragDrop(event))
     {
-        m_dropped = false;
-
         if (children().contains(event->source()))
         {
             event->setDropAction(Qt::MoveAction);
@@ -222,8 +215,6 @@ void PictureChildWidget::dropEvent(QDropEvent *event)
         stream >> pix >> offset;
         m_picLabel->setPixmap(pix);
 
-        m_dragging = false;
-        m_dropped = true;
         m_container->noticeChanged();
     }
 }
