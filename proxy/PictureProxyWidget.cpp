@@ -20,7 +20,7 @@ PictureProxyWidget::PictureProxyWidget(PictureChildWidget *child, QGraphicsItem 
     setCacheMode(QGraphicsItem::DeviceCoordinateCache);
 
     setWidget(m_pChildWidget);
-    connect(m_pChildWidget, SIGNAL(itemSelected(bool)), SLOT(selectItem(bool)));
+    connect(m_pChildWidget, SIGNAL(itemSelected(/*bool*/)), SLOT(selectItem(/*bool*/)));
     connect(m_pChildWidget, SIGNAL(itemDblSelected()), SLOT(dblSelectItem()));
     connect(m_pChildWidget, SIGNAL(itemUnselected()), SLOT(unselectItem()));
     connect(m_pChildWidget, SIGNAL(itemDetached()), SLOT(detachItem()));
@@ -88,7 +88,7 @@ void PictureProxyWidget::zoomOut()
         m_pTimeLine->start();
 }
 
-void PictureProxyWidget::selectItem(bool bSingle)
+void PictureProxyWidget::selectItem(/*bool bSingle*/)
 {
     if (!scene() || !m_pChildWidget)
     {
@@ -97,6 +97,7 @@ void PictureProxyWidget::selectItem(bool bSingle)
 
     //qDebug() << __FILE__ << __LINE__ << bSingle;
 
+    bool bSingle = Qt::ControlModifier == QApplication::keyboardModifiers() ? false/* Multi-selection */ : true;
     if (bSingle)
     {
         PictureProxyWidget *proxyWidget = NULL;
@@ -145,32 +146,26 @@ void PictureProxyWidget::dblSelectItem()
         return;
     }
 
-    bool bSelected = isSelected();
-    m_pChildWidget->updateBorder(bSelected);
-    setSelected(bSelected);
+    m_pChildWidget->updateBorder(true);
+    setSelected(true);
 
-    if (bSelected)
+    m_focusScene = scene();
+    QCoreApplication::postEvent(owner, new QEvent(CustomEvent_Item_Selected));
+
+    ChildWidgetsMap widgetsMap;
+    PictureChildWidget *childWidget = NULL;
+    PictureProxyWidget *proxyWidget = NULL;
+    QList<QGraphicsItem *> items = m_focusScene->items();
+
+    foreach (QGraphicsItem *item, items)
     {
-        m_focusScene = scene();
-        QCoreApplication::postEvent(owner, new QEvent(CustomEvent_Item_Selected));
-
-        ChildWidgetsMap widgetsMap;
-        PictureChildWidget *childWidget = NULL;
-        PictureProxyWidget *proxyWidget = NULL;
-        QList<QGraphicsItem *> items = m_focusScene->items();
-
-        foreach (QGraphicsItem *item, items)
+        if ((proxyWidget = static_cast<PictureProxyWidget *>(item)) && (childWidget = &proxyWidget->getChildWidget()))
         {
-            if ((proxyWidget = static_cast<PictureProxyWidget *>(item)) && (childWidget = &proxyWidget->getChildWidget()))
-            {
-                widgetsMap.insert(childWidget->getIndex(), childWidget);
-            }
+            widgetsMap.insert(childWidget->getIndex(), childWidget);
         }
-
-        m_pChildWidget->open(widgetsMap);
     }
 
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << bSelected;
+    m_pChildWidget->open(widgetsMap);
 }
 
 void PictureProxyWidget::unselectItem()

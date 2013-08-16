@@ -34,7 +34,7 @@ void DraggableLabel::loadPicture(const QPixmap &pix, QSize size, qreal angle, Qt
     if (pix.isNull())
     {
         setStyleSheet("color: rgb(255, 0, 0)");
-        setText(tr("无法显示"));    // Bug: doesn't show text in case of owning a parent
+        setText(tr("无法显示"));    // Bug: doesn't show text in case of owning a parent widget
     }
     else
     {
@@ -99,11 +99,7 @@ void DraggableLabel::mousePressEvent(QMouseEvent *event)
 {
     if (Qt::LeftButton == event->button())
     {
-        PictureChildWidget *owner = static_cast<PictureChildWidget *>(parentWidget());
-        if (owner)
-        {
-            owner->clickPicture();
-        }
+        emit clicked();
 
         if (meetDragDrop())
         {
@@ -116,11 +112,7 @@ void DraggableLabel::mouseDoubleClickEvent(QMouseEvent *event)
 {
     if (Qt::LeftButton == event->button())
     {
-        PictureChildWidget *owner = static_cast<PictureChildWidget *>(parentWidget());
-        if (owner)
-        {
-            owner->dblClickPicture();
-        }
+        emit dblClicked();
     }
 }
 
@@ -170,7 +162,7 @@ void DraggableLabel::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
-void DraggableLabel::reset()
+void DraggableLabel::flush()
 {
     clear();
     m_belongings.clear();

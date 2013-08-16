@@ -77,8 +77,8 @@ TaskPageWidget::TaskPageWidget(int tabId, const QString &taskFile, QWidget *pare
             SLOT(addItem(int,QString,qreal,Qt::Axis,int)), Qt::BlockingQueuedConnection);
     connect(m_templatesLoader, SIGNAL(itemAdded(int,QString,int)),
             SLOT(addItem(int,QString,int)), Qt::BlockingQueuedConnection);
-    connect(m_albumsLoader, SIGNAL(itemAdded(int,QStringList,QString,QVariantList)),
-            SLOT(addItem(int,QStringList,QString,QVariantList)), Qt::BlockingQueuedConnection);
+    connect(m_albumsLoader, SIGNAL(itemAdded(int,QVariantList,QString,QVariantList)),
+            SLOT(addItem(int,QVariantList,QString,QVariantList)), Qt::BlockingQueuedConnection);
 
     connect(m_photosLoader, SIGNAL(done(uchar)), SLOT(ok(uchar)));
     connect(m_templatesLoader, SIGNAL(done(uchar)), SLOT(ok(uchar)));
@@ -102,7 +102,7 @@ TaskPageWidget::~TaskPageWidget()
     m_templatesLoader->disconnect(SIGNAL(itemAdded(int,QString,int)));
     delete m_templatesLoader;
 
-    m_albumsLoader->disconnect(SIGNAL(itemAdded(int,QStringList,QString,QVariantList)));
+    m_albumsLoader->disconnect(SIGNAL(itemAdded(int,QVariantList,QString,QVariantList)));
     delete m_albumsLoader;
 
     if (m_loadingDlg)
@@ -206,7 +206,12 @@ void TaskPageWidget::saveChanges()
 
 //        qDebug() << __FILE__ << __LINE__ << m_photosList;
 //        qDebug() << __FILE__ << __LINE__ << m_templatesList;
-//        qDebug() << __FILE__ << __LINE__ << m_albumsList;
+
+//        if (!m_albumsList.isEmpty())
+//        {
+//            QVariantMap records = m_albumsList.first().toMap();
+//            qDebug() << __FILE__ << __LINE__ << records["photos_info"].toList();
+//        }
 
         m_taskParser.saveTask(m_photosList, m_templatesList, m_albumsList);
         m_changed = false;
@@ -277,13 +282,14 @@ void TaskPageWidget::addItem(int index, const QString &file, int usedTimes)
 }
 
 void TaskPageWidget::addItem(int index,
-                             const QStringList &filesList,
+                             const QVariantList &filesList,
                              const QString &file,
                              const QVariantList &changes)
 {
     AlbumProxyWidget *proxyWidget = new AlbumProxyWidget(new AlbumChildWidget(index, filesList, file, changes, this));
     m_albumsScene->insertProxyWidget(index, proxyWidget);
     m_albumsScene->autoAdjust();
+    //qDebug() << __FILE__ << __LINE__ << "Album:" << filesList;
     //qDebug() << __FILE__ << __LINE__ << "Album:" << index << changes.size() << changes;
 }
 
@@ -445,7 +451,7 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
                             {
                                 QMessageBox::information(this,
                                                          tr("操作失败"),
-                                                         tr("不允许删除相册封面页！"),
+                                                         tr("若要删除相册封面，请执行全部删除操作！"),
                                                          tr("确定"));
                                 return QWidget::eventFilter(watched, event);
                             }
@@ -453,6 +459,7 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
                     }
 
                     //qDebug() << __FILE__ << __LINE__;
+
                     if (!focusArea.isEmpty())
                     {
                         asking = tr("确定要从当前%1当中删除掉这 %2 张%3吗？").arg(focusArea).arg(n).arg(focusArea.left(2));
@@ -462,11 +469,17 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
                         asking = tr("确定要从当前相册页当中删除掉这 %2 张照片吗？").arg(n);
                     }
 
-                    if (n && QMessageBox::AcceptRole == QMessageBox::question(this, tr("删除确认"), asking, tr("确定"), tr("取消")))
+                    bool editing = m_editPage->isVisible();
+                    QWidget *widget = editing ? static_cast<QWidget *>(m_editPage) : static_cast<QWidget *>(this);
+                    if (n && QMessageBox::AcceptRole == QMessageBox::question(widget,
+                                                                              tr("删除确认"),
+                                                                              asking,
+                                                                              tr("确定"),
+                                                                              tr("取消")))
                     {
                         focusScene->updateScenes(m_scensVector);
 
-                        if (!m_editPage->isVisible())
+                        if (!editing)
                         {
                             focusScene->removeProxyWidgets(false);
                             focusScene->adjustViewLayout();
@@ -475,7 +488,6 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
                         {
                             focusScene->removeProxyWidgets(false, m_editPage);
                             focusScene->adjustViewLayout(m_editPage->getViewWidth());
-                            m_editPage->updatePage();
                         }
 
                         noticeChanged();
@@ -574,14 +586,7 @@ void TaskPageWidget::customEvent(QEvent *ce)
     }
     else if (CustomEvent_Load_BEGIN == type)
     {
-//        if (m_editPage->isVisible())
-//        {
-//            m_editPage->updateView();
-//        }
-//        else
-        {
-            m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在加载..."));
-        }
+        m_loadingDlg->showProcess(true, QRect(this->mapToGlobal(QPoint(0, 0)), this->size()), tr("正在导入..."));
     }
 }
 
@@ -664,6 +669,8 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
 
     if (PictureGraphicsScene::SceneType_Photos == type)
     {
+        m_availablePhotos.clear();
+
         foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
         {
             const PhotoChildWidget *childWidget = (PhotoChildWidget *)proxyWidget->getChildWidgetPtr();
@@ -677,6 +684,8 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
                 {
                     portrait++;
                 }
+
+                m_availablePhotos.insert(childWidget->getIndex(), proxyWidget);
             }
         }
 
@@ -686,11 +695,13 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
 
     if (PictureGraphicsScene::SceneType_Albums == type)
     {
-        int num = 0;
-        //m_pictures.clear();
+        int blankNum = 0;
+
+        m_availableAlbums.clear();
 
         if (proxyWidgets.isEmpty())
         {
+            ui->fillPushButton->setEnabled(false);
             ui->createPushButton->setEnabled(false);
             ui->previewPushButton->setEnabled(false);
         }
@@ -699,7 +710,7 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
             int count = 0;
             int pagesNum = 0;
             int photosNum = 0;
-            bool isCreatable = false;
+            bool creatable = false;
             //QString taskFile = m_taskParser.getParsingFile(), outDir = taskFile.left(taskFile.length() - 5);
 
             foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
@@ -713,17 +724,22 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
                         continue;
                     }
 
-                    if (!isCreatable && 1 == childWidget->getIndex())
+                    if (!creatable && 1 == childWidget->getIndex())
                     {
-                        isCreatable = true;
+                        creatable = true;
                     }
 
                     uchar locations[2] = {0};
-                    int n = childWidget->getLocations(locations);
-                    if (0 < n)
+                    uchar count = childWidget->getLocations(locations);
+                    if (0 < count)
                     {
-                        photosNum += childWidget->getPhotosList().size();
-                        num += n;
+                        if (count == childWidget->getLocations())
+                        {
+                            m_availableAlbums.insert(childWidget->getIndex(), proxyWidget);
+                        }
+
+                        photosNum += childWidget->getPhotosNum();
+                        blankNum += count;
                         portrait += locations[PORTRAIT_PICTURE];
                         landscape += locations[LANDSCAPE_PICTURE];
                     }
@@ -737,15 +753,13 @@ void TaskPageWidget::countLocations(PictureGraphicsScene::SceneType type)
                 }
             }
 
-            //qDebug() << __FILE__ << __LINE__ << count;
-            //ui->createPushButton->setEnabled(!(count == proxyWidgets.size()));
-            //ui->previewPushButton->setEnabled(!m_pictures.isEmpty());
-            ui->createPushButton->setEnabled(isCreatable);
-
-            addAlbum(0 < pagesNum ? pagesNum - 1 : pagesNum, photosNum, num);
+            //qDebug() << __FILE__ << __LINE__ << photosNum;
+            ui->fillPushButton->setEnabled(!m_availableAlbums.isEmpty());
+            ui->createPushButton->setEnabled(creatable);
+            addAlbumRecord(0 < pagesNum ? pagesNum - 1 : pagesNum, photosNum, blankNum);
         }
 
-        QString info = tr("共有 %1 个空位，需要竖幅照片 %2 张，横幅照片 %3 张").arg(num).arg(portrait).arg(landscape);
+        QString info = tr("共有 %1 个空位，需要竖幅照片 %2 张，横幅照片 %3 张").arg(blankNum).arg(portrait).arg(landscape);
         ui->albumsLabel->setText(info);
     }
 }
@@ -789,25 +803,26 @@ void TaskPageWidget::importTemplates()
 
     if (0 < fp.importFiles("templates_dir", tr("导入模板"), tr("相册模板(*.xcmb)"), fileNames))
     {
-        if (MAX_DELAY_TEMPLATES_NUMBER >= fileNames.size())
-        {
-            foreach (const QString &file, fileNames)
-            {
-                if (m_templatesScene->getFilesList().contains(file, Qt::CaseInsensitive))
-                {
-                    continue;
-                }
+//        if (MAX_DELAY_TEMPLATES_NUMBER >= fileNames.size())
+//        {
+//            foreach (const QString &file, fileNames)
+//            {
+//                if (m_templatesScene->getFilesList().contains(file, Qt::CaseInsensitive))
+//                {
+//                    continue;
+//                }
 
-                int index = m_templatesScene->items().size() + 1;
-                m_templatesScene->insertProxyWidget(index,
-                                                    new TemplateProxyWidget(new TemplateChildWidget(index, file, 0, this)),
-                                                    file);
-                m_templatesScene->adjustItemPos();
-                noticeChanged();
-            }
-        }
-        else
+//                int index = m_templatesScene->items().size() + 1;
+//                m_templatesScene->insertProxyWidget(index,
+//                                                    new TemplateProxyWidget(new TemplateChildWidget(index, file, 0, this)),
+//                                                    file);
+//                m_templatesScene->adjustItemPos();
+//                noticeChanged();
+//            }
+//        }
+//        else
         {
+            //qDebug() << __FILE__ << __LINE__ << m_templatesScene->getFilesList();
             m_templatesScene->ok(false);
             m_templatesLoader->loadList(m_templatesScene->getFilesList(), fileNames);
             m_templatesLoader->begin();
@@ -824,6 +839,52 @@ void TaskPageWidget::on_addAlbumPushButton_clicked()
     noticeChanged();
 }
 
+void TaskPageWidget::on_fillPushButton_clicked()
+{
+    foreach (PictureProxyWidget *proxyWidget1, m_availableAlbums)
+    {
+        AlbumChildWidget *albumWidget = (AlbumChildWidget *)proxyWidget1->getChildWidgetPtr();
+        uchar locations[2] = {0};
+
+        foreach (PictureProxyWidget *proxyWidget2, m_availablePhotos)
+        {
+            PhotoChildWidget *photoWidget = (PhotoChildWidget *)proxyWidget2->getChildWidgetPtr();
+            if (albumWidget->getLocations(locations) && albumWidget->setPhotoInfo(photoWidget->getPictureLabel()))
+            {
+                m_availablePhotos.remove(photoWidget->getIndex());
+            }
+        }
+
+        if (albumWidget->getLocations(locations))
+        {
+            ProxyWidgetsMap proxyWidgets = m_scensVector[PictureGraphicsScene::SceneType_Photos]->getProxyWidgets();
+            foreach (PictureProxyWidget *proxyWidget3, proxyWidgets)
+            {
+                PhotoChildWidget *photoWidget = (PhotoChildWidget *)proxyWidget3->getChildWidgetPtr();
+                DraggableLabel *picLabel = photoWidget->getPictureLabel();
+                int orie = picLabel->getOrientation();
+
+                if (PORTRAIT_PICTURE == orie && 0 < locations[PORTRAIT_PICTURE] && albumWidget->setPhotoInfo(picLabel))
+                {
+                    locations[PORTRAIT_PICTURE]--;
+                }
+
+                if (LANDSCAPE_PICTURE == orie && 0 < locations[LANDSCAPE_PICTURE] && albumWidget->setPhotoInfo(picLabel))
+                {
+                    locations[LANDSCAPE_PICTURE]--;
+                }
+
+                if (!locations[PORTRAIT_PICTURE] && !locations[LANDSCAPE_PICTURE])
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    ui->fillPushButton->setEnabled(false);
+}
+
 void TaskPageWidget::on_createPushButton_clicked()
 {
 #if 1
@@ -836,12 +897,12 @@ void TaskPageWidget::on_createPushButton_clicked()
         AlbumChildWidget *childWidget = static_cast<AlbumChildWidget *>(proxyWidget->getChildWidgetPtr());
         if (childWidget)
         {
-            count += childWidget->getPhotosList().size();
-            num += childWidget->getLocations(locations);
+            num += childWidget->getPhotosNum();
+            count += childWidget->getLocations(locations);
         }
     }
 
-    QString asking = tr("本套相册共有 %1 页，入册照片 %2 张，相册中剩余 %3 个空位。确定要开始生成吗？").arg(proxyWidgets.size()).arg(count).arg(num);
+    QString asking = tr("本套相册共有 %1 页，入册照片 %2 张，相册中剩余 %3 个空位。确定要开始生成吗？").arg(proxyWidgets.size()).arg(num).arg(count);
     if (QMessageBox::RejectRole == QMessageBox::question(this, tr("操作提示"), asking, tr("确定"), tr("取消")))
     {
         return;
@@ -888,7 +949,7 @@ void TaskPageWidget::on_createPushButton_clicked()
     m_tm.start();
 
     QStringList args;
-    args << outDir << childDir << QString("%1").arg(num);
+    args << outDir << childDir << QString("%1").arg(count);
     m_maker.begin(args);
 
     QString info = tr("正在生成相册...");
@@ -913,8 +974,8 @@ void TaskPageWidget::process(int index, const QStringList &args)
 {
     //qDebug() << __FILE__ << __LINE__ << "now:" << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss:zzz");
 
-    QTime t;
-    t.start();
+//    QTime t;
+//    t.start();
 
 #if 0
     while(t.elapsed() < 2000);
@@ -964,7 +1025,7 @@ void TaskPageWidget::process(int index, const QStringList &args)
                                     tr("\"%1\" \"%2\"").arg(m_album).arg(outDir),
                                     true);
 
-        addAlbum(pagesNum, m_photosNum, args.at(2).toInt());
+        addAlbumRecord(pagesNum, m_photosNum, args.at(2).toInt());
         m_loadingDlg->showProcess(false);
         ui->previewPushButton->setEnabled(true);
 
@@ -974,13 +1035,19 @@ void TaskPageWidget::process(int index, const QStringList &args)
         return;
     }
 
-    qDebug() << __FILE__ << __LINE__ << "out album page" << index << "costs" << t.elapsed() << "ms";
+    //qDebug() << __FILE__ << __LINE__ << "out album page" << index << "costs" << t.elapsed() << "ms";
 
     int photosNum;
     AlbumChildWidget *childWidget = static_cast<AlbumChildWidget *>(proxyWidgets[index]->getChildWidgetPtr());
 
-    if (childWidget && (photosNum = childWidget->output(childDir)))
+    if (childWidget)
     {
+        photosNum = childWidget->output(childDir);
+        if (INVALID_PHOTO_INDEX == photosNum)
+        {
+            return;
+        }
+
         QVariantMap data = childWidget->getData();
         QString picFile;
 
@@ -1007,7 +1074,7 @@ void TaskPageWidget::process(int index, const QStringList &args)
     //qDebug() << __FILE__ << __LINE__ << "now:" << QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss:zzz");
 }
 
-QString TaskPageWidget::getAlbum()
+QString TaskPageWidget::getAlbumFile()
 {
     if (m_album.isEmpty())
     {
@@ -1027,9 +1094,9 @@ QString TaskPageWidget::getAlbum()
     return m_album;
 }
 
-void TaskPageWidget::addAlbum(int pagesNum, int photosNum, int blankNum)
+void TaskPageWidget::addAlbumRecord(int pagesNum, int photosNum, int blankNum)
 {
-    if (getAlbum().isEmpty())
+    if (getAlbumFile().isEmpty())
     {
         return;
     }
@@ -1049,6 +1116,7 @@ void TaskPageWidget::addAlbum(int pagesNum, int photosNum, int blankNum)
 
     QSqlQuery query;
     query.exec(sql);
+    //qDebug() << __FILE__ << __LINE__ << sql;
 }
 
 void TaskPageWidget::on_previewPushButton_clicked()

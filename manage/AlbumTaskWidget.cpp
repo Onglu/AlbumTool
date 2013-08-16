@@ -15,12 +15,20 @@
 #include <QNetworkAccessManager>
 #include <QHttp>
 
-#define INTERVAL_TIME               100     // ms
-#define FILE_DATA_CHUNK             /*1024*/100 * 1024
+#ifdef PUBLIC_ENV
+#define UPDATE_NAME_URL             "http://www.ccg365.com:9080/SwfUpload2/updatename?"
+#define UPLOAD_FILE_URL             "http://www.ccg365.com:9080/SwfUpload2/fileupload"
+#define GET_UPLOAD_FILE_SIZE_URL    "http://www.ccg365.com:9080/SwfUpload2/getuploadedsize?md5="
+#define PUBLISH_URL                 "http://www.ccg365.com:9080/SwfUpload2/release?"
+#else
 #define UPDATE_NAME_URL             "http://192.168.2.120:8080/SwfUpload2/updatename?"
 #define UPLOAD_FILE_URL             "http://192.168.2.120:8080/SwfUpload2/fileupload"
 #define GET_UPLOAD_FILE_SIZE_URL    "http://192.168.2.120:8080/SwfUpload2/getuploadedsize?md5="
 #define PUBLISH_URL                 "http://192.168.2.120:8080/SwfUpload2/release?"
+#endif
+
+#define INTERVAL_TIME               50     // ms
+#define FILE_DATA_CHUNK             /*1024*/100 * 1024
 
 using namespace QtJson;
 

@@ -8,7 +8,7 @@
 #include <QTime>
 
 using namespace QtJson;
-using namespace TemplatesSql;
+using namespace TemplateEngine;
 
 TemplateChildWidget::TemplateChildWidget(int index,
                                          const QString &file,
@@ -92,23 +92,31 @@ int TemplateChildWidget::getId()
     return SqlHelper::getId(sql);
 }
 
+uchar TemplateChildWidget::getLocations() const
+{
+    QVariantMap belongings = m_picLabel->getBelongings();
+    QVariantMap data = belongings["page_data"].toMap();
+    return (data["portraitCount"].toInt() + data["landscapeCount"].toInt());
+}
+
 void TemplateChildWidget::onAccept(const QVariantMap &belongings)
 {
     QString tmplFile = belongings["template_file"].toString();
-    //qDebug() << __FILE__ << __LINE__ << tmplFile << m_tmplFile;
+    //qDebug() << __FILE__ << __LINE__ << tmplFile << m_tmplFile << m_pictures.size();
 
     if (!tmplFile.isEmpty() && m_tmplFile != tmplFile)
     {
-        m_pictures = m_container->getTmplWidget(tmplFile)->getPictures();
-        m_tmplFile = tmplFile;
+        TemplateChildWidget *tmpl = m_container->getTmplWidget(tmplFile);
+        if (tmpl)
+        {
+            QVariantMap pictures = m_pictures;
+            m_pictures = tmpl->getPictures();
+            tmpl->inportPictures(m_tmplFile, pictures);
+            m_tmplFile = tmplFile;
+        }
     }
 
-    QString tmplPic = belongings["picture_file"].toString();
-    if (!tmplPic.isEmpty() && m_tmplPic != tmplPic)
-    {
-        m_tmplPic = tmplPic;
-    }
-
+    m_tmplPic = belongings["picture_file"].toString();
     m_records["used_times"] = belongings["used_times"];
 
     PictureChildWidget::onAccept(belongings);
@@ -211,6 +219,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
             return;
         }
 
+        // If not existing the preview picture, extracts it again from the template package
         if (!getTmplPic(m_tmplPic))
         {
             m_currFile = m_tmplPic = PIC_NAME;
@@ -228,7 +237,7 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
     {
         QString name = content.mid(8);
 
-        //qDebug() << __FILE__ << __LINE__ << m_currFile << pix.isNull();
+        //qDebug() << __FILE__ << __LINE__ << m_currFile;
 
         //QPixmap pixe;
         //if (pixe.loadFromData(m_pictures[m_currFile].toByteArray()))
@@ -238,25 +247,23 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
             loadPicture(results, name);
         }
         else
-        {
+        {     
             QPixmap pix(name);
+
+#if LOAD_FROM_MEMORY
             QFile file(name);
             if (!pix.isNull() && file.open(QIODevice::ReadOnly))
             {
-                //m_pictures.insert(m_currFile, file.readAll());
                 m_pictures.insert(m_currFile, qCompress(file.readAll(), 5));
                 file.remove();
             }
-
-//            QPixmap pix(name);
-//            if (!pix.isNull())
-//            {
-//                QByteArray bytes;
-//                QBuffer buffer(&bytes);
-//                buffer.open(QIODevice::WriteOnly);
-//                pix.save(&buffer, "PNG");
-//                m_pictures.insert(m_currFile, bytes);
-//            }
+#else
+            if (!pix.isNull())
+            {
+                m_pictures.insert(m_currFile, new QPixmap(pix));
+            }
+            QFile::remove(name);
+#endif
         }
 
         QFile::remove(m_currFile);
@@ -513,10 +520,53 @@ void TemplateChildWidget::loadPicture(QVariantMap &data, QString tmplPic)
 
         m_sql.bindData(data);
         m_sql.start();
+
+//        if (m_pictures.isEmpty())
+//        {
+//            m_tm.start();
+//            m_loader.start(10);
+//        }
+
+        loadPictures();
     }
 
     data.clear();
 }
+
+#if 0
+void TemplateChildWidget::loadPicture()
+{
+    QVariantMap belongings = m_picLabel->getBelongings();
+    QVariantMap data = belongings["page_data"].toMap();
+    QVariantList layers = data["layers"].toList();
+    int count = layers.size();
+
+    qDebug() << __FILE__ << __LINE__ << m_lid << count << m_tmplPic;
+    if (m_lid < count)
+    {
+        QVariantMap layer = layers[m_lid].toMap();
+        m_currFile = layer["id"].toString();
+        if (LT_Photo == layer["type"].toInt())
+        {
+            return;
+        }
+        else
+        {
+            m_currFile += ".png";
+        }
+
+        QString args;
+        useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, m_currFile));
+
+        if (count <= ++m_lid)
+        {
+            qDebug() << __FILE__ << __LINE__ << "costs" << m_tm.elapsed() << "ms after loaded" << m_lid << "pictures";
+            m_loader.stop();
+            m_lid = 0;
+        }
+    }
+}
+#endif
 
 const QVariantMap &TemplateChildWidget::loadPictures()
 {
@@ -534,7 +584,7 @@ const QVariantMap &TemplateChildWidget::loadPictures()
     QTime tm;
     tm.start();
 
-    QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_BEGIN));
+    //QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_BEGIN));
     //QCoreApplication::postEvent(m_container, new QEvent(CustomEvent_Load_BEGIN));
 
     foreach (const QVariant &layer, layers)
@@ -556,9 +606,31 @@ const QVariantMap &TemplateChildWidget::loadPictures()
         //qDebug() << __FILE__ << __LINE__ << m_currFile;
     }
 
-    QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_Finished));
+    //QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_Finished));
 
-    qDebug() << __FILE__ << __LINE__ << "costs" << tm.elapsed() << "ms after loaded" << m_pictures.size() << "pictures";
+    qDebug() << __FILE__ << __LINE__ << "loaded" << m_pictures.size() << "pictures from" << m_tmplFile << "costs" << tm.elapsed() << "ms in total";
 
     return m_pictures;
+}
+
+const QVariantMap &TemplateChildWidget::getFrame(const QString &lid, QVariantMap &frame)
+{
+    if (!lid.isEmpty())
+    {
+        QVariantMap belongings = m_picLabel->getBelongings();
+        QVariantMap data = belongings["page_data"].toMap();
+        QVariantList layers = data["layers"].toList();
+
+        foreach (const QVariant &layer, layers)
+        {
+            QVariantMap data = layer.toMap();
+            if (lid == data["id"].toString())
+            {
+                frame = data["frame"].toMap();
+                break;
+            }
+        }
+    }
+
+    return frame;
 }

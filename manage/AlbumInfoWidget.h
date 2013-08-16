@@ -58,6 +58,8 @@ private slots:
 
     void on_telnoLineEdit_textChanged(const QString &arg1);
 
+    void on_nameLineEdit_returnPressed();
+
     void on_renamePushButton_clicked();
 
     void on_setPushButton_clicked();

@@ -12,6 +12,8 @@ class PreviewDialog;
 class TemplateChildWidget;
 class TaskPageWidget;
 
+using namespace TaskLoader;
+
 namespace TaskPage
 {
     class MakerThread : public QThread
@@ -97,7 +99,7 @@ public:
 
     QString getPageId(void) const {return m_taskParser.getPageId();}
 
-    QString getAlbum(void);
+    QString getAlbumFile(void);
 
 signals:
     void changed(int index);
@@ -115,6 +117,8 @@ private slots:
 
     void on_addAlbumPushButton_clicked();
 
+    void on_fillPushButton_clicked();
+
     void on_createPushButton_clicked();
 
     void on_previewPushButton_clicked();
@@ -130,7 +134,7 @@ private slots:
     void addItem(int index, const QString &file, int usedTimes);
 
     void addItem(int index,
-                 const QStringList &filesList,
+                 const QVariantList &filesList,
                  const QString &file,
                  const QVariantList &changes);
 
@@ -143,7 +147,7 @@ private:
 
     void countLocations(PictureGraphicsScene::SceneType type);
 
-    void addAlbum(int pagesNum, int photosNum, int blankNum);
+    void addAlbumRecord(int pagesNum, int photosNum, int blankNum);
 
     Ui::TaskPageWidget *ui;
     int m_tabId;
@@ -164,8 +168,9 @@ private:
 
     GraphicsScenesVector m_scensVector;
     PictureGraphicsScene *m_photosScene, *m_templatesScene, *m_albumsScene, *m_focusScene;
+    ProxyWidgetsMap m_availablePhotos, m_availableAlbums;
 
-    /* Configurations */
+    /* Configuration records */
     QVariantList m_photosList, m_templatesList, m_albumsList, m_pages;
 
     /* Child windows/widgets */

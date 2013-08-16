@@ -77,12 +77,14 @@ public:
 
     const QStringList &getFilesList(void){return m_filesList;}
 
-    void getChanges(QVariantList &changesList);
+    void getChanges(QVariantList &changes);
 
 private:
     int getViewWidth(void) const;
 
     void excludeItems(SceneType type, const QStringList &filesList);
+
+    void clearTimes(SceneType type);
 
     LayoutMode m_layout;
     const SceneType m_type;

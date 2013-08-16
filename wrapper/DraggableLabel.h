@@ -7,7 +7,6 @@
 #define DRAGGABLE_PHOTO         "image/x-draggable-photo-83207"
 #define DRAGGABLE_TEMPLATE      "image/x-draggable-template-23807"
 #define DRAGGABLE_ALBUM         "image/x-draggable-album-80732"
-#define TEXT_SEP                '|'
 #define PORTRAIT_PICTURE        0
 #define LANDSCAPE_PICTURE       1
 
@@ -47,14 +46,14 @@ public:
             return -1;
         }
 
-        return (0 < m_pix.width() - m_pix.height() ? LANDSCAPE_PICTURE : PORTRAIT_PICTURE);
+        return (m_pix.width() >= m_pix.height() ? LANDSCAPE_PICTURE : PORTRAIT_PICTURE);
     }
 
     QString getMimeType(void) const {return m_mimeType;}
     bool hasMimeType(void) const {return !m_mimeType.isEmpty();}
     void clearMimeType(void){if (hasMimeType()){m_mimeType.clear();}}
 
-    void reset(void);
+    void flush(void);
 
     /* Accept drag-drop require and handle it */
     void accept(bool inner = false);
@@ -64,6 +63,8 @@ public:
 
 signals:
     void hasAccepted(const QVariantMap &belongings);
+    void clicked(void);
+    void dblClicked(void);
 
 protected:
     void mousePressEvent(QMouseEvent *event);

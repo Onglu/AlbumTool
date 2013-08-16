@@ -8,6 +8,10 @@
 #include <QNetworkReply>
 #include "defines.h"
 
+#ifndef PUBLIC_ENV
+#define PUBLIC_ENV
+#endif
+
 #define MAX_TIMEOUT                 30000
 #define USER_ALBUM                  1
 #define SAMPLE_ALBUM                2

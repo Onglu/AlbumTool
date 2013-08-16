@@ -158,7 +158,7 @@ inline void MainWindow::addPage(AddMethod method, QString taskFile, QString task
         ui->tabWidget->addTab(taskPage, taskName);
         ui->tabWidget->setCurrentIndex(count);
 
-        QString album = taskPage->getAlbum();
+        QString album = taskPage->getAlbumFile();
         if (!album.isEmpty() && m_am->isVisible())
         {
             m_am->openWnd(QStringList() << album);
@@ -255,6 +255,8 @@ void MainWindow::on_saveAction_triggered()
             ui->tabWidget->setTabText(index, label.left(label.length() - 2));
         }
     }
+
+    //qDebug() << __FILE__ << __LINE__ << "save action";
 }
 
 void MainWindow::on_saveasAction_triggered()
@@ -290,20 +292,20 @@ void MainWindow::on_manageTemplateAction_triggered()
 void MainWindow::on_manageAlbumAction_triggered()
 {
     QStringList albums;
-//    int count = ui->tabWidget->count();
+    int count = ui->tabWidget->count();
 
-//    for (int i = 0; i < count; i++)
-//    {
-//        TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i));
-//        QString album = taskPage->getAlbum();
-//        if (!album.isEmpty())
-//        {
-//            albums << album;
-//        }
-//    }
+    for (int i = 0; i < count; i++)
+    {
+        TaskPageWidget *taskPage = static_cast<TaskPageWidget *>(ui->tabWidget->widget(i));
+        QString album = taskPage->getAlbumFile();
+        if (!album.isEmpty())
+        {
+            albums << album;
+        }
+    }
 
     // for test
-    albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc") << tr("E:\\images\\赵六.xc") << tr("E:\\images\\孙七.xc");
+    //albums << tr("E:\\images\\album.xc") << tr("E:\\images\\李四相册.xc") << tr("E:\\images\\王五相册.xc") << tr("E:\\images\\张三相册.xc") << tr("E:\\images\\赵六.xc") << tr("E:\\images\\孙七.xc");
 
     m_am->openWnd(albums);
 }

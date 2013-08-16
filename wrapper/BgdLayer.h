@@ -2,6 +2,7 @@
 #define BGDLAYER_H
 
 #include "PhotoLayer.h"
+#include "child/TemplateChildWidget.h"
 
 typedef QVector<PhotoLayer *> LabelsVector;
 
@@ -36,7 +37,7 @@ public:
     /* get the scaled size after loaded picture */
     void loadPixmap(const QPixmap &pix);
 
-    void loadLayers(int locations/* The number of used photos */,
+    void loadLayers(int locations,
                     const QVariantList &layers,
                     const LabelsVector &labels)
     {
@@ -45,16 +46,18 @@ public:
         m_labels = labels;
     }
 
-    enum ActionState{Pressed, Released, Left};
+    //void loadPictures(const PicturesMap &pictures){m_pictures = pictures;}
+
+    enum ActionState{Press, Releas, Leave};
 
     void updateBorder(ActionState state, QRect visiableRect = QRect())
     {
-        if (Pressed == state)
+        if (Press == state)
         {
             m_borderColor = Qt::darkCyan;
             m_visiableRect = visiableRect;
         }
-        else if (Released == state)
+        else if (Releas == state)
         {
             m_borderColor = Qt::green;
         }
@@ -66,13 +69,15 @@ public:
         repaint();
     }
 
-    void compose(const QString &fileName = QString());
+    void compose(const QString &saveFile = QString());
 
     void flush(void)
     {
         m_srcImg = QImage();
         m_actualSize = m_ratioSize = QSizeF(1, 1);
+        m_borderColor = Qt::transparent;
         clear();
+        repaint();
     }
 
 protected:
@@ -80,11 +85,14 @@ protected:
 
 private:
     QBrush m_borderColor;
-    const PhotoLayer::VisiableImgType m_type;
     QImage m_srcImg;
+
+    const PhotoLayer::VisiableImgType m_type;
     QRect m_visiableRect;
     QSizeF m_actualSize, m_ratioSize; // background scale ratio size
     int m_locations;
+
+    //PicturesMap m_pictures;
     QVariantList m_layers;
     LabelsVector m_labels;
 };

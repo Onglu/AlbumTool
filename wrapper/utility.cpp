@@ -2,6 +2,8 @@
 #include <QDebug>
 #include <QtSql>
 
+using namespace TaskLoader;
+
 const QStringList &Converter::v2l(const QVector<QString> strVector, QStringList &strList)
 {
     int size = strVector.size();
@@ -31,10 +33,11 @@ int Converter::num(const QStringList &strList, bool empty)
     return n;
 }
 
-const QString &Converter::getFileName(const QString &fullPath, QString &fileName, bool suffix)
+const QString &Converter::getFileName(QString fullPath, QString &fileName, bool suffix)
 {
     if (!fullPath.isEmpty())
     {
+        fullPath = QDir::toNativeSeparators(fullPath);
         int pos = -1, start = fullPath.lastIndexOf(QDir::separator()) + 1;
 
         if (!suffix && -1 != (pos = fullPath.lastIndexOf('.')))
@@ -227,9 +230,13 @@ bool LoaderThread::loadRecords()
         }
         else
         {
-            QStringList photosList = records["photos_list"].toStringList();
-            QString tmplFile = records["template_file"].toString();
-            emit itemAdded(index, photosList, tmplFile, records["photo_layers"].toList());
+            //QStringList photosList = records["photos_list"].toStringList();
+
+            //QString tmplFile = records["template_file"].toString();
+            emit itemAdded(index,
+                           /*photosList*/records["photos_info"].toList(),
+                           records["template_file"].toString(),
+                           records["photo_layers"].toList());
         }
 
         loaded = true;

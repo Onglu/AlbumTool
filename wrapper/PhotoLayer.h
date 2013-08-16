@@ -38,11 +38,14 @@ public:
         m_bgdRect = bgdRect;
     }
 
-    bool loadPhoto(const QVariantMap &photoLayer,
+    bool loadPhoto(bool restore,
+                   const QVariantMap &photoLayer,
                    const QString &photoFile = QString(),
                    qreal angle = 0,
                    Qt::Axis axis = Qt::ZAxis,
-                   int id = -1);
+                   QRect location = QRect(),
+                   int thumbId = -1
+                   );
 
     void changePhoto(const QString &photoFile,
                      qreal angle = 0,
@@ -52,10 +55,24 @@ public:
 
     const QString &getPhotoFile(void) const {return m_picFile;}
 
-    void setId(int id){m_id = id;}
-    int getId(void) const {return m_id;}
+    const QPixmap &getPicture(bool bk)
+    {
+        if (m_angle)
+        {
+            return QPixmap(m_picFile);
+        }
 
-    float getOpacity(void) const {return m_opacity;}
+        return bk ? m_bk : m_ori;
+    }
+
+    void setThumbId(int thumbId){m_thumbId = thumbId;}
+    int getThumbId(void) const {return m_thumbId;}
+
+    QString getLayerId(void) const;
+
+    //qreal getAngle(void) const {return m_angle;}
+
+    //float getOpacity(void) const {return m_opacity;}
 
     QRect getVisiableRect(VisiableRectType type = VisiableRectTypeDefault) const
     {
@@ -92,15 +109,13 @@ public:
 
     void movePhoto(QPoint offset);
 
-    bool zoomAction(float scale);
+    bool zoomAction(float ratio);
 
-    void flipAction(void){rotate(180.0f, Qt::YAxis);}
+    void rotateAction(qreal angle, Qt::Axis axis = Qt::ZAxis);
 
     void updateRect(void);
 
     void flush(bool all = true);
-
-    void blend(void);
 
     static PhotoLayer *getReplaced(PhotoLayer *&layer)
     {
@@ -110,7 +125,7 @@ public:
     }
 
 signals:
-    void clicked(PhotoLayer &self, QPoint pos);
+    void clicked(QPoint wpos, QPoint epos);
 
     void replaced(const QString &tmplPic, const QString &tmplFile);
 
@@ -121,22 +136,25 @@ protected:
     void dropEvent(QDropEvent *event);
 
 private:
-    void updateCanvasRect(void);
+    void blend(void);
 
-    void updateVisiableRect(QRect copiedRect = QRect());
+    void updateCanvasRect(bool restore = false);
+
+    void updateVisiableRect(void);
 
     void updateCopiedRect(void);
 
     const VisiableImgType m_type;
     bool m_moveable, m_moved;
-    float m_opacity;
-
-    QSize m_default;
     QSizeF m_ratioSize; // Visiable size devides actual size
     QRect m_bgdRect, m_maskRect, m_visiableRects[VISIABLE_RECT_TYPES];
+    QPixmap m_src;
     QImage m_visiableImg, m_maskImg, m_composedImg;
     QString m_picFile;
-    int m_id;
+    int m_thumbId;
+
+//    qreal m_angle;
+//    float m_opacity;
 
     static PhotoLayer *m_replaced;
 };

@@ -366,6 +366,12 @@ void AlbumInfoWidget::on_okPushButton_clicked()
     emit accepted(true, ui->comboBox->currentText(), sample);
 }
 
+void AlbumInfoWidget::on_nameLineEdit_returnPressed()
+{
+    ui->nameLineEdit->clearFocus();
+    ui->renamePushButton->click();
+}
+
 void AlbumInfoWidget::on_renamePushButton_clicked()
 {
     if (ui->nameLineEdit->isHidden())

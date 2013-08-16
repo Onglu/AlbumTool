@@ -36,7 +36,7 @@ public:
         return current;
     }
 
-    static const QString &getFileName(const QString &fullPath,
+    static const QString &getFileName(QString fullPath,
                                       QString &fileName,
                                       bool suffix);
 };
@@ -58,86 +58,90 @@ private:
     QString m_error;
 };
 
-class LoaderThread : public QThread
+namespace TaskLoader
 {
-    Q_OBJECT
-
-public:
-    LoaderThread(ViewType view) : m_running(false), m_suspended(false), m_viewType(view){}
-    LoaderThread(const LoaderThread &loader) : m_running(false), m_suspended(false){m_viewType = loader.m_viewType;}
-    ~LoaderThread(void){end();}
-
-    void loadList(const QVariantList &recordsList){m_recordsList = recordsList;}
-    void loadList(const QStringList &existingsList, const QStringList &filesList)
+    class LoaderThread : public QThread
     {
-        m_existingsList = existingsList;
-        m_filesList = filesList;
-    }
+        Q_OBJECT
 
-    void begin(void)
-    {
-        if (!m_recordsList.isEmpty() || !m_filesList.isEmpty())
+    public:
+        LoaderThread(ViewType view) : m_running(false), m_suspended(false), m_viewType(view){}
+        LoaderThread(const LoaderThread &loader) : m_running(false), m_suspended(false){m_viewType = loader.m_viewType;}
+        ~LoaderThread(void){end();}
+
+        void loadList(const QVariantList &recordsList){m_recordsList = recordsList;}
+        void loadList(const QStringList &existingsList, const QStringList &filesList)
         {
-            if (!isRunning())
+            m_existingsList = existingsList;
+            m_filesList = filesList;
+        }
+
+        void begin(void)
+        {
+            if (!m_recordsList.isEmpty() || !m_filesList.isEmpty())
             {
-                m_running = true;
-                start();
+                if (!isRunning())
+                {
+                    m_running = true;
+                    start();
+                }
+                else
+                {
+                    reset();    // resume it
+                }
+            }
+        }
+
+        void end(void);
+
+        bool isActive(void)
+        {
+            if (m_running)
+            {
+                if (m_suspended)
+                {
+                    return false;
+                }
+
+                return true;
             }
             else
             {
-                reset();    // resume it
-            }
-        }
-    }
-
-    void end(void);
-
-    bool isActive(void)
-    {
-        if (m_running)
-        {
-            if (m_suspended)
-            {
                 return false;
             }
-
-            return true;
         }
-        else
-        {
-            return false;
-        }
-    }
 
-signals:
-    void itemAdded(int index, const QString &file, qreal angle, Qt::Axis axis, int usedTimes);
+    signals:
+        void itemAdded(int index, const QString &file, qreal angle, Qt::Axis axis, int usedTimes);
 
-    void itemAdded(int index, const QString &file, int usedTimes);
+        void itemAdded(int index, const QString &file, int usedTimes);
 
-    void itemAdded(int index,
-                   const QStringList &filesList,
-                   const QString &file/* Template data file */,
-                   const QVariantList &changes);
+        void itemAdded(int index,
+                       //const QStringList &filesList,
+                       const QVariantList &filesList,
+                       const QString &file/* Template data file */,
+                       const QVariantList &changes);
 
-    void done(uchar state);
+        void done(uchar state);
 
-protected:
-    void run();
+    protected:
+        void run();
 
-private:
-    void reset(void);
+    private:
+        void reset(void);
 
-    bool loadRecords(void);
-    bool loadFiles(void);
+        bool loadRecords(void);
+        bool loadFiles(void);
 
-    volatile bool m_running, m_suspended;
-    QWaitCondition m_loadCond;
-    QMutex m_loadMutex;
+        volatile bool m_running, m_suspended;
+        QWaitCondition m_loadCond;
+        QMutex m_loadMutex;
 
-    QVariantList m_recordsList;
-    QStringList m_existingsList, m_filesList;
-    ViewType m_viewType;
-};
+        QVariantList m_recordsList;
+        QStringList m_existingsList, m_filesList;
+        ViewType m_viewType;
+    };
+}
 
 class CryptThread : public QThread
 {

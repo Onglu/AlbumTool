@@ -5,7 +5,6 @@
 #include <QImageReader>
 
 class QGraphicsScene;
-typedef QMap<QString, QPixmap> PicturesMap;
 typedef QList<QPixmap> PicturesList;
 
 namespace Ui {

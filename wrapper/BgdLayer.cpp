@@ -21,9 +21,9 @@ void BgdLayer::loadPixmap(const QPixmap &pix)
     }
 }
 
-void BgdLayer::compose(const QString &fileName)
+void BgdLayer::compose(const QString &saveFile)
 {
-    if (VISIABLE_IMG_TYPES <= m_type || m_srcImg.isNull())
+    if (VISIABLE_IMG_TYPES <= m_type || m_srcImg.isNull() /*|| m_pictures.isEmpty()*/)
     {
         return;
     }
@@ -71,11 +71,28 @@ void BgdLayer::compose(const QString &fileName)
             int x = pos.x() - size.width() / 2;
             int y = pos.y() - size.height() / 2;
 
+#if LOAD_FROM_MEMORY
             QImage img(size, QImage::Format_ARGB32);
             if (!img.loadFromData(data["picture"].toByteArray()))
             {
                 continue;
             }
+#else
+            QImage img;
+            QPixmap *pix = m_pictures[file];
+            if (pix->isNull())
+            {
+                continue;
+            }
+
+            img = pix->toImage().convertToFormat(QImage::Format_ARGB32);
+
+//            QImage img = m_pictures[file];
+//            if (img.isNull())
+//            {
+//                continue;
+//            }
+#endif
 
             painter.setTransform(QTransform().rotate(angle));
             painter.setOpacity(opacity);
@@ -98,7 +115,7 @@ void BgdLayer::compose(const QString &fileName)
     }
     else
     {
-        composedImg.save(fileName);
+        composedImg.save(saveFile);
     }
 }
 

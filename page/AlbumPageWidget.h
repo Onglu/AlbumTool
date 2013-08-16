@@ -3,8 +3,10 @@
 
 #include <QWidget>
 #include "wrapper/BgdLayer.h"
+//#include "child/TemplateChildWidget.h"
 
 class AlbumChildWidget;
+class TemplateChildWidget;
 class ThumbChildWidget;
 class EditPageWidget;
 
@@ -17,20 +19,20 @@ public:
 
     void clearLayers(void);
 
-    bool loadPhoto(int index,
-                   const QString &fileName,
-                   qreal angle = 0,
-                   Qt::Axis axis = Qt::ZAxis,
-                   int id = -1,
-                   uchar usedTimes = 0);
+//    bool loadPhoto(int index,
+//                   QVariantMap &record,
+//                   const QString &fileName,
+//                   qreal angle = 0,
+//                   Qt::Axis axis = Qt::ZAxis,
+//                   int id = -1
+//                   );
 
-    int loadPhotos(const QStringList &photosList);
+    //int loadPhotos(const QVariantList &photosInfo);
 
-    bool exportPhoto(int index,
-                     const QString &fileName,
-                     const QString &savePath,
-                     qreal angle = 0,
-                     Qt::Axis axis = Qt::ZAxis);
+    int loadPhotos(QVariantList &photosInfo,
+                   int totalTimes,
+                   int photosNum,
+                   const QString &savePath = QString());
 
     void removePhoto(const QString &fileName);
 
@@ -38,18 +40,27 @@ public:
 
     //const LabelsVector &getLayerLabels(void){return m_layerLabels;}
 
+    void sort(QVariantList &records);
+
     void replace(AlbumChildWidget &album,
                  const ThumbChildWidget *thumb,
                  PhotoLayer *label = NULL);
 
-    void compose(int count = -1, const QString &fileName = QString());
-
-    void showPage(bool visiable);
+    void compose(int locations = -1, const QString &saveFile = QString());
 
 private:
+    QRect getLocation(const QString &layerId, const QString &maskFile) const;
+
+    QRect getLocation(const QVariantMap &frame) const;
+
+    void exportPhoto(const QImage &image, const QString &savePath, const QString &fileName);
+
+    //PicturesMap m_pictures;
     QVariantList m_layers, m_photoLayers;
     LabelsVector m_layerLabels;
     BgdLayer *m_bgdLabel;
+
+    TemplateChildWidget *m_tmplWidget;
 
     friend class AlbumChildWidget;
     friend class EditPageWidget;

@@ -74,8 +74,9 @@ void PictureChildWidget::setPictureLabel(const QPixmap &pix,
     }
 
     m_picLabel = new DraggableLabel(pix, scaledSize, mimeType, parent);
-    m_picLabel->installEventFilter(this);
     connect(m_picLabel, SIGNAL(hasAccepted(QVariantMap)), SLOT(onAccept(QVariantMap)));
+    connect(m_picLabel, SIGNAL(clicked()), SIGNAL(itemSelected()));
+    connect(m_picLabel, SIGNAL(dblClicked()), SIGNAL(itemDblSelected()));
 
     if (QPoint(0, 0) != pos)
     {
@@ -116,9 +117,10 @@ void PictureChildWidget::open(ChildWidgetsMap &widgetsMap)
     {
         foreach (PictureChildWidget *childWidget, widgetsMap)
         {
-            if ((picLabel = childWidget->getPictureLabel()) && "" != (picture = picLabel->getPictureFile()))
+            if ((picLabel = childWidget->getPictureLabel()) &&
+                    "" != (picture = picLabel->getPictureFile()))
             {
-                pictures << picture;
+                pictures << QDir::toNativeSeparators(picture);
             }
         }
 
@@ -132,7 +134,7 @@ void PictureChildWidget::swap(DraggableLabel &dragger)
 
     from = dragger.getBelongings();
     to = m_picLabel->getBelongings();
-    //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << "dragger: from =" << from << ", to =" << to;
+    //qDebug() << __FILE__ << __LINE__ << "dragger: from =" << from << ", to =" << to;
 
     dragger.setBelongings(to);
     m_picLabel->setBelongings(from);
@@ -217,23 +219,6 @@ void PictureChildWidget::dropEvent(QDropEvent *event)
 
         m_container->noticeChanged();
     }
-}
-
-bool PictureChildWidget::eventFilter(QObject *watched, QEvent *event)
-{
-    if (m_picLabel == watched)
-    {
-        if (QEvent::MouseButtonPress == event->type())
-        {
-            return clickPicture();
-        }
-        else if (QEvent::MouseButtonDblClick == event->type())
-        {
-            return dblClickPicture();
-        }
-    }
-
-    return QWidget::eventFilter(watched, event);
 }
 
 void PictureChildWidget::paintEvent(QPaintEvent *event)

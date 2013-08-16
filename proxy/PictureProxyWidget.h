@@ -42,7 +42,7 @@ protected:
     bool m_empty;
 
 protected slots:
-    void selectItem(bool bSingle);
+    void selectItem(void);
     void dblSelectItem(void);
     void unselectItem(void);
     void detachItem(void);

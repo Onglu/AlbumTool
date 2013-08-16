@@ -41,18 +41,6 @@ public:
         update();
     }
 
-    bool clickPicture(void)
-    {
-        emit itemSelected(Qt::ControlModifier == QApplication::keyboardModifiers() ? false/* Multi-selection */ : true);
-        return true;
-    }
-
-    bool dblClickPicture(void)
-    {
-        emit itemDblSelected();
-        return true;
-    }
-
     virtual void open(ChildWidgetsMap &widgetsMap);
     virtual void swap(DraggableLabel &dragger);
     virtual void remove(void){}
@@ -60,7 +48,7 @@ public:
     void unselectSelf(void){emit itemUnselected();}
 
 signals:
-    void itemSelected(bool bSingle);
+    void itemSelected(void);
     void itemDblSelected(void);
     void itemUnselected(void);
     void itemDetached(void);
@@ -70,16 +58,19 @@ protected slots:
 
 protected:
     virtual bool meetDragDrop(QDropEvent *event);
-    void mousePressEvent(QMouseEvent *){clickPicture();}
-    void mouseDoubleClickEvent(QMouseEvent *){dblClickPicture();}
+
+    void mousePressEvent(QMouseEvent *){emit itemSelected();}
+    void mouseDoubleClickEvent(QMouseEvent *){emit itemDblSelected();}
+
     void dragEnterEvent(QDragEnterEvent *event);
     void dragMoveEvent(QDragMoveEvent *event);
     void dropEvent(QDropEvent *event);
-    bool eventFilter(QObject *watched, QEvent *event);
+
     void paintEvent(QPaintEvent *event);
 
     void setIndexLabel(int index, QLabel *lable, QPoint pos = QPoint(0, 0));
-    void setPictureLabel(/*const QString &picFile*/ const QPixmap &pix,
+
+    void setPictureLabel(const QPixmap &pix,
                          QSize scaledSize,
                          const QString &mimeType,
                          QWidget *parent,

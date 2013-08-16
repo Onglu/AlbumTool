@@ -65,7 +65,7 @@ void PhotoChildWidget::setPhoto(DraggableLabel &label,
                                 int usedTimes)
 {
     QVariantMap belongings;
-    belongings.insert("picture_file", file);
+    belongings.insert("picture_file", QDir::toNativeSeparators(file));
     belongings.insert("rotation_angle", angle);
     belongings.insert("rotation_axis", axis);
     belongings.insert("used_times", usedTimes);

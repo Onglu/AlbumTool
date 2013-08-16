@@ -12,6 +12,17 @@
 #include <QCryptographicHash>
 
 #define WIDGET_ITEM_HEIGHT      74
+
+#ifdef PUBLIC_ENV
+#define USER_LOGIN_URL          "http://www.ccg365.com:9080/SwfUpload2/employeelogin?"
+#define GET_BESINESS_URL        "http://www.ccg365.com:9080/SwfUpload2/business/all/all_business.html"
+#define CREATE_ALBUM_URL        "http://www.ccg365.com:9080/SwfUpload2/createalbums?"
+#define CREATE_SAMPLE_URL       "http://www.ccg365.com:9080/SwfUpload2/createsample?"
+#define UPDATE_ALBUMSAMPLE_URL  "http://www.ccg365.com:9080/SwfUpload2/updatealbumsample?"
+#define GET_ALBUMSAMPLE_URL     "http://www.ccg365.com:9080/SwfUpload2/getalbumsampleinfo?"
+#define FIND_USER_URL           "http://www.ccg365.com:9080/SwfUpload2/finduser?"
+#define CREATE_USER_URL         "http://www.ccg365.com:9080/SwfUpload2/createuser?"
+#else
 #define USER_LOGIN_URL          "http://192.168.2.120:8080/SwfUpload2/employeelogin?"
 #define GET_BESINESS_URL        "http://192.168.2.120:8080/SwfUpload2/business/all/all_business.html"
 #define CREATE_ALBUM_URL        "http://192.168.2.120:8080/SwfUpload2/createalbums?"
@@ -20,6 +31,7 @@
 #define GET_ALBUMSAMPLE_URL     "http://192.168.2.120:8080/SwfUpload2/getalbumsampleinfo?"
 #define FIND_USER_URL           "http://192.168.2.120:8080/SwfUpload2/finduser?"
 #define CREATE_USER_URL         "http://192.168.2.120:8080/SwfUpload2/createuser?"
+#endif
 
 using namespace QtJson;
 

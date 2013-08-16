@@ -327,21 +327,12 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                             }
                         }
 
-                        qDebug() << __FILE__ << __LINE__ << n;
+                        //qDebug() << __FILE__ << __LINE__ << "empty album" << n;
 
                         if (n == albumProxyWidgets.size()) // None photos and templates is existing in per album page
                         {
-                            ProxyWidgetsMap &photoProxyWidgets = m_scensVector.at(SceneType_Photos)->getProxyWidgets();
-                            foreach (PictureProxyWidget *photoProxyWidget, photoProxyWidgets)
-                            {
-                                photoProxyWidget->clearTimes();
-                            }
-
-                            ProxyWidgetsMap &tmplProxyWidgets = m_scensVector.at(SceneType_Templates)->getProxyWidgets();
-                            foreach (PictureProxyWidget *tmplProxyWidget, tmplProxyWidgets)
-                            {
-                                tmplProxyWidget->clearTimes();
-                            }
+                            clearTimes(SceneType_Photos);
+                            clearTimes(SceneType_Templates);
                         }
 
                         if (SceneType_Templates == m_type)
@@ -351,9 +342,10 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                             int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
                             if (-1 != pos)
                             {
+                                //qDebug() << __FILE__ << __LINE__ << m_filesList;
                                 picFile.replace(pos, strlen(".png"), PKG_FMT);
                                 m_filesList.removeOne(picFile);
-                                //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
+                                //qDebug() << __FILE__ << __LINE__ << m_filesList;
                             }
 
                             itemsList = all ? items() : selectedItems();
@@ -387,16 +379,24 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
                             tmplsList.append(albumWidget.getTmplLabel().getPictureFile());
                         }
 
-                        if (SceneType_Thumbs == m_type && !all/* Not is clear */)
+                        if (SceneType_Thumbs == m_type && !all/* Replace action */)
                         {
                             photosList.append(picFile = picLabel->getPictureFile());
                             m_filesList.removeOne(picFile);
                         }
 
-                        if (photosList.size() || tmplsList.size())
+                        if (SceneType_Albums == m_type && 1 == m_proxyWidgets.size())
                         {
-                            excludeItems(SceneType_Photos, photosList);
-                            excludeItems(SceneType_Templates, tmplsList);
+                            clearTimes(SceneType_Photos);
+                            clearTimes(SceneType_Templates);
+                        }
+                        else
+                        {
+                            if (photosList.size() || tmplsList.size())
+                            {
+                                excludeItems(SceneType_Photos, photosList);
+                                excludeItems(SceneType_Templates, tmplsList);
+                            }
                         }
 
                         if (pEditPage && !picFile.isEmpty())
@@ -441,6 +441,18 @@ void PictureGraphicsScene::excludeItems(SceneType type, const QStringList &files
     }
 }
 
+void PictureGraphicsScene::clearTimes(SceneType type)
+{
+    if (SceneType_Templates >= type)
+    {
+        ProxyWidgetsMap &proxyWidgets = m_scensVector.at(type)->getProxyWidgets();
+        foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
+        {
+            proxyWidget->clearTimes();
+        }
+    }
+}
+
 void PictureGraphicsScene::clearFocusSelection(bool all)
 {
     PictureProxyWidget *proxyWidget = NULL;
@@ -479,7 +491,7 @@ void PictureGraphicsScene::clearProxyWidgets()
     m_resultsWidgets.clear();
 }
 
-void PictureGraphicsScene::getChanges(QVariantList &changesList)
+void PictureGraphicsScene::getChanges(QVariantList &changes)
 {
     PictureProxyWidget *proxyWidget = NULL;
     GraphicsItemsList itemsList = items();
@@ -488,7 +500,7 @@ void PictureGraphicsScene::getChanges(QVariantList &changesList)
     {
         if ((proxyWidget = static_cast<PictureProxyWidget *>(item)))
         {
-            changesList << proxyWidget->getChildWidget().getChanges();
+            changes << proxyWidget->getChildWidget().getChanges();
         }
     }
 }

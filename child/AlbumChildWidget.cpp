@@ -1,7 +1,7 @@
 #include "AlbumChildWidget.h"
 #include "ui_AlbumChildWidget.h"
 #include "PhotoChildWidget.h"
-#include "TemplateChildWidget.h"
+//#include "TemplateChildWidget.h"
 #include "page/TaskPageWidget.h"
 #include "page/AlbumPageWidget.h"
 #include "wrapper/utility.h"
@@ -14,7 +14,6 @@ using namespace QtJson;
 AlbumChildWidget::AlbumChildWidget(int index, TaskPageWidget *parent) :
     PictureChildWidget(tr("第 %1 页（%2）").arg(index).arg(1 == index ? tr("封面") : tr("内页")), QSize(118, 190), true, parent),
     ui(new Ui::AlbumChildWidget),
-    m_photosVector(AlbumPhotos(PHOTOS_NUMBER)),
     m_tmplVisible(false),
     m_tmpl(NULL)
 {
@@ -26,13 +25,12 @@ AlbumChildWidget::AlbumChildWidget(int index, TaskPageWidget *parent) :
 }
 
 AlbumChildWidget::AlbumChildWidget(int index,
-                                   const QStringList &photosList,
+                                   const QVariantList &photosInfo,
                                    const QString &tmplFile,
                                    const QVariantList &photoLayers,
                                    TaskPageWidget *parent) :
     PictureChildWidget(tr("第 %1 页（%2）").arg(index).arg(1 == index ? tr("封面") : tr("内页")), QSize(118, 190), true, parent),
     ui(new Ui::AlbumChildWidget),
-    m_photosVector(photosList.toVector()),
     m_tmplFile(tmplFile),
     m_tmplVisible(false),
     m_tmpl(NULL)
@@ -41,18 +39,18 @@ AlbumChildWidget::AlbumChildWidget(int index,
 
     setIndexLabel(index, ui->indexLabel);
 
-    setupWidgets(photosList, tmplFile, photoLayers);
+    setupWidgets(photosInfo, tmplFile, photoLayers);
 
-    if (m_tmplLabel->hasPicture())
-    {
-        ui->photoLabel1->setVisible(false);
-        ui->photoLabel2->setVisible(false);
-        ui->photoLabel3->setVisible(false);
-        ui->photoLabel4->setVisible(false);
-        ui->photoLabel5->setVisible(false);
-        ui->photoLabel6->setVisible(false);
-        m_tmplLabel->setVisible(true);
-    }
+//    if (m_tmplLabel->hasPicture())
+//    {
+//        ui->photoLabel1->setVisible(false);
+//        ui->photoLabel2->setVisible(false);
+//        ui->photoLabel3->setVisible(false);
+//        ui->photoLabel4->setVisible(false);
+//        ui->photoLabel5->setVisible(false);
+//        ui->photoLabel6->setVisible(false);
+//        m_tmplLabel->setVisible(true);
+//    }
 }
 
 AlbumChildWidget::~AlbumChildWidget()
@@ -60,64 +58,67 @@ AlbumChildWidget::~AlbumChildWidget()
     delete ui;
 }
 
-void AlbumChildWidget::setupWidgets(const QStringList &photosList,
+inline DraggableLabel *AlbumChildWidget::setPictureLabel(QLabel *label)
+{
+    Q_ASSERT(label);
+
+    DraggableLabel *picLabel = new DraggableLabel(QSize(48, 48), DRAGGABLE_PHOTO, label);
+    connect(picLabel, SIGNAL(clicked()), SIGNAL(itemSelected()));
+    connect(picLabel, SIGNAL(dblClicked()), SIGNAL(itemDblSelected()));
+
+    return picLabel;
+}
+
+void AlbumChildWidget::setupWidgets(const QVariantList &photosInfo,
                                     const QString &tmplFile,
                                     const QVariantList &photoLayers)
 {
-    QSize photoSize(48, 48), tmplSize(96, 144);
+    bool empty = photosInfo.isEmpty();
 
     memset(m_locations, 0, 2);
 
-    m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel1));
-    m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel2));
-    m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel3));
-    m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel4));
-    m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel5));
-    m_photoLabels.append(new DraggableLabel(photoSize, DRAGGABLE_PHOTO, ui->photoLabel6));
-
-    m_photosList.clear();
+    m_photoLabels.append(setPictureLabel(ui->photoLabel1));
+    m_photoLabels.append(setPictureLabel(ui->photoLabel2));
+    m_photoLabels.append(setPictureLabel(ui->photoLabel3));
+    m_photoLabels.append(setPictureLabel(ui->photoLabel4));
+    m_photoLabels.append(setPictureLabel(ui->photoLabel5));
+    m_photoLabels.append(setPictureLabel(ui->photoLabel6));
 
     for (int i = 0; i < PHOTOS_NUMBER; i++)
     {
         /* Initialize the persent album with the photos list */
-        QString photoAttr;
-        if (!photosList.isEmpty() && "" != (photoAttr = photosList.at(i)))
+        QVariantMap info;
+        if (empty)
         {
-            QStringList photoInfo = photoAttr.split(TEXT_SEP);
-            if (PHOTO_ATTRIBUTES == photoInfo.size())
-            {
-                QString photoFile = photoInfo.at(0);
-                qreal angle = photoInfo.at(1).toDouble();
-                Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
-                int usedTimes = photoInfo.at(3).toInt();
+            m_photosInfo.append(info);
+        }
+        else
+        {
+            info = photosInfo[i].toMap();
+            m_photosInfo.insert(i, info);
 
-                if (!QFile::exists(photoFile))
-                {
-                    m_photosVector[i].clear();
-                }
-                else
-                {
-                    if (!m_photosList.contains(photoFile, Qt::CaseInsensitive))
-                    {
-                        m_photosList.append(photoFile);
-                        m_photoLabels[i]->loadPicture(QPixmap(photoFile), QSize(46, 46), angle, axis);
-                        PhotoChildWidget::setPhoto(*m_photoLabels[i], photoFile, angle, axis, usedTimes);
-                    }
-                }
+            if (!info.isEmpty())
+            {
+                QString photoFile = info["picture_file"].toString();
+                //qDebug() << __FILE__ << __LINE__ << m_index << i << photoFile << info["used_records"].toList();
+
+                qreal angle = info["rotation_angle"].toReal();
+                Qt::Axis axis = (Qt::Axis)info["rotation_axis"].toInt();
+                m_photoLabels[i]->loadPicture(QPixmap(photoFile), QSize(46, 46), angle, axis);
+                PhotoChildWidget::setPhoto(*m_photoLabels[i], photoFile, angle, axis);
             }
         }
 
         m_photoLabels[i]->setContentsMargins(1, 1, 2, 2);
-        m_photoLabels[i]->installEventFilter(this);
-        //m_photoLabels[i]->parentWidget()->show();
     }
 
+    //qDebug() << __FILE__ << __LINE__ << m_index << photoFile << records;
+
     m_picLabel = m_photoLabels.last();
-    m_tmplLabel = new DraggableLabel(tmplSize, DRAGGABLE_TEMPLATE, ui->templateLabel);
+    m_tmplLabel = new DraggableLabel(QSize(96, 144), DRAGGABLE_TEMPLATE, ui->templateLabel);
 
     QString tmplPic;
     TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel);
-
     if (tmplWidget.getTmplPic(tmplPic))
     {
         m_tmplLabel->setContentsMargins(1, 1, 2, 2);
@@ -129,19 +130,229 @@ void AlbumChildWidget::setupWidgets(const QStringList &photosList,
     //qDebug() << __FILE__ << __LINE__ << m_tmplFile << tmplPic;
 
     m_tmplLabel->setVisible(false);
-    m_tmplLabel->installEventFilter(this);
+    connect(m_tmplLabel, SIGNAL(clicked()), SIGNAL(itemSelected()));
+    connect(m_tmplLabel, SIGNAL(dblClicked()), SIGNAL(itemDblSelected()));
 
     ui->innerHorizontalLayout->setAlignment(Qt::AlignLeft);
     changeBanners();
 
-    m_records.insert("photos_list", photosList);
-    m_records.insert("template_file", m_tmplFile);
     m_records.insert("photo_layers", photoLayers);
+    m_records.insert("photos_info", m_photosInfo);
+    m_records.insert("template_file", m_tmplFile);
 }
 
-inline void AlbumChildWidget::changeBanners()
+bool AlbumChildWidget::setPhotoInfo(DraggableLabel *picLabel, QVariantMap info)
 {
-    int usages = m_photosList.size();
+    Q_ASSERT(picLabel);
+
+    QVariantMap belongings = picLabel->getBelongings();
+    if (belongings.isEmpty())
+    {
+        return false;
+    }
+
+    bool empty = info.isEmpty();
+    QString picFile = belongings["picture_file"].toString();
+    QPixmap pix(picFile);
+
+    if (empty)
+    {
+        int index = getPhotoIndex(picFile);
+        if (INVALID_PHOTO_INDEX != index || pix.isNull())
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    {
+        if (!m_photoLabels[i]->hasPicture())
+        {
+            qreal angle = belongings["rotation_angle"].toReal();
+            Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
+
+            if (empty)
+            {
+                info.insert("picture_file", picFile);
+                info.insert("rotation_angle", angle);
+                info.insert("rotation_axis", axis);
+                info.insert("used_records", QVariantList());
+                m_photosInfo[i] = info;
+
+                if (0 == m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE])
+                {
+                    addBanner(":/images/usages_num.png", "已用图片位");
+                }
+                else
+                {
+                    changeBanners();
+                }
+
+                picLabel->accept();
+                m_container->noticeChanged();
+            }
+            else
+            {
+                m_photosInfo[i] = info;
+            }
+
+            m_picLabel = m_photoLabels[i];
+            m_picLabel->loadPicture(pix, QSize(46, 46), angle, axis);
+            m_picLabel->setBelongings(belongings);
+            m_picLabel->clearMimeType();
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void AlbumChildWidget::resetPhotosInfo()
+{
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    {
+        QVariantMap info = m_photosInfo[i].toMap();
+        if (info.isEmpty())
+        {
+            continue;
+        }
+
+        QVariantList records = info["used_records"].toList();
+        if (records.isEmpty())
+        {
+            continue;
+        }
+
+        records.clear();
+        info.insert("used_records", records);
+        m_photosInfo[i] = info;
+    }
+}
+
+const QStringList &AlbumChildWidget::getPhotosList()
+{
+    m_photosList.clear();
+
+    foreach (const QVariant &info, m_photosInfo)
+    {
+        QVariantMap data = info.toMap();
+        if (data.isEmpty())
+        {
+            continue;
+        }
+
+        QString fileName = data["picture_file"].toString();
+        if (!fileName.isEmpty())
+        {
+            m_photosList << fileName;
+        }
+    }
+
+    return m_photosList;
+}
+
+bool AlbumChildWidget::addUsedRecord(QVariantList &records, const QString &layerId)
+{
+    QVariantMap record;
+    int num = records.size();
+
+    if (layerId.isEmpty())
+    {
+        return false;
+    }
+
+    for (int i = 0; i < num; i++)
+    {
+        record = records.at(i).toMap();
+        if (!record.isEmpty() && layerId == record["layer_id"].toString())
+        {
+            return false;
+        }
+
+        record.clear();
+    }
+
+    if (record.isEmpty())
+    {
+        record.insert("layer_id", layerId);
+    }
+
+    records << record;
+
+    return true;
+}
+
+void AlbumChildWidget::removeUsedRecord(QVariantList &records, const QString &layerId)
+{
+    int num = records.size();
+
+    for (int i = 0; i < num; i++)
+    {
+        QVariantMap record = records.at(i).toMap();
+        if (!record.isEmpty() && layerId == record["layer_id"].toString())
+        {
+            records.removeAt(i);
+            break;
+        }
+    }
+}
+
+int AlbumChildWidget::getPhotoIndex(const QString &fileName)
+{
+    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    {
+        QVariantMap info = m_photosInfo[i].toMap();
+        if (info.isEmpty())
+        {
+            continue;
+        }
+
+        if (fileName == info["picture_file"].toString())
+        {
+            return i;
+        }
+    }
+
+    return INVALID_PHOTO_INDEX;
+}
+
+int AlbumChildWidget::getPhotosNum() const
+{
+    int num = 0;
+
+    foreach (const QVariant &info, m_photosInfo)
+    {
+        QVariantMap data = info.toMap();
+        if (!data.isEmpty() && !data["picture_file"].toString().isEmpty())
+        {
+            num++;
+        }
+    }
+
+    return num;
+}
+
+int AlbumChildWidget::getTotalUsedTimes() const
+{
+    int num = 0;
+
+    foreach (const QVariant &info, m_photosInfo)
+    {
+        int times = 0;
+        QVariantMap data = info.toMap();
+        if (!data.isEmpty() && (times = data["used_records"].toList().size()))
+        {
+            num += times;
+        }
+    }
+
+    return num;
+}
+
+void AlbumChildWidget::changeBanners()
+{
+    int usages = getPhotosNum();
     int num = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE] - usages;
 
     clearBanners();
@@ -198,10 +409,12 @@ void AlbumChildWidget::changeTemplate(const QVariantMap &belongings)
 {
     m_records["photo_layers"].clear();
 
+    resetPhotosInfo();
+
     if (belongings.isEmpty())
     {
         m_tmplFile.clear();
-        m_tmplLabel->reset();
+        m_tmplLabel->flush();
         memset(m_locations, 0, 2);
         changeBanners();
     }
@@ -226,7 +439,7 @@ void AlbumChildWidget::changeTemplate(const QVariantMap &belongings)
     }
 }
 
-void AlbumChildWidget::changePhoto(const QString &fileName,
+void AlbumChildWidget::changePhoto(const QString &layerId,
                                    QRect rect,
                                    qreal opacity,
                                    qreal angle)
@@ -236,14 +449,13 @@ void AlbumChildWidget::changePhoto(const QString &fileName,
     QVariantList info, layers = page["layers"].toList(), changes = m_records["photo_layers"].toList();
     bool changed = false;
 
-    qDebug() << __FILE__ << __LINE__ << "before:" << /*layers*/opacity;
-    //qDebug() << __FILE__ << __LINE__ << "before:" << fileName << rect;
+    //qDebug() << __FILE__ << __LINE__ << "before:" << opacity;
+    //qDebug() << __FILE__ << __LINE__ << "before:" << layerId << rect;
 
     foreach (const QVariant &layer, layers)
     {
         QVariantMap data = layer.toMap();
-        QString id = data["id"].toString();
-        if (fileName == id)
+        if (layerId == data["id"].toString())
         {
             QVariantMap frame;
             frame.insert("width", rect.width());
@@ -258,7 +470,7 @@ void AlbumChildWidget::changePhoto(const QString &fileName,
             foreach (const QVariant &change, changes)
             {
                 QVariantMap related = change.toMap();
-                if (fileName == related["id"].toString())
+                if (layerId == related["id"].toString())
                 {
                     changes.removeOne(change);
                     break;
@@ -279,42 +491,43 @@ void AlbumChildWidget::changePhoto(const QString &fileName,
 
     page.insert("layers", info);
     belongings.insert("page_data", page);
-    //qDebug() << __FILE__ << __LINE__ << "after:" << changes;
 
     if (changed)
     {
+        //qDebug() << __FILE__ << __LINE__ << "after:" << changes;
         m_records.insert("photo_layers", changes);
         m_container->noticeChanged();
     }
 }
 
-void AlbumChildWidget::removePhoto(const QString &fileName)
+bool AlbumChildWidget::removePhoto(const QString &fileName)
 {
-    if (!m_photosList.contains(fileName, Qt::CaseInsensitive))
-    {
-        return;
-    }
+    bool ok = false;
+    int index = getPhotoIndex(fileName);
 
-    bool found = false;
-
-    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    if (INVALID_PHOTO_INDEX != index)
     {
-        QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
-        //qDebug() << __FILE__ << __LINE__ << i << photoInfo;
-        if (PHOTO_ATTRIBUTES == photoInfo.size() && fileName == photoInfo.at(0))
+        ok = true;
+        m_photoLabels[index]->flush();
+        m_photosInfo[index].clear();
+
+        for (int i = index + 1; i < PHOTOS_NUMBER; i++)
         {
-            found = true;
-            m_photosList.removeOne(fileName);
-            m_photosVector[i].clear();
-            m_photoLabels[i]->reset();
-            break;
-        }
-    }
+            QVariantMap info = m_photosInfo[i].toMap();
+            if (info.isEmpty())
+            {
+                continue;
+            }
 
-    if (found)
-    {
+            setPhotoInfo(m_photoLabels[i], info);
+            m_photoLabels[i]->flush();
+            m_photosInfo[i].clear();
+        }
+
         changeBanners();
     }
+
+    return ok;
 }
 
 TemplateChildWidget *AlbumChildWidget::getTmplWidget() const
@@ -324,18 +537,19 @@ TemplateChildWidget *AlbumChildWidget::getTmplWidget() const
 
 uchar AlbumChildWidget::getLocations(uchar locations[]) const
 {
-    int size = m_photosList.size(), num = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE] - size;
+    int num = getPhotosNum();
+    int count = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE] - num;
 
     memset(locations, 0, 2);
 
     //qDebug() << __FILE__ << __LINE__ << m_index << num << m_locations[PORTRAIT_PICTURE] << m_locations[LANDSCAPE_PICTURE] << m_photosList;
 
-    if (0 < num)
+    if (0 < count)
     {
         locations[PORTRAIT_PICTURE] = m_locations[PORTRAIT_PICTURE];
         locations[LANDSCAPE_PICTURE] = m_locations[LANDSCAPE_PICTURE];
 
-        if (size)
+        if (num)
         {
             for (int i = 0; i < PHOTOS_NUMBER; i++)
             {
@@ -358,10 +572,6 @@ uchar AlbumChildWidget::getLocations(uchar locations[]) const
                 //qDebug() << __FILE__ << __LINE__ << m_index << o << locations[PORTRAIT_PICTURE] << locations[LANDSCAPE_PICTURE];
             }
         }
-
-        //qDebug() << __FILE__ << __LINE__ << m_index << num;
-
-        return num;
     }
 
     return locations[PORTRAIT_PICTURE] + locations[LANDSCAPE_PICTURE];
@@ -389,12 +599,12 @@ const QVariantList &AlbumChildWidget::getLayers() const
     foreach (const QVariant &layer, layers)
     {
         QVariantMap data = layer.toMap();
-        QString photoName = data["id"].toString();
+        QString layerId = data["id"].toString();
 
         foreach (const QVariant &change, changes)
         {
             QVariantMap related = change.toMap();
-            if (photoName == related["id"].toString())
+            if (layerId == related["id"].toString())
             {
                 data = related;
                 changes.removeOne(change);
@@ -433,7 +643,7 @@ int AlbumChildWidget::output(const QString &dir)
 {
     //qDebug() << __FILE__ << __LINE__ << "output album" << m_index << TemplateChildWidget::isCover(getData()) << this->size() << getSize();
 
-    int pid = 0;
+    int pid = INVALID_PHOTO_INDEX;
     AlbumPageWidget *album = new AlbumPageWidget(PhotoLayer::VisiableImgTypeOriginal);
 
     if (album->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
@@ -461,7 +671,9 @@ int AlbumChildWidget::output(const QString &dir)
             goto end;
         }
 
-        if (m_photosList.isEmpty())
+        pid = 0;
+
+        if (!getPhotosNum())
         {
             QString fileName = tr("%1\\%2").arg(path).arg(PIC_NAME);
             QString tmplPic;
@@ -476,58 +688,36 @@ int AlbumChildWidget::output(const QString &dir)
                 file.open(QIODevice::WriteOnly);
                 file.close();
             }
-
-            pid = -1;
         }
         else
         {
-            for (int i = 0; i < PHOTOS_NUMBER; i++)
-            {
-                QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
-                if (PHOTO_ATTRIBUTES != photoInfo.size())
-                {
-                    continue;
-                }
-
-                QString photoFile = photoInfo.at(0);
-                qreal angle = photoInfo.at(1).toDouble();
-                Qt::Axis axis = (Qt::Axis)photoInfo.at(2).toInt();
-                uint usedTimes = photoInfo.at(3).toUInt();
-
-                //qDebug() << __FILE__ << __LINE__ << m_index << usedTimes << photoFile;
-
-                do
-                {
-                    if (album->exportPhoto(pid, photoFile, path, angle, axis))
-                    {
-                        pid++;
-                    }
-                    else
-                    {
-                        break;
-                    }
-
-                    if (!usedTimes)
-                    {
-                        break;
-                    }
-                } while (usedTimes > pid);
-            }
-
+            pid = album->loadPhotos(m_photosInfo, getTotalUsedTimes(), getPhotosNum(), path);
             album->compose(pid, tr("%1\\%2").arg(path).arg(PIC_NAME));
         }
 
+        //qDebug() << __FILE__ << __LINE__ << "photosInfo:" << m_photosInfo;
+
         QVariantMap pictures = m_tmpl->loadPictures();
         QVariantMap::const_iterator iter = pictures.constBegin();
+        //PicturesMap pictures = m_tmpl->loadPictures();
+        //PicturesMap::const_iterator iter = pictures.constBegin();
 
         while (iter != pictures.constEnd())
         {
             QString file = tr("%1\\%2").arg(path).arg(iter.key());
+
+#if LOAD_FROM_MEMORY
             QPixmap pix;
             if (!QFile::exists(file) && pix.loadFromData(qUncompress(iter.value().toByteArray())))
             {
                 pix.save(file);
             }
+#else
+            //QImage img = iter.value();
+            QPixmap *img = iter.value();
+            img->save(file);
+#endif
+
             ++iter;
         }
         //qDebug() << __FILE__ << __LINE__ << "changes:" << m_records["photo_layers"].toList();
@@ -558,6 +748,7 @@ bool AlbumChildWidget::meetDragDrop(QDropEvent *event)
     if (event->mimeData()->hasFormat(DRAGGABLE_PHOTO))
     {
         showPhotos(true);
+
         DraggableLabel *photoLabel = static_cast<DraggableLabel *>(childAt(event->pos()));
         if (photoLabel && photoLabel->objectName().startsWith("photoLabel"))
         {
@@ -581,7 +772,7 @@ bool AlbumChildWidget::meetDragDrop(QDropEvent *event)
 
             if (droppable)
             {
-                m_thumbSize = QSize(48, 48);
+                //m_thumbSize = QSize(48, 48);
                 m_picLabel = photoLabel;
                 return true;
             }
@@ -590,7 +781,7 @@ bool AlbumChildWidget::meetDragDrop(QDropEvent *event)
     else if (event->mimeData()->hasFormat(DRAGGABLE_TEMPLATE))
     {
         showPhotos(false);
-        m_thumbSize = QSize(96, 144);
+        //m_thumbSize = QSize(96, 144);
         m_picLabel = m_tmplLabel;
         return true;
     }
@@ -614,8 +805,10 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
 
         if (!m_tmplVisible)
         {
+#if 0
             QPixmap pix(picFile);
-            if (pix.isNull() || m_photosList.contains(picFile, Qt::CaseInsensitive))
+            int index = getPhotoIndex(picFile);
+            if (INVALID_PHOTO_INDEX != index || pix.isNull())
             {
                 event->ignore();
                 return;
@@ -625,13 +818,14 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
 
             qreal angle = belongings["rotation_angle"].toReal();
             Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-            //int usedTimes = belongings["used_times"].toInt();
+
+            //index = m_picLabel->objectName().right(1).toInt() - 1;
+            //setPhotoInfo(/*index, */picFile, angle, axis);
 
             m_picLabel->loadPicture(pix, m_thumbSize - QSize(2, 2), angle, axis);
             m_picLabel->setBelongings(belongings);
             m_picLabel->clearMimeType();
 
-            m_photosList.append(picFile);
             if (0 == m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE])
             {
                 addBanner(":/images/usages_num.png", "已用图片位");
@@ -641,12 +835,16 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
                 changeBanners();
             }
 
-            int index = m_picLabel->objectName().right(1).toInt() - 1;
-            //m_photosVector[index] = QString("%1|%2|%3|%4|0").arg(picFile).arg(angle).arg(axis).arg(usedTimes);
-            m_photosVector[index] = QString("%1|%2|%3|0").arg(picFile).arg(angle).arg(axis);
-            //qDebug() << __FILE__ << __LINE__ << m_photosVector[index];
-
             m_container->noticeChanged();
+
+            m_tmplVisible = m_tmplLabel->hasPicture();
+#endif
+
+            if (!setPhotoInfo(picLabel))
+            {
+                event->ignore();
+                return;
+            }
 
             m_tmplVisible = m_tmplLabel->hasPicture();
         }
@@ -688,6 +886,7 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
             }
 
             changeTemplate(belongings);
+            //showPhotos(false);
             //qDebug() << __FILE__ << __LINE__ << tmplFile;
         }
 
@@ -708,49 +907,24 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
 void AlbumChildWidget::replace(const QString &current, const QVariantMap &belongings)
 {
     QString replaced = belongings["picture_file"].toString();
-    if (m_photosList.contains(replaced, Qt::CaseInsensitive))
+    int index = getPhotoIndex(replaced);
+    if (INVALID_PHOTO_INDEX != index)
     {
         return;
     }
 
-    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    index = getPhotoIndex(current);
+    if (INVALID_PHOTO_INDEX != index)
     {
-        QStringList photoInfo = m_photosVector[i].split(TEXT_SEP);
-        if (PHOTO_ATTRIBUTES == photoInfo.size() && current == photoInfo.at(0))
-        {
-            qreal angle = belongings["rotation_angle"].toReal();
-            Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-            int usedTimes = photoInfo.at(3).toInt();
+        QVariantMap info = m_photosInfo[index].toMap();
+        qreal angle = info["rotation_angle"].toReal();
+        Qt::Axis axis = (Qt::Axis)info["rotation_axis"].toInt();
 
-            m_photosList.removeOne(current);
-            m_photosList.append(replaced);
-            m_photosVector[i] = QString("%1|%2|%3|%4").arg(replaced).arg(angle).arg(axis).arg(usedTimes);
-            m_photoLabels[i]->loadPicture(QPixmap(replaced), QSize(46, 46), angle, axis);
-            m_photoLabels[i]->setBelongings(belongings);
-        }
+        info["picture_file"] = replaced;
+        m_photosInfo[index] = info;
+        m_photoLabels[index]->loadPicture(QPixmap(replaced), QSize(46, 46), angle, axis);
+        m_photoLabels[index]->setBelongings(belongings);
     }
-}
-
-bool AlbumChildWidget::eventFilter(QObject *watched, QEvent *event)
-{
-    QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
-    if (mouseEvent)
-    {
-        QLabel *childLabel = static_cast<QLabel *>(childAt(mouseEvent->pos()));
-        if (watched == childLabel)
-        {
-            if (QEvent::MouseButtonPress == event->type())
-            {
-                return clickPicture();
-            }
-            else if (QEvent::MouseButtonDblClick == event->type())
-            {
-                return dblClickPicture();
-            }
-        }
-    }
-
-    return PictureChildWidget::eventFilter(watched, event);
 }
 
 void AlbumChildWidget::switchView()
@@ -760,12 +934,8 @@ void AlbumChildWidget::switchView()
 
 const QVariantMap &AlbumChildWidget::getChanges()
 {
-    QStringList photosList;
-
-    Converter::v2l(m_photosVector, photosList);
-    m_records.insert("photos_list", photosList);
+    m_records.insert("photos_info", m_photosInfo);
     m_records.insert("template_file", m_tmplFile);
-
     return PictureChildWidget::getChanges();
 }
 
@@ -783,46 +953,19 @@ void AlbumProxyWidget::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 
 bool AlbumProxyWidget::excludeItem(const QString &picFile)
 {
-    bool ok = false;
+    bool ok = true;
 
     /* Remove one picture(maybe it is a photo or template type) file from the specified album */
     if (picFile == m_pChildWidget->getTmplLabel().getPictureFile())
     {
-        ok = true;
         m_pChildWidget->changeTemplate();
     }
     else
     {
-        QStringList &photosList = m_pChildWidget->getPhotosList();
-        for (int i = 0; i < photosList.size(); i++)
-        {
-            if (picFile == photosList.at(i))
-            {
-                photosList.removeAt(i);
-                break;
-            }
-        }
-
-        AlbumPhotos photosVector = m_pChildWidget->getPhotosVector();
-        DraggableLabels &photoLabels = m_pChildWidget->getPhotoLabels();
-
-        for (int i = 0; i < PHOTOS_NUMBER; i++)
-        {
-            if (picFile == photoLabels.at(i)->getPictureFile())
-            {
-                ok = true;
-                photoLabels.at(i)->reset();
-                photosVector[i].clear();
-                break;
-            }
-        }
-
-        m_pChildWidget->setPhotosVector(photosVector);
+        ok = m_pChildWidget->removePhoto(picFile);
     }
 
-    int n = Converter::num(m_pChildWidget->getPhotosList(), true);
-    qDebug() << __FILE__ << __LINE__ << m_pChildWidget->getIndex() << n << m_pChildWidget->getPhotosList() << picFile;
-    if (!n && !m_pChildWidget->getTmplLabel().hasPicture())
+    if (!m_pChildWidget->getPhotosNum() && !m_pChildWidget->getTmplLabel().hasPicture())
     {
         m_empty = true;
         m_pChildWidget->clearBanners();

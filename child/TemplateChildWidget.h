@@ -5,10 +5,16 @@
 #include "proxy/PictureProxyWidget.h"
 #include "wrapper/utility.h"
 
+#define LOAD_FROM_MEMORY    1
+
+#if !LOAD_FROM_MEMORY
+typedef QMap<QString, QPixmap *> PicturesMap;
+#endif
+
 typedef PictureProxyWidget TemplateProxyWidget;
 class TemplateChildWidget;
 
-namespace TemplatesSql
+namespace TemplateEngine
 {
     class SqlThread : public QThread
     {
@@ -35,6 +41,27 @@ namespace TemplatesSql
         QVariantMap m_data;
         TemplateChildWidget *m_widget;
     };
+
+    class LoaderThread : public QThread
+    {
+        Q_OBJECT
+
+    public:
+        LoaderThread() : m_abort(false){}
+
+        void begin(const QVariantMap &data)
+        {
+            m_data = data;
+            start();
+        }
+
+    protected:
+        void run(){}
+
+    private:
+        bool m_abort;
+        QVariantMap m_data;
+    };
 }
 
 class TemplateChildWidget : public PictureChildWidget
@@ -51,7 +78,7 @@ public:
 
     const QVariantMap &getChanges(void);
 
-    const QString &getTmplFile(void){return m_tmplFile;}
+    const QString &getTmplFile(void) const {return m_tmplFile;}
 
     bool getTmplPic(QString &tmplPic);
 
@@ -67,6 +94,10 @@ public:
     }
 
     //static const QVariantList &getLayers(const QVariantMap &data){return data["layers"].toList();}
+
+    const QVariantMap &getFrame(const QString &lid, QVariantMap &frame);
+
+    uchar getLocations(void) const;
 
     static const uchar *getLocations(const QVariantMap &data, uchar locations[])
     {
@@ -114,9 +145,21 @@ public:
 
     void remove(void){remove(getId());}
 
+#if LOAD_FROM_MEMORY
     const QVariantMap &loadPictures(void);
 
+    void inportPictures(const QString &tmplFile, const QVariantMap &pictures)
+    {
+        m_tmplFile = tmplFile;
+        m_pictures = pictures;
+    }
+
     const QVariantMap &getPictures(void){return m_pictures;}
+#else
+    const PicturesMap &loadPictures(void);
+
+    const PicturesMap &getPictures(void){return m_pictures;}
+#endif
 
 protected slots:
     void onAccept(const QVariantMap &belongings);
@@ -135,10 +178,15 @@ private:
     QProcess m_tmaker;
 
     QString m_tmplFile, m_tmplPic, m_currFile;
-    QVariantMap m_pictures;
 
-    TemplatesSql::SqlThread m_sql;
-    friend class TemplatesSql::SqlThread;
+#if LOAD_FROM_MEMORY
+    QVariantMap m_pictures;
+#else
+    PicturesMap m_pictures;
+#endif
+
+    TemplateEngine::SqlThread m_sql;
+    friend class TemplateEngine::SqlThread;
 };
 
 
