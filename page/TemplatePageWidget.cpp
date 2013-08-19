@@ -1,9 +1,11 @@
 #include "TemplatePageWidget.h"
 #include "ui_TemplatePageWidget.h"
-#include <QDebug>
-#include <QDragEnterEvent>
 #include "wrapper/DraggableLabel.h"
 #include "page/TaskPageWidget.h"
+#include "child/TemplateChildWidget.h"
+#include <QDebug>
+#include <QDragEnterEvent>
+#include <QMessageBox>
 
 TemplatePageWidget::TemplatePageWidget(bool previewable, TaskPageWidget *parent) :
     QWidget(parent),
@@ -98,8 +100,33 @@ void TemplatePageWidget::dropEvent(QDropEvent *event)
     DraggableLabel *picLabel = static_cast<DraggableLabel *>(event->source());
     if (picLabel->meetDragDrop(DRAGGABLE_TEMPLATE) && !children().contains(picLabel))
     {
-        QString currPic = m_belongings["picture_file"].toString();
         QVariantMap belongings = picLabel->getBelongings();
+        bool page = TemplateChildWidget::isCover(belongings["page_data"].toMap());
+        bool cover = TemplateChildWidget::isCover(m_belongings["page_data"].toMap());
+
+        if (cover != page)
+        {
+            if (cover)
+            {
+                QMessageBox::information(parentWidget(),
+                                         tr("操作失败"),
+                                         tr("请拖入模板类型为手机封面（720x1080）的相册模板！"),
+                                         tr("确定"));
+            }
+            else
+            {
+                QMessageBox::information(parentWidget(),
+                                         tr("操作失败"),
+                                         tr("请拖入模板类型为手机内页的相册模板！"),
+                                         tr("确定"));
+            }
+
+            event->ignore();
+
+            return;
+        }
+
+        QString currPic = m_belongings["picture_file"].toString();
         if (changeTemplate(belongings))
         {
             event->acceptProposedAction();

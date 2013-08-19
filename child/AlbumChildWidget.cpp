@@ -41,16 +41,16 @@ AlbumChildWidget::AlbumChildWidget(int index,
 
     setupWidgets(photosInfo, tmplFile, photoLayers);
 
-//    if (m_tmplLabel->hasPicture())
-//    {
-//        ui->photoLabel1->setVisible(false);
-//        ui->photoLabel2->setVisible(false);
-//        ui->photoLabel3->setVisible(false);
-//        ui->photoLabel4->setVisible(false);
-//        ui->photoLabel5->setVisible(false);
-//        ui->photoLabel6->setVisible(false);
-//        m_tmplLabel->setVisible(true);
-//    }
+    if (m_tmplLabel->hasPicture())
+    {
+        ui->photoLabel1->setVisible(false);
+        ui->photoLabel2->setVisible(false);
+        ui->photoLabel3->setVisible(false);
+        ui->photoLabel4->setVisible(false);
+        ui->photoLabel5->setVisible(false);
+        ui->photoLabel6->setVisible(false);
+        m_tmplLabel->setVisible(true);
+    }
 }
 
 AlbumChildWidget::~AlbumChildWidget()
@@ -254,13 +254,13 @@ const QStringList &AlbumChildWidget::getPhotosList()
 
 bool AlbumChildWidget::addUsedRecord(QVariantList &records, const QString &layerId)
 {
-    QVariantMap record;
-    int num = records.size();
-
     if (layerId.isEmpty())
     {
         return false;
     }
+
+    QVariantMap record;
+    int num = records.size();
 
     for (int i = 0; i < num; i++)
     {
@@ -908,13 +908,13 @@ void AlbumChildWidget::replace(const QString &current, const QVariantMap &belong
 {
     QString replaced = belongings["picture_file"].toString();
     int index = getPhotoIndex(replaced);
-    if (INVALID_PHOTO_INDEX != index)
+    if (INVALID_PHOTO_INDEX != index)   // existing?
     {
         return;
     }
 
     index = getPhotoIndex(current);
-    if (INVALID_PHOTO_INDEX != index)
+    if (INVALID_PHOTO_INDEX != index)   // not existing?
     {
         QVariantMap info = m_photosInfo[index].toMap();
         qreal angle = info["rotation_angle"].toReal();

@@ -28,7 +28,7 @@ public:
 
     int getViewWidth(void) const;
 
-    PictureGraphicsScene *getThumbsView(void) const {return m_pThumbsScene;}
+    PictureGraphicsScene *getThumbsView(void) const {return m_thumbsScene;}
 
     void removeThumbs(const QString &picFile);
 
@@ -121,7 +121,7 @@ private:
     AlbumChildWidget *m_pAlbumWidget;
     AlbumPageWidget *m_pAlbumPage;
     TemplatePageWidget *m_templatePage;
-    PictureGraphicsScene *m_pThumbsScene;
+    PictureGraphicsScene *m_thumbsScene;
 
     bool m_thumbsSceneFocused;
     int m_current;

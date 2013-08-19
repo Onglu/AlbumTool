@@ -38,12 +38,12 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
         connect(layer, SIGNAL(replaced(QString,QString)), SLOT(onReplaced(QString,QString)));
     }
 
-    m_pThumbsScene = new PictureGraphicsScene(Qt::gray,
+    m_thumbsScene = new PictureGraphicsScene(Qt::gray,
                                               PictureGraphicsScene::LayoutMode_Horizontality,
                                               PictureGraphicsScene::SceneType_Thumbs,
                                               ui->thumbsGraphicsView,
                                               m_container);
-    m_container->m_scensVector.insert(PictureGraphicsScene::SceneType_Thumbs, m_pThumbsScene);
+    m_container->m_scensVector.insert(PictureGraphicsScene::SceneType_Thumbs, m_thumbsScene);
 
     ui->photosGraphicsView->setScene(m_container->m_photosScene);
 
@@ -142,13 +142,7 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
             }
 
             QString photoFile = info["picture_file"].toString();
-            //qreal angle = info["rotation_angle"].toReal();
-            //Qt::Axis axis = (Qt::Axis)info["rotation_axis"].toInt();
-            //uint usedTimes = info["used_times"].toUInt();
             QVariantList records = info["used_records"].toList();
-
-            //QString layerId = info["layer_id"].toString();
-            //QRect location = info["fixed_area"].toRect();
 
             if (!replaceable && current == photoFile)
             {
@@ -171,7 +165,7 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
                 info.insert("used_records", records);
                 photosInfo[i] = info;
                 replaceable = true;
-                i = 0;
+                i = -1;
 
                 continue;
             }
@@ -377,7 +371,7 @@ inline void EditPageWidget::adjustThumbsHeight()
 {
     int height = 162;
 
-    if (PHOTOS_NUMBER == m_pThumbsScene->getProxyWidgets().size() && 1072 > ui->mainFrame->width())
+    if (PHOTOS_NUMBER == m_thumbsScene->getProxyWidgets().size() && 1072 > ui->mainFrame->width())
     {
         height = 178;
     }
@@ -406,7 +400,7 @@ void EditPageWidget::removeThumbs(const QString &picFile)
     }
 
     DraggableLabel *thumbLabel = NULL;
-    ProxyWidgetsMap &proxyWidgets = m_pThumbsScene->getProxyWidgets();
+    ProxyWidgetsMap &proxyWidgets = m_thumbsScene->getProxyWidgets();
 
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
@@ -414,8 +408,8 @@ void EditPageWidget::removeThumbs(const QString &picFile)
              && picFile == thumbLabel->getPictureFile())
         {
             //qDebug() << __FILE__ << __LINE__ << "remove" << picFile;
-            m_pThumbsScene->removeProxyWidget(proxyWidget);
-            m_pThumbsScene->adjustViewLayout();
+            m_thumbsScene->removeProxyWidget(proxyWidget);
+            m_thumbsScene->adjustViewLayout();
             m_pAlbumWidget->removePhoto(picFile);
             m_pAlbumPage->removePhoto(picFile);
 
@@ -441,7 +435,7 @@ void EditPageWidget::updateViews(const ChildWidgetsMap &albumsMap, int current)
 
 const ThumbChildWidget *EditPageWidget::getThumbWidget(const QString &picFile) const
 {
-    ProxyWidgetsMap proxyWidgets = m_pThumbsScene->getProxyWidgets();
+    ProxyWidgetsMap proxyWidgets = m_thumbsScene->getProxyWidgets();
 
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
@@ -492,22 +486,21 @@ void EditPageWidget::switchPage(int index)
     enableButtons(false);
     ui->deletePushButton->setEnabled(1 != index);
 
-    m_pThumbsScene->removeProxyWidgets(true);
-    m_pThumbsScene->getProxyWidgets().clear();
+    m_thumbsScene->removeProxyWidgets(true);
+    m_thumbsScene->getProxyWidgets().clear();
 
     ui->indexLabel->setText(tr("第%1页/共%2页").arg(index).arg(count));
 
     if ((m_pAlbumWidget = static_cast<AlbumChildWidget *>(m_albumsMap[index])))
     {
         int pid = 0, tid = 0;
-        bool composeable = true;
         QVariantList &photosInfo = m_pAlbumWidget->getPhotosInfo();
         QStringList photosList;
 
 //        QTime t;
 //        t.start();
 
-        //qDebug() << __FILE__ << __LINE__ << photosVector;
+        //qDebug() << __FILE__ << __LINE__ << photosInfo;
 
 //        QPoint offset((this->width() - m_loading->width()) / 2, (this->height() - m_loading->height()) / 2);
 //        m_loading->move(this->geometry().topLeft() + offset);
@@ -517,15 +510,22 @@ void EditPageWidget::switchPage(int index)
 
         //while(t.elapsed() < 200);
 
+        //qDebug() << __FILE__ << __LINE__ << m_pAlbumPage->geometry() << m_pAlbumPage->m_bgdLabel->geometry();
+
         if (!m_pAlbumPage->loadLayers(*m_pAlbumWidget))
         {
             m_pAlbumPage->m_bgdLabel->loadPixmap(QPixmap(":/images/canvas.png"));
             m_pAlbumPage->m_bgdLabel->move(QPoint((ui->mainFrame->width() - m_pAlbumPage->m_bgdLabel->getSize().width()) / 2, 0));
-            composeable = false;
             qDebug() << __FILE__ << __LINE__ << "load layers failed:" << m_pAlbumPage->m_layers.size() << m_pAlbumPage->m_photoLayers.size();
         }
-
-        //qDebug() << __FILE__ << __LINE__ << m_pAlbumPage->geometry() << m_pAlbumPage->m_bgdLabel->geometry();
+        else
+        {
+            pid = m_pAlbumPage->loadPhotos(photosInfo,
+                                           m_pAlbumWidget->getTotalUsedTimes(),
+                                           m_pAlbumWidget->getPhotosNum());
+            //qDebug() << __FILE__ << __LINE__ << pid;
+            m_pAlbumPage->compose(pid);
+        }
 
         for (int i = 0; i < PHOTOS_NUMBER; i++)
         {
@@ -541,7 +541,7 @@ void EditPageWidget::switchPage(int index)
             //qDebug() << __FILE__ << __LINE__ << i << photoFile;
 
             ThumbChildWidget *childWidget = new ThumbChildWidget(++tid, DRAGGABLE_PHOTO, photoFile, angle, axis, m_container);
-            m_pThumbsScene->insertProxyWidget(i + 1, new ThumbProxyWidget(childWidget), photoFile);
+            m_thumbsScene->insertProxyWidget(i + 1, new ThumbProxyWidget(childWidget), photoFile);
             childWidget->setId(i);
             photosList.append(photoFile);
 
@@ -550,19 +550,10 @@ void EditPageWidget::switchPage(int index)
             //qDebug() << __FILE__ << __FUNCTION__ << __LINE__ << i << index << photoFile << photoInfo.at(3);
         }
 
-        if (composeable)
-        {
-            pid = m_pAlbumPage->loadPhotos(photosInfo,
-                                           m_pAlbumWidget->getTotalUsedTimes(),
-                                           m_pAlbumWidget->getPhotosNum());
-            //qDebug() << __FILE__ << __LINE__ << pid;
-            m_pAlbumPage->compose(pid);
-        }
-
-        if (!m_pThumbsScene->isEmpty())
+        if (!m_thumbsScene->isEmpty())
         {
             adjustThumbsHeight();
-            m_pThumbsScene->adjustViewLayout();
+            m_thumbsScene->adjustViewLayout();
         }
 
         ThumbChildWidget::updateList(photosList);

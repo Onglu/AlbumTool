@@ -125,6 +125,12 @@ void PictureGraphicsScene::adjustItemPos(bool partial)
     int index = count - 1;
     int row = 0;
 
+    if (!cx)
+    {
+        qDebug() << __FILE__ << __LINE__ << getViewWidth() << rect.width();
+        return;
+    }
+
     iy = qFloor((qreal)index / cx);
     if (0 == index % cx)
     {
@@ -144,10 +150,20 @@ void PictureGraphicsScene::adjustItemPos(bool partial)
 
     if (partial && SceneType_Templates == m_type)
     {
+        if (!m_resultsWidgets[count])
+        {
+            return;
+        }
+
         m_resultsWidgets[count]->setPos(left, top);
     }
     else
     {
+        if (!m_proxyWidgets[count])
+        {
+            return;
+        }
+
         m_proxyWidgets[count]->setPos(left, top);
     }
 
@@ -169,6 +185,11 @@ void PictureGraphicsScene::adjustViewLayout(int viewWidth)
     }
 
     QGraphicsItem *item = itemsList.first();
+    if (!item)
+    {
+        return;
+    }
+
     QRectF rect = item->boundingRect();
     const int cx = viewWidth / rect.width();    // The number of items on per x-axis
     int ix = 0;                                 // The index of items on per x-axis

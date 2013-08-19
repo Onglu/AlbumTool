@@ -392,9 +392,9 @@ bool TaskPageWidget::eventFilter(QObject *watched, QEvent *event)
         focusScene = m_albumsScene;
         focusArea = tr("相册");
     }
-    else if (m_editPage->m_pThumbsScene == watched && m_editPage->m_thumbsSceneFocused)
+    else if (m_editPage->m_thumbsScene == watched && m_editPage->m_thumbsSceneFocused)
     {
-        focusScene = m_editPage->m_pThumbsScene;
+        focusScene = m_editPage->m_thumbsScene;
         //qDebug() << __FILE__ << __LINE__ << focusScene;
     }
 
@@ -857,7 +857,7 @@ void TaskPageWidget::on_fillPushButton_clicked()
 
         if (albumWidget->getLocations(locations))
         {
-            ProxyWidgetsMap proxyWidgets = m_scensVector[PictureGraphicsScene::SceneType_Photos]->getProxyWidgets();
+            ProxyWidgetsMap proxyWidgets = m_photosScene->getProxyWidgets();
             foreach (PictureProxyWidget *proxyWidget3, proxyWidgets)
             {
                 PhotoChildWidget *photoWidget = (PhotoChildWidget *)proxyWidget3->getChildWidgetPtr();
@@ -1140,6 +1140,8 @@ void TaskPageWidget::onPreview(const QStringList &pictures, int current)
 
 void TaskPageWidget::onEdit(const ChildWidgetsMap &albumsMap, int current)
 {
+    //StartupPageWidget::getWnd()->showMinimized();
+    StartupPageWidget::getWnd()->hide();
     enterEdit(true);
     m_editPage->updateViews(albumsMap, current);
 }
@@ -1154,8 +1156,10 @@ void TaskPageWidget::enterEdit(bool enter)
 //        ui->albumsGroupBox->hide();
 //        emit maxShow(true);
 //        m_editPage->adjustViewLayout();
+
         m_editPage->exec();
         m_editPage->m_templatePage->setTags(m_templatePage->isImmediate(), m_templatePage->getTags());
+        //hide();
     }
     else
     {
@@ -1167,7 +1171,14 @@ void TaskPageWidget::enterEdit(bool enter)
         m_templatePage->setTags(m_editPage->m_templatePage->isImmediate(), m_editPage->m_templatePage->getTags());
         //m_editPage->hide();
         m_editPage->close();
-//        adjustSize();
+        //show();
+
+        //StartupPageWidget::getWnd()->showNormal();
+        StartupPageWidget::getWnd()->show();
+        m_photosScene->adjustViewLayout();
+        m_templatesScene->adjustViewLayout();
+
+        //adjustSize();
     }
 }
 

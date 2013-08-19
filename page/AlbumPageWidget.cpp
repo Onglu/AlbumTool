@@ -720,10 +720,10 @@ void AlbumPageWidget::replace(AlbumChildWidget &album, const ThumbChildWidget *t
 
             compose();
 
-            QString photoName;
-            Converter::getFileName(labels[i]->getPictureFile(), photoName, false);
+            QString layerId;
+            Converter::getFileName(labels[i]->getPictureFile(), layerId, false);
             //qDebug() << __FILE__ << __LINE__ << i << picFile << labels[i]->getFrame();
-            album.changePhoto(photoName, labels[i]->getFrame(), labels[i]->getOpacity(), labels[i]->getAngle());
+            album.changePhoto(layerId, labels[i]->getFrame(), labels[i]->getOpacity(), labels[i]->getAngle());
         }
     }
 }
