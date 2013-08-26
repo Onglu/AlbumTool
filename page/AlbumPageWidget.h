@@ -19,19 +19,9 @@ public:
 
     void clearLayers(void);
 
-//    bool loadPhoto(int index,
-//                   QVariantMap &record,
-//                   const QString &fileName,
-//                   qreal angle = 0,
-//                   Qt::Axis axis = Qt::ZAxis,
-//                   int id = -1
-//                   );
-
-    //int loadPhotos(const QVariantList &photosInfo);
-
-    int loadPhotos(QVariantList &photosInfo,
+    int loadPhotos(AlbumChildWidget &album,
+                   QVariantList &photosInfo,
                    int totalTimes,
-                   int photosNum,
                    const QString &savePath = QString());
 
     void removePhoto(const QString &fileName);
@@ -52,6 +42,11 @@ private:
     QRect getLocation(const QString &layerId, const QString &maskFile) const;
 
     QRect getLocation(const QVariantMap &frame) const;
+
+    void exportPhotos(AlbumChildWidget &album,
+                      PhotoLayer &layer,
+                      const QString &layerId,
+                      const QString &savePath);
 
     void exportPhoto(const QImage &image, const QString &savePath, const QString &fileName);
 

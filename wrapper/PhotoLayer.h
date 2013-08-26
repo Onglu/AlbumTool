@@ -43,8 +43,7 @@ public:
                    const QString &photoFile = QString(),
                    qreal angle = 0,
                    Qt::Axis axis = Qt::ZAxis,
-                   QRect location = QRect(),
-                   int thumbId = -1
+                   QRect location = QRect()
                    );
 
     void changePhoto(const QString &photoFile,
@@ -65,14 +64,7 @@ public:
         return bk ? m_bk : m_ori;
     }
 
-    void setThumbId(int thumbId){m_thumbId = thumbId;}
-    int getThumbId(void) const {return m_thumbId;}
-
     QString getLayerId(void) const;
-
-    //qreal getAngle(void) const {return m_angle;}
-
-    //float getOpacity(void) const {return m_opacity;}
 
     QRect getVisiableRect(VisiableRectType type = VisiableRectTypeDefault) const
     {
@@ -151,10 +143,6 @@ private:
     QPixmap m_src;
     QImage m_visiableImg, m_maskImg, m_composedImg;
     QString m_picFile;
-    int m_thumbId;
-
-//    qreal m_angle;
-//    float m_opacity;
 
     static PhotoLayer *m_replaced;
 };

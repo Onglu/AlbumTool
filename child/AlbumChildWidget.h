@@ -35,6 +35,8 @@ public:
                      qreal opacity = 1,
                      qreal angle = 0);
 
+    void changePhoto(const QString &layerId, const QString &fileName);
+
     bool removePhoto(const QString &fileName);
 
     void changeBanners(void);

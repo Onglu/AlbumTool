@@ -35,7 +35,7 @@ namespace TemplateEngine
         void run();
 
     private:
-        bool existing(const QString &pageId);
+        int existing(const QString &pageId) const;
 
         bool m_search;
         QVariantMap m_data;

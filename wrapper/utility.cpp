@@ -13,26 +13,6 @@ const QStringList &Converter::v2l(const QVector<QString> strVector, QStringList 
     }
 }
 
-int Converter::num(const QStringList &strList, bool empty)
-{
-    int n = 0;
-
-    if (!empty)
-    {
-        return strList.size();
-    }
-
-    foreach (const QString &str, strList)
-    {
-        if (!str.isEmpty())
-        {
-            n++;
-        }
-    }
-
-    return n;
-}
-
 const QString &Converter::getFileName(QString fullPath, QString &fileName, bool suffix)
 {
     if (!fullPath.isEmpty())
@@ -230,13 +210,7 @@ bool LoaderThread::loadRecords()
         }
         else
         {
-            //QStringList photosList = records["photos_list"].toStringList();
-
-            //QString tmplFile = records["template_file"].toString();
-            emit itemAdded(index,
-                           /*photosList*/records["photos_info"].toList(),
-                           records["template_file"].toString(),
-                           records["photo_layers"].toList());
+            emit itemAdded(index, records["photos_info"].toList(), records["template_file"].toString(), records["photo_layers"].toList());
         }
 
         loaded = true;

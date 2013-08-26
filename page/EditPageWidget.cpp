@@ -414,9 +414,11 @@ void EditPageWidget::removeThumbs(const QString &picFile)
             m_pAlbumPage->removePhoto(picFile);
 
             QVariantList photosInfo = m_pAlbumWidget->getPhotosInfo();
-            int pid = m_pAlbumPage->loadPhotos(photosInfo,
-                                               m_pAlbumWidget->getTotalUsedTimes(),
-                                               m_pAlbumWidget->getPhotosNum());
+            int pid = m_pAlbumPage->loadPhotos(*m_pAlbumWidget,
+                                               photosInfo,
+                                               m_pAlbumWidget->getTotalUsedTimes()
+                                               //m_pAlbumWidget->getPhotosNum()
+                                               );
             m_pAlbumPage->compose(pid);
 
             break;
@@ -520,9 +522,11 @@ void EditPageWidget::switchPage(int index)
         }
         else
         {
-            pid = m_pAlbumPage->loadPhotos(photosInfo,
-                                           m_pAlbumWidget->getTotalUsedTimes(),
-                                           m_pAlbumWidget->getPhotosNum());
+            pid = m_pAlbumPage->loadPhotos(*m_pAlbumWidget,
+                                           photosInfo,
+                                           m_pAlbumWidget->getTotalUsedTimes()
+                                           //m_pAlbumWidget->getPhotosNum()
+                                           );
             //qDebug() << __FILE__ << __LINE__ << pid;
             m_pAlbumPage->compose(pid);
         }

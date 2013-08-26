@@ -60,7 +60,6 @@ const QVariantMap &TemplateChildWidget::getChanges(void)
     QVariantMap belongings = m_picLabel->getBelongings();
     m_records["template_file"] = belongings["template_file"];
     m_records["used_times"] = belongings["used_times"];
-    //qDebug() << __FILE__ << __LINE__ << m_index << belongings["used_times"].toString() << m_picLabel->getPictureFile();
     return PictureChildWidget::getChanges();
 }
 
@@ -270,18 +269,21 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
     }
 }
 
-bool SqlThread::existing(const QString &pageId)
+int SqlThread::existing(const QString &pageId) const
 {
     QSqlQuery query;
-    QString sql = tr("select id from template where name='%1' and portrait_count=%2 and landscape_count=%3 and ver='%4' and fileurl='%5' and fileguid='%6' and page_type=%7 and page_id='%8'").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt()).arg(pageId);
+//    QString sql = tr("select id from template where name='%1' and portrait_count=%2 and landscape_count=%3 and ver='%4' and fileurl='%5' and fileguid='%6' and page_type=%7 and page_id='%8'").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt()).arg(pageId);
+
+    Q_UNUSED(pageId);
+    QString sql = tr("select id from template where fileurl='%1' and fileguid='%2' and page_type=%3 ").arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt());
 
     query.exec(sql);
     while (query.next())
     {
-        return true;
+        return query.value(0).toInt();
     }
 
-    return false;
+    return 0;
 }
 
 void SqlThread::run()
@@ -298,15 +300,19 @@ void SqlThread::run()
 
     if (!m_search)
     {
+        QSqlQuery query;
+        QString sql;
         QString pageId = m_widget->m_container->getPageId();
-        if (existing(pageId))
+        int tid = existing(pageId);
+
+        if (0 < tid)
         {
+            sql = QString("update template set page_id='%1' where id=%2").arg(pageId).arg(tid);
+            query.exec(sql);
             goto end;
         }
 
-        QSqlQuery query;
-        int tid = 0;
-        QString sql = "insert into template(name,portrait_count,landscape_count,ver,fileurl,fileguid,page_type,page_id) ";
+        sql = "insert into template(name,portrait_count,landscape_count,ver,fileurl,fileguid,page_type,page_id) ";
         sql += tr("values('%1',%2,%3,'%4','%5','%6',%7,'%8')").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt()).arg(pageId);
         query.exec(sql);
         tid = query.lastInsertId().toInt();
@@ -581,8 +587,8 @@ const QVariantMap &TemplateChildWidget::loadPictures()
     QVariantMap data = belongings["page_data"].toMap();
     QVariantList layers = data["layers"].toList();
 
-    QTime tm;
-    tm.start();
+    //QTime tm;
+    //tm.start();
 
     //QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_BEGIN));
     //QCoreApplication::postEvent(m_container, new QEvent(CustomEvent_Load_BEGIN));
@@ -608,7 +614,7 @@ const QVariantMap &TemplateChildWidget::loadPictures()
 
     //QCoreApplication::postEvent(m_container->getEditPage(), new QEvent(CustomEvent_Load_Finished));
 
-    qDebug() << __FILE__ << __LINE__ << "loaded" << m_pictures.size() << "pictures from" << m_tmplFile << "costs" << tm.elapsed() << "ms in total";
+    //qDebug() << __FILE__ << __LINE__ << "loaded" << m_pictures.size() << "pictures from" << m_tmplFile << "costs" << tm.elapsed() << "ms in total";
 
     return m_pictures;
 }

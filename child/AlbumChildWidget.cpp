@@ -500,6 +500,33 @@ void AlbumChildWidget::changePhoto(const QString &layerId,
     }
 }
 
+void AlbumChildWidget::changePhoto(const QString &layerId, const QString &fileName)
+{
+    QVariantMap &belongings = m_tmplLabel->getBelongings();
+    QVariantMap page = belongings["page_data"].toMap();
+    QVariantList info, layers = page["layers"].toList();
+
+    //qDebug() << __FILE__ << __LINE__ << "before:" << opacity;
+    //qDebug() << __FILE__ << __LINE__ << "before:" << layerId << rect;
+
+    foreach (const QVariant &layer, layers)
+    {
+        QVariantMap data = layer.toMap();
+        if (layerId == data["id"].toString())
+        {
+            data.insert("ext", 1);
+            data.insert("ref", fileName);
+            data.insert("reftype", 0);
+            //qDebug() << __FILE__ << __LINE__ << "found";
+        }
+
+        info << data;
+    }
+
+    page.insert("layers", info);
+    belongings.insert("page_data", page);
+}
+
 bool AlbumChildWidget::removePhoto(const QString &fileName)
 {
     bool ok = false;
@@ -648,28 +675,19 @@ int AlbumChildWidget::output(const QString &dir)
 
     if (album->loadLayers(*this) && (m_tmpl = m_container->getTmplWidget(m_tmplFile)))
     {
-        QString path = tr("%1\\%2").arg(dir).arg(1 == m_index ? "cover" : "page");
+        uchar locations = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];
+        if (!locations)
+        {
+            goto end;
+        }
 
+        QString path = tr("%1\\%2").arg(dir).arg(1 == m_index ? "cover" : "page");
         if (1 < m_index)
         {
             path += QString("%1").arg(m_index - 1);
         }
 
         QDir().mkpath(path);
-
-        QFile jf(tr("%1\\%2").arg(path).arg(PAGE_DATA));
-        if (jf.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
-            QByteArray result = QtJson::serialize(getData());
-            jf.write(result);
-            jf.close();
-        }
-
-        uchar locations = m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];
-        if (!locations)
-        {
-            goto end;
-        }
 
         pid = 0;
 
@@ -691,7 +709,7 @@ int AlbumChildWidget::output(const QString &dir)
         }
         else
         {
-            pid = album->loadPhotos(m_photosInfo, getTotalUsedTimes(), getPhotosNum(), path);
+            pid = album->loadPhotos(*this, m_photosInfo, getTotalUsedTimes(), path);
             album->compose(pid, tr("%1\\%2").arg(path).arg(PIC_NAME));
         }
 
@@ -721,6 +739,14 @@ int AlbumChildWidget::output(const QString &dir)
             ++iter;
         }
         //qDebug() << __FILE__ << __LINE__ << "changes:" << m_records["photo_layers"].toList();
+
+        QFile jf(tr("%1\\%2").arg(path).arg(PAGE_DATA));
+        if (jf.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QByteArray result = QtJson::serialize(getData());
+            jf.write(result);
+            jf.close();
+        }
     }
 
 end:
@@ -772,7 +798,6 @@ bool AlbumChildWidget::meetDragDrop(QDropEvent *event)
 
             if (droppable)
             {
-                //m_thumbSize = QSize(48, 48);
                 m_picLabel = photoLabel;
                 return true;
             }
@@ -781,7 +806,6 @@ bool AlbumChildWidget::meetDragDrop(QDropEvent *event)
     else if (event->mimeData()->hasFormat(DRAGGABLE_TEMPLATE))
     {
         showPhotos(false);
-        //m_thumbSize = QSize(96, 144);
         m_picLabel = m_tmplLabel;
         return true;
     }

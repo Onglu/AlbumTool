@@ -118,6 +118,16 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
             photoLayers << photoLayer;
             m_layers << photoLayer;
         }
+        else if (LT_Decoration == type)  // Decoration layer
+        {
+            embellishLayer.insert("frame", frame);
+            embellishLayer.insert("filename", fileName);
+            embellishLayer.insert("picture", qUncompress(pictures[fileName].toByteArray()));
+            embellishLayer.insert("opacity", opacity);
+            embellishLayer.insert("rotation", angle);
+            embellishLayer.insert("type", type);
+            m_layers << embellishLayer;
+        }
         else if (LT_Mask == type)  // Mask layer
         {
             maskLayer.insert("frame", frame);
@@ -140,10 +150,17 @@ bool AlbumPageWidget::loadLayers(const AlbumChildWidget &album)
                 maskLayer = maskLayers.at(j).toMap();
                 if (maskFile == maskLayer["filename"].toString())
                 {
+                    QVariantMap frame = maskLayer["frame"].toMap();
+                    photoLayer.insert("orientation", frame["width"].toInt() >= frame["height"].toInt() ? 1 : 0);
                     photoLayer.insert("maskLayer", maskLayer);
                     break;
                 }
             }
+        }
+        else
+        {
+            QVariantMap frame = photoLayer["frame"].toMap();
+            photoLayer.insert("orientation", frame["width"].toInt() >= frame["height"].toInt() ? 1 : 0);
         }
 
         m_photoLayers << photoLayer;
@@ -201,211 +218,16 @@ QRect AlbumPageWidget::getLocation(const QVariantMap &frame) const
     return location;
 }
 
-#if 0
-bool AlbumPageWidget::loadPhoto(int index,
-                                QVariantMap &record,
-                                const QString &photoFile,
-                                qreal angle,
-                                Qt::Axis axis,
-                                int id
-                                )
-{
-    if (index < PHOTOS_NUMBER)
-    //if (!pid && pid < m_photoLayers.size()) // for test
-    {
-        //qDebug() << __FILE__ << __LINE__ << index << photoFile << angle << axis;
-
-        QString layerId, fileName;
-        QVariantMap photoLayer, frame;
-        int lid = 0, size = m_photoLayers.size();
-        QRect location;
-        bool restore = false, empty = record.isEmpty();
-
-#if 1
-        if (empty)
-        {
-            QPixmap pix(photoFile);
-            if (angle || Qt::ZAxis != axis)
-            {
-                pix = pix.transformed(QTransform().rotate(angle, axis));
-            }
-
-            bool portrait = pix.width() < pix.height() ? true : false;
-            for (int i = 0; i < size; i++)
-            {
-                photoLayer = m_photoLayers.at(i).toMap();
-                bool used = photoLayer["used"].toBool();
-                if (used)
-                {
-                    photoLayer.clear();
-                    continue;
-                }
-
-                frame = photoLayer["frame"].toMap();
-                int width = frame["width"].toInt();
-                int height = frame["height"].toInt();
-                if ((portrait && width < height) || (!portrait && width >= height))
-                {
-                    /*index = */lid = i;
-                    break;
-                }
-
-                photoLayer.clear();
-            }
-
-            if (photoLayer.isEmpty())
-            {
-                for (int i = 0; i < size; i++)
-                {
-                    photoLayer = m_photoLayers.at(i).toMap();
-                    if (!photoLayer["used"].toBool())
-                    {
-                        /*index = */lid = i;
-                        break;
-                    }
-
-                    photoLayer.clear();
-                }
-            }
-
-            if (!photoLayer.isEmpty())
-            {
-                fileName = photoLayer["filename"].toString();
-                layerId = fileName.left(fileName.length() - strlen(PIC_FMT));
-                record.insert("layer_id", layerId);
-                location = getLocation(layerId, photoLayer["maskfile"].toString());
-            }
-        }
-        else
-#endif
-        {
-            //location = record["fixed_area"].toRect();
-            layerId = record["layer_id"].toString();
-            fileName = QString("%1%2").arg(layerId).arg(PIC_FMT);
-
-            for (int i = 0; i < size; i++)
-            {
-                photoLayer = m_photoLayers.at(i).toMap();
-                if (fileName == photoLayer["filename"].toString())
-                {
-                    if (!m_tmplWidget->getFrame(layerId, frame).isEmpty())
-                    {
-                        restore = photoLayer["frame"].toMap() != frame;
-                        location = getLocation(frame);
-                    }
-
-                    lid = i;
-                    break;
-                }
-
-                photoLayer.clear();
-            }
-        }
-
-        //qDebug() << __FILE__ << __LINE__ << location << location.isNull();
-
-        if (photoLayer.isEmpty() || (photoLayer["maskfile"].toString().isEmpty() && location.isNull()))
-        {
-            return false;
-        }
-
-        //qDebug() << __FILE__ << __LINE__ << usedTimes << photoLayer;
-        qDebug() << __FILE__ << __LINE__ << lid << photoFile << layerId;
-
-        photoLayer["used"] = 1;
-        m_photoLayers[lid] = photoLayer;
-
-        m_layerLabels[index]->setCanvas(m_bgdLabel->getRatioSize(), m_bgdLabel->geometry());
-        return m_layerLabels[index]->loadPhoto(//m_photoLayers.first().toMap()
-                                                   //m_photoLayers.last().toMap()
-                                                   //m_photoLayers.at(index).toMap()
-                                                   restore,
-                                                   photoLayer,
-                                                   photoFile,
-                                                   angle,
-                                                   axis,
-                                                   location,
-                                                   id
-                                                   );
-        //qDebug() << __FILE__ << __LINE__ << m_layerLabels[index]->geometry();
-    }
-
-    return false;
-}
-
-int AlbumPageWidget::loadPhotos(const QVariantList &photosInfo)
-{
-    int index = 0;
-
-    if (photosInfo.isEmpty())
-    {
-        return 0;
-    }
-
-    int size = m_photoLayers.size();
-
-    foreach (const QVariant &info, photosInfo)
-    {
-        QVariantMap data = info.toMap();
-        if (data.isEmpty())
-        {
-            continue;
-        }
-
-        QString photoFile = data["picture_file"].toString();
-        qreal angle = data["rotation_angle"].toReal();
-        Qt::Axis axis = (Qt::Axis)data["rotation_axis"].toInt();
-        QVariantList records = data["used_records"].toList();
-        int usedTimes = records.size();
-        QString layerId, fileName;
-
-        if (usedTimes)
-        {
-            for (int j = 0; j < usedTimes; j++)
-            {
-                QVariantMap record = records[j].toMap();
-                if (!record.isEmpty())
-                {
-                    //location = record["fixed_area"].toRect();
-                    layerId = record["layer_id"].toString();
-                    fileName = QString("%1%2").arg(layerId).arg(PIC_FMT);
-                    for (int i = 0; i < size; i++)
-                    {
-                        QVariantMap photoLayer = m_photoLayers.at(i).toMap();
-                        if (fileName == photoLayer["filename"].toString())
-                        {
-                            m_layerLabels[index]->loadPhoto(true,
-                                                            m_photoLayers.at(index).toMap(),
-                                                            photoFile,
-                                                            angle,
-                                                            axis,
-                                                            getLocation(layerId, photoLayer["maskfile"].toString())
-                                    );
-                            index++;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        qDebug() << __FILE__ << __LINE__ << photoFile << "is used" << usedTimes << "on layer" << layerId;
-    }
-
-    return index;
-}
-#endif
-
-int AlbumPageWidget::loadPhotos(QVariantList &photosInfo,
+int AlbumPageWidget::loadPhotos(AlbumChildWidget &album,
+                                QVariantList &photosInfo,
                                 int totalTimes,
-                                int photosNum,
                                 const QString &savePath)
 {
     int pid = 0, size = m_photoLayers.size();
     QSizeF ratio = m_bgdLabel->getRatioSize();
     QRect location, rect = m_bgdLabel->geometry();
     bool restore = false;
-    QVariantMap photoLayer, frame, record;
+    QVariantMap photoLayer, record;
     QString fileName, layerId;
 
     if (!totalTimes)
@@ -418,8 +240,7 @@ int AlbumPageWidget::loadPhotos(QVariantList &photosInfo,
                 continue;
             }
 
-            frame = photoLayer["frame"].toMap();
-            bool portrait = frame["width"].toInt() < frame["height"].toInt() ? true : false;
+            bool portrait = !photoLayer["orientation"].toBool();
             bool ssel = false;  // sel-select
             QVariantMap info;
             QVariantList records;
@@ -485,11 +306,14 @@ int AlbumPageWidget::loadPhotos(QVariantList &photosInfo,
                 m_photoLayers[i] = photoLayer;
 
                 m_layerLabels[i]->setCanvas(ratio, rect);
-                if (m_layerLabels[i]->loadPhoto(restore, photoLayer, photoFile, angle, axis, location, i))
+                if (m_layerLabels[i]->loadPhoto(restore, photoLayer, photoFile, angle, axis, location))
                 {
                     if (!savePath.isEmpty())
                     {
-                        exportPhoto(m_layerLabels[i]->getPicture(false).toImage(), savePath, m_layerLabels[i]->getPictureFile());
+                        //exportPhoto(m_layerLabels[i]->getPicture(false).toImage(), savePath, m_layerLabels[i]->getPictureFile());
+
+                        /* Exports the original image and the visiable portion image */
+                        exportPhotos(album, *m_layerLabels[i], layerId, savePath);
                     }
 
                     pid++;
@@ -511,6 +335,7 @@ int AlbumPageWidget::loadPhotos(QVariantList &photosInfo,
             fileName = photoLayer["filename"].toString();
             layerId = fileName.left(fileName.length() - strlen(PIC_FMT));
 
+            QVariantMap frame;
             if (!m_tmplWidget->getFrame(layerId, frame).isEmpty())
             {
                 restore = photoLayer["frame"].toMap() != frame;
@@ -560,26 +385,40 @@ int AlbumPageWidget::loadPhotos(QVariantList &photosInfo,
 
             m_layerLabels[i]->setCanvas(ratio, rect);
 
-            if (m_layerLabels[i]->loadPhoto(restore, photoLayer, photoFile, angle, axis, location, i))
+            if (m_layerLabels[i]->loadPhoto(restore, photoLayer, photoFile, angle, axis, location))
             {
                 m_photoLayers[i] = photoLayer;
 
                 if (!savePath.isEmpty())
                 {
-                    exportPhoto(m_layerLabels[i]->getPicture(false).toImage(), savePath, m_layerLabels[i]->getPictureFile());
+                    //exportPhoto(m_layerLabels[i]->getPicture(false).toImage(), savePath, m_layerLabels[i]->getPictureFile());
+                    exportPhotos(album, *m_layerLabels[i], layerId, savePath);
                 }
 
                 pid++;
             }
         }
 
-        if (totalTimes < photosNum && totalTimes < m_tmplWidget->getLocations())
+        if (totalTimes < album.getPhotosNum() && totalTimes < m_tmplWidget->getLocations())
         {
-            loadPhotos(photosInfo, 0, photosNum, savePath);
+            loadPhotos(album, photosInfo, 0, savePath);
         }
     }
 
     return pid;
+}
+
+inline void AlbumPageWidget::exportPhotos(AlbumChildWidget &album,
+                                          PhotoLayer &layer,
+                                          const QString &layerId,
+                                          const QString &savePath)
+{
+    QString photoName;
+    Converter::getFileName(layer.getPhotoFile(), photoName, true);
+    photoName.prepend("original_");
+    album.changePhoto(layerId, photoName);
+    exportPhoto(layer.getPicture(false).toImage(), savePath, photoName);
+    exportPhoto(layer.getVisiableImg(), savePath, layer.getPictureFile());
 }
 
 inline void AlbumPageWidget::exportPhoto(const QImage &image, const QString &savePath, const QString &fileName)
@@ -607,14 +446,10 @@ inline void AlbumPageWidget::exportPhoto(const QImage &image, const QString &sav
 
 void AlbumPageWidget::removePhoto(const QString &picFile)
 {
-    //bool ok = false;
-
     for (int i = 0; i < PHOTOS_NUMBER; i++)
     {
         if (picFile == m_layerLabels[i]->getPhotoFile())
         {
-            //ok = true;
-
             QString fileName = m_layerLabels[i]->getPictureFile();
             int size = m_photoLayers.size();
 
@@ -632,13 +467,6 @@ void AlbumPageWidget::removePhoto(const QString &picFile)
             }
         }
     }
-
-    //qDebug() << __FILE__ << __LINE__ << picFile << m_photoLayers;
-
-//    if (ok)
-//    {
-//        compose();
-//    }
 }
 
 void AlbumPageWidget::sort(QVariantList &records)
@@ -701,7 +529,6 @@ void AlbumPageWidget::replace(AlbumChildWidget &album, const ThumbChildWidget *t
         }
         else
         {
-            label->setThumbId(thumb->getIndex());
             labels << label;
         }
 

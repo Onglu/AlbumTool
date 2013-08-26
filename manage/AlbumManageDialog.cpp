@@ -269,7 +269,7 @@ void AlbumManageDialog::on_loginPushButton_clicked()
         QString pwd = ui->passwdLineEdit->text();
         if (name.isEmpty() || pwd.isEmpty())
         {
-            QMessageBox::warning(this, tr("登陆失败"), tr("用户名及密码不能为空！"), tr("确定"));
+            QMessageBox::warning(this, tr("登录失败"), tr("登录名或密码不正确！"), tr("确定"));
             return;
         }
 
@@ -332,7 +332,7 @@ void AlbumManageDialog::over()
     if (m_url.startsWith(USER_LOGIN_URL))
     {
         this->setEnabled(true);
-        QMessageBox::information(this, tr("登陆超时"), tr("用户登陆超时，请稍后重试。"), tr("确定"));
+        QMessageBox::information(this, tr("登录超时"), tr("用户登录超时，请稍后重试。"), tr("确定"));
     }
     else if (m_url.startsWith(FIND_USER_URL))
     {
@@ -368,7 +368,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
 
         if (SERVER_REPLY_SUCCESS != code)
         {
-            QMessageBox::information(this, tr("认证失败"), tr("登陆认证失败！错误码：%1").arg(code), tr("确定"));
+            QMessageBox::information(this, tr("认证失败"), tr("登录认证失败！错误码：%1").arg(code), tr("确定"));
             goto end;
         }
 

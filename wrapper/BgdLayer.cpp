@@ -1,4 +1,5 @@
 #include "BgdLayer.h"
+#include "defines.h"
 #include <QPainter>
 #include <QDebug>
 
@@ -43,7 +44,7 @@ void BgdLayer::compose(const QString &saveFile)
 
         //qDebug() << __FILE__ << __LINE__ << "layer:" << file;
 
-        if (1 == data["type"].toInt())
+        if (LT_Photo == data["type"].toInt())
         {
             if (m_locations == index)
             {

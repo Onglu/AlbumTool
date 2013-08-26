@@ -86,11 +86,11 @@ void PictureGraphicsScene::insertProxyWidget(int index,
 
 PictureProxyWidget *PictureGraphicsScene::getProxyWidget(const ProxyWidgetsMap &proxyWidgets, const QString &picFile)
 {
-    PictureChildWidget *childWidgt = NULL;
+    PictureChildWidget *childWidget = NULL;
 
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
-        if ((childWidgt = proxyWidget->getChildWidgetPtr()) && picFile == childWidgt->getPictureLabel()->getPictureFile())
+        if ((childWidget = proxyWidget->getChildWidgetPtr()) && picFile == childWidget->getPictureLabel()->getPictureFile())
         {
             return proxyWidget;
         }
@@ -358,7 +358,12 @@ void PictureGraphicsScene::removeProxyWidgets(bool all, EditPageWidget *pEditPag
 
                         if (SceneType_Templates == m_type)
                         {
-                            removeProxyWidget(getProxyWidget(m_proxyWidgets, picFile));
+                            proxyWidget = getProxyWidget(m_proxyWidgets, picFile);
+                            if (proxyWidget)
+                            {
+                                proxyWidget->getChildWidgetPtr()->remove();
+                                removeProxyWidget(proxyWidget);
+                            }
 
                             int pos = picFile.lastIndexOf(".png", -1, Qt::CaseInsensitive);
                             if (-1 != pos)
