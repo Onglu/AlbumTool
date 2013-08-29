@@ -35,7 +35,7 @@ namespace TemplateEngine
         void run();
 
     private:
-        int existing(const QString &pageId) const;
+        int existing(/*const QString &pageId*/) const;
 
         bool m_search;
         QVariantMap m_data;
@@ -74,7 +74,9 @@ public:
                                  int usedTimes = 0,
                                  TaskPageWidget *parent = 0);
 
-    TemplateChildWidget(const QString &file, DraggableLabel *label);
+    TemplateChildWidget(const QString &file,
+                        DraggableLabel *label,
+                        TaskPageWidget *parent = 0);
 
     const QVariantMap &getChanges(void);
 

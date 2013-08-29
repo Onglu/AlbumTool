@@ -223,7 +223,7 @@ int AlbumPageWidget::loadPhotos(AlbumChildWidget &album,
                                 int totalTimes,
                                 const QString &savePath)
 {
-    int pid = 0, size = m_photoLayers.size();
+    int pid = 0, size = m_photoLayers.size(), num = album.getPhotosNum();
     QSizeF ratio = m_bgdLabel->getRatioSize();
     QRect location, rect = m_bgdLabel->geometry();
     bool restore = false;
@@ -232,6 +232,11 @@ int AlbumPageWidget::loadPhotos(AlbumChildWidget &album,
 
     if (!totalTimes)
     {
+        if (!num)
+        {
+            return pid;
+        }
+
         for (int i = 0; i < size; i++)
         {
             photoLayer = m_photoLayers.at(i).toMap();
@@ -251,24 +256,25 @@ int AlbumPageWidget::loadPhotos(AlbumChildWidget &album,
 
             do
             {
-                if (j == PHOTOS_NUMBER - 1)
+                // 如果从0~5都没有找到长宽比例与当前照片层的长宽比例相匹配的照片，那么将从0开始重新再查找一遍，
+                // 当找到第一个有照片属性信息的记录时，便结束查找。
+                if (j == PHOTOS_NUMBER - 1 && !ssel)
                 {
                     ssel = true;
                     j = 0;
                 }
 
                 info = photosInfo[j].toMap();
-                if (info.isEmpty())
+                if (info.isEmpty()) // 如果记录信息为空，则表明已经遍历结束
                 {
-                    info.clear();
                     continue;
                 }
 
                 records = info["used_records"].toList();
-                if (!records.isEmpty())
+                if (!records.isEmpty()) // 已经有使用记录信息了
                 {
                     info.clear();
-                    continue;
+                    continue;   // 继续检查下一个照片的使用记录信息
                 }
 
                 photoFile = info["picture_file"].toString();
@@ -399,7 +405,7 @@ int AlbumPageWidget::loadPhotos(AlbumChildWidget &album,
             }
         }
 
-        if (totalTimes < album.getPhotosNum() && totalTimes < m_tmplWidget->getLocations())
+        if (totalTimes < num && totalTimes < m_tmplWidget->getLocations())
         {
             loadPhotos(album, photosInfo, 0, savePath);
         }
@@ -418,7 +424,10 @@ inline void AlbumPageWidget::exportPhotos(AlbumChildWidget &album,
     photoName.prepend("original_");
     album.changePhoto(layerId, photoName);
     exportPhoto(layer.getPicture(false).toImage(), savePath, photoName);
-    exportPhoto(layer.getVisiableImg(), savePath, layer.getPictureFile());
+
+    photoName = layer.getPictureFile();
+    photoName.replace("jpg", "png");
+    exportPhoto(layer.getVisiableImg(), savePath, photoName);
 }
 
 inline void AlbumPageWidget::exportPhoto(const QImage &image, const QString &savePath, const QString &fileName)
@@ -441,7 +450,7 @@ inline void AlbumPageWidget::exportPhoto(const QImage &image, const QString &sav
     }
 
     //qDebug() << __FILE__ << __LINE__ << index << m_layerLabels[index]->getPictureFile() << angle;
-    image.scaled(size, Qt::KeepAspectRatio).save(tr("%1\\%2").arg(savePath).arg(fileName));
+    image.scaled(size, Qt::KeepAspectRatio).save(tr("%1\\%2").arg(savePath).arg(fileName)/*, fileName.right(3).toStdString().c_str(), 100*/);
 }
 
 void AlbumPageWidget::removePhoto(const QString &picFile)

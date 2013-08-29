@@ -4,7 +4,9 @@
 #include <QDebug>
 #include "page/TaskPageWidget.h"
 
-PictureChildWidget::PictureChildWidget(const QString &file, QWidget *parent) : QWidget(parent)
+PictureChildWidget::PictureChildWidget(const QString &file, TaskPageWidget *container) :
+    QWidget(0),
+    m_container(container)
 {
     QString name;
     setToolTip(Converter::getFileName(file, name, true));
@@ -29,6 +31,16 @@ PictureChildWidget::PictureChildWidget(const QString &file, QSize fixedSize, boo
     setAcceptDrops(droppable);
 }
 
+void PictureChildWidget::setIndex(int index)
+{
+    if (0 < index && m_index != index && m_indexLabel)
+    {
+        m_records.insert("index", index);
+        m_indexLabel->setText(tr("%1").arg(index));
+        m_index = index;
+    }
+}
+
 void PictureChildWidget::setIndexLabel(int index, QLabel *lable, QPoint pos)
 {
     if (!m_indexLabel)
@@ -50,16 +62,6 @@ void PictureChildWidget::setIndexLabel(int index, QLabel *lable, QPoint pos)
     }
 
     setIndex(index);
-}
-
-void PictureChildWidget::setIndex(int index)
-{
-    if (0 < index && m_index != index && m_indexLabel)
-    {
-        m_records.insert("index", index);
-        m_indexLabel->setText(tr("%1").arg(index));
-        m_index = index;
-    }
 }
 
 void PictureChildWidget::setPictureLabel(const QPixmap &pix,

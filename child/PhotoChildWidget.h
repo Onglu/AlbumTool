@@ -27,11 +27,11 @@ public:
 
     int usedTimes(void) const;
 
-    static void setPhoto(DraggableLabel &label,
-                         const QString &file,
-                         qreal angle = 0,
-                         Qt::Axis axis = Qt::ZAxis,
-                         int usedTimes = 0);
+    static void setPhotoInfo(DraggableLabel &label,
+                             const QString &file,
+                            qreal angle = 0,
+                            Qt::Axis axis = Qt::ZAxis,
+                            int usedTimes = 0);
 
 protected slots:
     void onAccept(const QVariantMap &belongings);

@@ -2,6 +2,7 @@
 #include "parser/json.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QDebug>
 
 #define MAGIC_NUMBER    0xBCC2AEFD
 #define VERSION_NUMBER  123
@@ -47,7 +48,9 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
     in >> xcrw;
     //qDebug() << __FILE__ << __LINE__ << xcrw;
 
+    bool complete[2] = {true};
     QVariantMap::const_iterator iter = xcrw.constBegin();
+
     while (iter != xcrw.constEnd())
     {
         if ("id" == iter.key())
@@ -57,10 +60,12 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
         else if ("photos" == iter.key())
         {
             photos = xcrw["photos"].toList();
+            verifyList(photos, true, complete[0]);
         }
         else if ("templates" == iter.key())
         {
             templates = xcrw["templates"].toList();
+            verifyList(templates, false, complete[1]);
         }
         else if ("albums" == iter.key())
         {
@@ -70,12 +75,53 @@ bool FileParser::openTask(QVariantList &photos, QVariantList &templates, QVarian
         ++iter;
     }
 
+    m_complete = complete[0] && complete[1];
+
     return true;
+}
+
+void FileParser::verifyList(QVariantList &records, bool isPhoto, bool &complete)
+{
+    QVariantList results;
+    int j = 0, k = 0, size = records.size();
+
+    for (int i = size - 1; i >= 0; i--, k++)
+    {
+        QVariantMap data = records[i].toMap();
+        int index = data["index"].toInt();
+        QString file = isPhoto ? data["picture_file"].toString() : data["template_file"].toString();
+
+        if (!QFile::exists(file))
+        {
+            if (j != index - k)
+            {
+                j = index;
+            }
+
+            records.removeAt(i);
+
+            continue;
+        }
+
+        //qDebug() << __FILE__ << __LINE__ << i << j << k << data["index"].toInt() << file;
+
+        if (0 < j)
+        {
+            data["index"] = j;
+            j = index;
+            k = 0;
+        }
+
+        results << data;
+    }
+
+    records = results;
+    complete = size == records.size() ? true : false;
 }
 
 void FileParser::saveTask()
 {
-    if (!openFile(QIODevice::WriteOnly, false))
+    if (!openFile(QIODevice::WriteOnly))
     {
         return;
     }
@@ -106,13 +152,14 @@ void FileParser::saveTask()
     xcrw.insert("albums", albums);
 
     out << xcrw;
+    close();
 }
 
 void FileParser::saveTask(const QVariantList &photos,
                           const QVariantList &templates,
                           const QVariantList &albums)
 {
-    if (!openFile(QIODevice::WriteOnly, false))
+    if (!openFile(QIODevice::WriteOnly))
     {
         return;
     }
@@ -131,6 +178,7 @@ void FileParser::saveTask(const QVariantList &photos,
     xcrw.insert("templates", templates);
     xcrw.insert("albums", albums);
     out << xcrw;
+    close();
 }
 
 int FileParser::importFiles(const QString &dirKey,

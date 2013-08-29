@@ -15,7 +15,7 @@ class PictureChildWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit PictureChildWidget(const QString &file, QWidget *parent = 0);
+    explicit PictureChildWidget(const QString &file, TaskPageWidget *container = 0);
 
     PictureChildWidget(const QString &file,
                        QSize fixedSize,
@@ -45,7 +45,7 @@ public:
     virtual void swap(DraggableLabel &dragger);
     virtual void remove(void){}
 
-    void unselectSelf(void){emit itemUnselected();}
+    void unselect(void){emit itemUnselected();}
 
 signals:
     void itemSelected(void);

@@ -31,7 +31,6 @@ AlbumChildWidget::AlbumChildWidget(int index,
                                    TaskPageWidget *parent) :
     PictureChildWidget(tr("第 %1 页（%2）").arg(index).arg(1 == index ? tr("封面") : tr("内页")), QSize(118, 190), true, parent),
     ui(new Ui::AlbumChildWidget),
-    m_tmplFile(tmplFile),
     m_tmplVisible(false),
     m_tmpl(NULL)
 {
@@ -73,7 +72,13 @@ void AlbumChildWidget::setupWidgets(const QVariantList &photosInfo,
                                     const QString &tmplFile,
                                     const QVariantList &photoLayers)
 {
+    int j = 0, size = photosInfo.size();
     bool empty = photosInfo.isEmpty();
+
+    if (PHOTOS_NUMBER != size)
+    {
+        size = PHOTOS_NUMBER;
+    }
 
     memset(m_locations, 0, 2);
 
@@ -84,7 +89,7 @@ void AlbumChildWidget::setupWidgets(const QVariantList &photosInfo,
     m_photoLabels.append(setPictureLabel(ui->photoLabel5));
     m_photoLabels.append(setPictureLabel(ui->photoLabel6));
 
-    for (int i = 0; i < PHOTOS_NUMBER; i++)
+    for (int i = 0; i < size; i++)
     {
         /* Initialize the persent album with the photos list */
         QVariantMap info;
@@ -94,22 +99,34 @@ void AlbumChildWidget::setupWidgets(const QVariantList &photosInfo,
         }
         else
         {
-            info = photosInfo[i].toMap();
-            m_photosInfo.insert(i, info);
-
-            if (!info.isEmpty())
+            if (PHOTOS_NUMBER > i)
             {
-                QString photoFile = info["picture_file"].toString();
-                //qDebug() << __FILE__ << __LINE__ << m_index << i << photoFile << info["used_records"].toList();
+                info = photosInfo[i].toMap();
+                if (!info.isEmpty())
+                {
+                    QString photoFile = info["picture_file"].toString();
+                    if (QFile::exists(photoFile))
+                    {
+                        qreal angle = info["rotation_angle"].toReal();
+                        Qt::Axis axis = (Qt::Axis)info["rotation_axis"].toInt();
+                        m_photoLabels[j]->loadPicture(QPixmap(photoFile), QSize(46, 46), angle, axis);
+                        PhotoChildWidget::setPhotoInfo(*m_photoLabels[i], photoFile, angle, axis);
+                    }
+                    else
+                    {
+                        size++;
+                        continue;
+                    }
 
-                qreal angle = info["rotation_angle"].toReal();
-                Qt::Axis axis = (Qt::Axis)info["rotation_axis"].toInt();
-                m_photoLabels[i]->loadPicture(QPixmap(photoFile), QSize(46, 46), angle, axis);
-                PhotoChildWidget::setPhoto(*m_photoLabels[i], photoFile, angle, axis);
+                    //qDebug() << __FILE__ << __LINE__ << i << j << photoFile; // << info["used_records"].toList()
+                }
             }
+
+            m_photosInfo.insert(j, info);
         }
 
-        m_photoLabels[i]->setContentsMargins(1, 1, 2, 2);
+        m_photoLabels[j]->setContentsMargins(1, 1, 2, 2);
+        j++;
     }
 
     //qDebug() << __FILE__ << __LINE__ << m_index << photoFile << records;
@@ -117,17 +134,42 @@ void AlbumChildWidget::setupWidgets(const QVariantList &photosInfo,
     m_picLabel = m_photoLabels.last();
     m_tmplLabel = new DraggableLabel(QSize(96, 144), DRAGGABLE_TEMPLATE, ui->templateLabel);
 
-    QString tmplPic;
-    TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel);
-    if (tmplWidget.getTmplPic(tmplPic))
+//    if (QFile::exists(tmplFile))
+//    {
+//        QString tmplPic;
+//        TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel);
+//        if (tmplWidget.getTmplPic(tmplPic))
+//        {
+//            m_tmplFile = tmplFile;
+//            m_tmplLabel->setContentsMargins(1, 1, 2, 2);
+//            m_tmplLabel->loadPicture(QPixmap(tmplPic), QSize(92, 142));
+//            QVariantMap belongings = m_tmplLabel->getBelongings();
+//            TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
+//        }
+//    }
+
+    if (!tmplFile.isEmpty())
     {
-        m_tmplLabel->setContentsMargins(1, 1, 2, 2);
-        m_tmplLabel->loadPicture(QPixmap(tmplPic), QSize(92, 142));
-        QVariantMap belongings = m_tmplLabel->getBelongings();
-        TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
+        TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel, m_container);
+        if (QFile::exists(tmplFile))
+        {
+            QString tmplPic;
+            if (tmplWidget.getTmplPic(tmplPic))
+            {
+                m_tmplFile = tmplFile;
+                m_tmplLabel->setContentsMargins(1, 1, 2, 2);
+                m_tmplLabel->loadPicture(QPixmap(tmplPic), QSize(92, 142));
+                QVariantMap belongings = m_tmplLabel->getBelongings();
+                TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
+            }
+        }
+        else
+        {
+            tmplWidget.remove();
+        }
     }
 
-    //qDebug() << __FILE__ << __LINE__ << m_tmplFile << tmplPic;
+    //qDebug() << __FILE__ << __LINE__ << m_index << m_tmplFile;
 
     m_tmplLabel->setVisible(false);
     connect(m_tmplLabel, SIGNAL(clicked()), SIGNAL(itemSelected()));
@@ -738,6 +780,7 @@ int AlbumChildWidget::output(const QString &dir)
 
             ++iter;
         }
+
         //qDebug() << __FILE__ << __LINE__ << "changes:" << m_records["photo_layers"].toList();
 
         QFile jf(tr("%1\\%2").arg(path).arg(PAGE_DATA));
@@ -829,41 +872,6 @@ void AlbumChildWidget::dropEvent(QDropEvent *event)
 
         if (!m_tmplVisible)
         {
-#if 0
-            QPixmap pix(picFile);
-            int index = getPhotoIndex(picFile);
-            if (INVALID_PHOTO_INDEX != index || pix.isNull())
-            {
-                event->ignore();
-                return;
-            }
-
-            picLabel->accept();
-
-            qreal angle = belongings["rotation_angle"].toReal();
-            Qt::Axis axis = (Qt::Axis)belongings["rotation_axis"].toInt();
-
-            //index = m_picLabel->objectName().right(1).toInt() - 1;
-            //setPhotoInfo(/*index, */picFile, angle, axis);
-
-            m_picLabel->loadPicture(pix, m_thumbSize - QSize(2, 2), angle, axis);
-            m_picLabel->setBelongings(belongings);
-            m_picLabel->clearMimeType();
-
-            if (0 == m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE])
-            {
-                addBanner(":/images/usages_num.png", "已用图片位");
-            }
-            else
-            {
-                changeBanners();
-            }
-
-            m_container->noticeChanged();
-
-            m_tmplVisible = m_tmplLabel->hasPicture();
-#endif
-
             if (!setPhotoInfo(picLabel))
             {
                 event->ignore();
@@ -951,8 +959,27 @@ void AlbumChildWidget::replace(const QString &current, const QVariantMap &belong
     }
 }
 
-void AlbumChildWidget::switchView()
+void AlbumChildWidget::switchView(bool enter)
 {
+    bool sw = m_tmplLabel->hasPicture();
+
+    if (enter)
+    {
+        if (sw)
+        {
+            showPhotos(true);
+            return;
+        }
+    }
+    else
+    {
+        if (sw)
+        {
+            showPhotos(false);
+            return;
+        }
+    }
+
     showPhotos(!ui->photoLabel1->isVisible() && ui->templateLabel->isVisible());
 }
 
@@ -966,13 +993,13 @@ const QVariantMap &AlbumChildWidget::getChanges()
 void AlbumProxyWidget::hoverEnterEvent(QGraphicsSceneHoverEvent *event)
 {
     PictureProxyWidget::hoverEnterEvent(event);
-    m_pChildWidget->switchView();
+    m_pChildWidget->switchView(true);
 }
 
 void AlbumProxyWidget::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
 {
     PictureProxyWidget::hoverLeaveEvent(event);
-    m_pChildWidget->switchView();
+    m_pChildWidget->switchView(false);
 }
 
 bool AlbumProxyWidget::excludeItem(const QString &picFile)

@@ -43,7 +43,16 @@ public:
 
     void clearBanners(void);
 
-    void switchView(void);
+    void switchView(bool enter);
+
+    void updateViews(void)
+    {
+        if (m_tmplLabel->hasPicture())
+        {
+            showPhotos(false);
+            emit itemUnselected();
+        }
+    }
 
     void replace(const QString &current, const QVariantMap &belongings);
 

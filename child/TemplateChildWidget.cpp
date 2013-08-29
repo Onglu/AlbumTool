@@ -42,8 +42,8 @@ TemplateChildWidget::TemplateChildWidget(int index,
     }
 }
 
-TemplateChildWidget::TemplateChildWidget(const QString &file, DraggableLabel *label) :
-    PictureChildWidget(file),
+TemplateChildWidget::TemplateChildWidget(const QString &file, DraggableLabel *label, TaskPageWidget *parent) :
+    PictureChildWidget(file, parent),
     m_tmplFile(file),
     m_sql(this)
 {
@@ -51,8 +51,11 @@ TemplateChildWidget::TemplateChildWidget(const QString &file, DraggableLabel *la
     connect(&m_sql, SIGNAL(finished()), &m_sql, SLOT(quit()));
     connect(&m_tmaker, SIGNAL(finished(int,QProcess::ExitStatus)), SLOT(processFinished(int,QProcess::ExitStatus)));
 
-    QString args;
-    useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, PAGE_DATA));
+    if (QFile::exists(m_tmplFile))
+    {
+        QString args;
+        useZip(m_tmaker, ZipUsageRead, args2(args, m_tmplFile, PAGE_DATA));
+    }
 }
 
 const QVariantMap &TemplateChildWidget::getChanges(void)
@@ -88,6 +91,7 @@ int TemplateChildWidget::getId()
     }
 
     QString sql = tr("select id from template where fileurl='%1' and page_id='%2'").arg(m_tmplPic).arg(m_container->getPageId());
+    //qDebug() << __FILE__ << __LINE__ << sql;
     return SqlHelper::getId(sql);
 }
 
@@ -269,12 +273,11 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
     }
 }
 
-int SqlThread::existing(const QString &pageId) const
+int SqlThread::existing(/*const QString &pageId*/) const
 {
     QSqlQuery query;
 //    QString sql = tr("select id from template where name='%1' and portrait_count=%2 and landscape_count=%3 and ver='%4' and fileurl='%5' and fileguid='%6' and page_type=%7 and page_id='%8'").arg(m_data["name"].toString()).arg(m_data["portraitCount"].toInt()).arg(m_data["landscapeCount"].toInt()).arg(m_data["ver"].toString()).arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt()).arg(pageId);
 
-    Q_UNUSED(pageId);
     QString sql = tr("select id from template where fileurl='%1' and fileguid='%2' and page_type=%3 ").arg(m_widget->m_tmplPic).arg(m_data["id"].toString()).arg(m_data["pagetype"].toInt());
 
     query.exec(sql);
@@ -303,7 +306,7 @@ void SqlThread::run()
         QSqlQuery query;
         QString sql;
         QString pageId = m_widget->m_container->getPageId();
-        int tid = existing(pageId);
+        int tid = existing(/*pageId*/);
 
         if (0 < tid)
         {
@@ -409,44 +412,46 @@ bool TemplateChildWidget::moveTo(QString &fileName, QString dirName, bool overwr
 
 bool TemplateChildWidget::deleteDir(const QString &dir, bool all)
 {
+    bool ok = true;
     QDir directory(dir);
+
     if (dir.isEmpty() || !directory.exists())
     {
-        return true;
+        return ok;
     }
 
     QStringList files = directory.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
     QList<QString>::iterator f = files.begin();
-    bool error = false;
-
     while (f != files.end())
     {
         QString filePath = QDir::convertSeparators(directory.path() + '/' + (*f));
         QFileInfo fi(filePath);
+
         if (fi.isFile() || fi.isSymLink())
         {
             QFile::setPermissions(filePath, QFile::WriteOwner);
-            if (!QFile::remove(filePath))
-            {
-                error = true;
-            }
+            ok = QFile::remove(filePath);
         }
         else if (fi.isDir())
         {
-            if (!deleteDir(filePath))
-            {
-                error = true;
-            }
+            ok = deleteDir(filePath);
         }
+
+        if (!ok)
+        {
+            break;
+        }
+
         ++f;
     }
 
     if (all)
     {
-        return directory.rmdir(QDir::convertSeparators(directory.path()));
+        //qDebug() << __FILE__ << __LINE__ << directory.path() << QDir::toNativeSeparators(directory.path()) << directory.dirName();
+        return directory.rmdir(QDir::toNativeSeparators(directory.path()));
     }
 
-    return error;
+    return ok;
 }
 
 void TemplateChildWidget::parseTest(const QVariantMap &data)

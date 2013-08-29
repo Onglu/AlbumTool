@@ -209,8 +209,9 @@ void TaskPageWidget::saveChanges()
 
 //        if (!m_albumsList.isEmpty())
 //        {
-//            QVariantMap records = m_albumsList.first().toMap();
-//            qDebug() << __FILE__ << __LINE__ << records["photos_info"].toList();
+//            QVariantMap records = m_albumsList.last().toMap();
+//            //qDebug() << __FILE__ << __LINE__ << records["photos_info"].toList();
+//            qDebug() << __FILE__ << __LINE__ << records["photo_layers"].toList();
 //        }
 
         m_taskParser.saveTask(m_photosList, m_templatesList, m_albumsList);
@@ -301,13 +302,32 @@ void TaskPageWidget::ok(uchar state)
         {
             if (!m_photosLoader->isActive() && !m_templatesLoader->isActive() && !m_albumsLoader->isActive())
             {
+                m_loadingDlg->showProcess(false);
+
                 if (LOAD_RECORDS == state)
                 {
+                    QVariantList albums;
+                    m_albumsScene->getChanges(albums);
+                    if (m_albumsList != albums)
+                    {
+                        m_albumsList = albums;
+                        m_taskParser.saveTask(m_photosList, m_templatesList, m_albumsList);
+                        //qDebug() << __FILE__ << __LINE__ << m_albumsList;
+                        //QVariantMap records = m_albumsList.last().toMap();
+                        //qDebug() << __FILE__ << __LINE__ << records["photos_info"].toList();
+                    }
+
                     countLocations(PictureGraphicsScene::SceneType_Photos);
                     countLocations(PictureGraphicsScene::SceneType_Albums);
-                }
 
-                m_loadingDlg->showProcess(false);
+                    if (!m_taskParser.isCompleted())
+                    {
+                        QMessageBox::information(this,
+                                                 tr("操作提示"),
+                                                 tr("部分文件加载失败，造成的原因可能为文件路径发生了更改！"),
+                                                 tr("确定"));
+                    }
+                }
             }
 
             if (!m_photosLoader->isActive() && !m_photosScene->done())
@@ -912,8 +932,6 @@ void TaskPageWidget::on_createPushButton_clicked()
     QString fileName, taskDir, outDir, childDir, taskFile = QDir::toNativeSeparators(m_taskParser.fileName());
 
     outDir = taskFile.left(taskFile.length() - 5);
-    TemplateChildWidget::deleteDir(outDir);
-
     childDir = tr("%1\\output").arg(outDir);
     taskDir = outDir.left(outDir.lastIndexOf(QDir::separator()));
     Converter::getFileName(taskFile, fileName, false);
@@ -932,7 +950,11 @@ void TaskPageWidget::on_createPushButton_clicked()
         }
         else
         {
-            QFile::remove(m_album);
+            if (!QFile::remove(m_album) || !TemplateChildWidget::deleteDir(outDir))
+            {
+                QMessageBox::information(this, tr("生成失败"), tr("生成相册包失败，请检查相册包文件是否被占用！"), tr("确定"));
+                return;
+            }
         }
     }
 
@@ -1028,6 +1050,8 @@ void TaskPageWidget::process(int index, const QStringList &args)
         addAlbumRecord(pagesNum, m_photosNum, args.at(2).toInt());
         m_loadingDlg->showProcess(false);
         ui->previewPushButton->setEnabled(true);
+
+        QMessageBox::information(this, tr("生成完毕"), tr("相册包已经生成完毕！"), tr("确定"));
 
         qDebug("\n");
         qDebug() << __FILE__ << __LINE__ << "compress album package costs" << m_tm.elapsed() << "ms in total";

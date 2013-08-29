@@ -28,7 +28,7 @@ PhotoChildWidget::PhotoChildWidget(int index,
         rotate(angle, axis, false);
     }
 
-    setPhoto(*m_picLabel, file, angle, axis, usedTimes);
+    setPhotoInfo(*m_picLabel, file, angle, axis, usedTimes);
     m_records = m_picLabel->getBelongings();
 
     if (usedTimes)
@@ -58,7 +58,7 @@ const QVariantMap &PhotoChildWidget::getChanges()
     return PictureChildWidget::getChanges();
 }
 
-void PhotoChildWidget::setPhoto(DraggableLabel &label,
+void PhotoChildWidget::setPhotoInfo(DraggableLabel &label,
                                 const QString &file,
                                 qreal angle,
                                 Qt::Axis axis,

@@ -24,7 +24,7 @@ ThumbChildWidget::ThumbChildWidget(int index,
         m_picLabel->setPixmap(pix.transformed(QTransform().rotate(angle, axis), Qt::SmoothTransformation));
     }
 
-    PhotoChildWidget::setPhoto(*m_picLabel, file, angle, axis);
+    PhotoChildWidget::setPhotoInfo(*m_picLabel, file, angle, axis);
     m_belongings = m_picLabel->getBelongings();
 }
 

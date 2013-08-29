@@ -66,8 +66,9 @@ private:
 class FileParser: public QFile
 {
 public:
-    explicit FileParser(QWidget *parent = 0) : QFile(NULL), m_parent(parent){}
-    FileParser(const QString &fileName, QWidget *parent = 0) : QFile(fileName), m_fileName(fileName), m_parent(parent)
+    explicit FileParser(QWidget *parent = 0) : QFile(NULL), m_complete(false), m_parent(parent){}
+    FileParser(const QString &fileName, QWidget *parent = 0) :
+        QFile(fileName), m_fileName(fileName), m_complete(false), m_parent(parent)
     {
         setFileName(m_fileName);
     }
@@ -82,13 +83,16 @@ public:
             m_parent = fp.m_parent;
             m_fileName = fp.m_fileName;
             m_locker = fp.m_locker;
+            m_pageId = fp.m_pageId;
+            m_complete = fp.m_complete;
         }
 
         return *this;
     }
 
-    bool openFile(OpenMode mode, bool lock = true)
+    bool openFile(OpenMode mode)
     {
+        m_locker.unlock();
         if (isOpen())
         {
             close();
@@ -100,24 +104,13 @@ public:
             m_locker.lock(m_fileName);
         }
 
-//        if (ret)
-//        {
-//            if (QIODevice::ReadOnly == mode)
-//            {
-//                m_locker.lock(m_fileName);
-//            }
-
-//            if (QIODevice::WriteOnly == mode)
-//            {
-//                m_locker.unlock();
-//            }
-//        }
-
         return ret;
     }
 
     void closeFile(void)
     {
+        m_fileName.clear();
+        m_pageId.clear();
         m_locker.unlock();
         close();
     }
@@ -158,7 +151,7 @@ public:
 
     //QString getParsingFile(void) const {return m_fileName;}
 
-    const QString &getPageId(void) const {return m_pageId;}
+    QString getPageId(void) const {return m_pageId;}
 
     /* File name format: "C:/path1/file.txt" */
     int importFiles(const QString &dirKey,
@@ -174,11 +167,16 @@ public:
         return getFileMd5(m_fileName, md5);
     }
 
+    bool isCompleted(void) const {return m_complete;}
+
 private:
+    void verifyList(QVariantList &records, bool isPhoto, bool &complete);
+
     QWidget *m_parent;
     QSettings m_Settings;
     FileLocker m_locker;
     QString m_fileName, m_pageId;
+    bool m_complete;
 };
 
 #endif // FILEPARSER_H

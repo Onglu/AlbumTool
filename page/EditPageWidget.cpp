@@ -414,11 +414,7 @@ void EditPageWidget::removeThumbs(const QString &picFile)
             m_pAlbumPage->removePhoto(picFile);
 
             QVariantList photosInfo = m_pAlbumWidget->getPhotosInfo();
-            int pid = m_pAlbumPage->loadPhotos(*m_pAlbumWidget,
-                                               photosInfo,
-                                               m_pAlbumWidget->getTotalUsedTimes()
-                                               //m_pAlbumWidget->getPhotosNum()
-                                               );
+            int pid = m_pAlbumPage->loadPhotos(*m_pAlbumWidget, photosInfo, m_pAlbumWidget->getTotalUsedTimes());
             m_pAlbumPage->compose(pid);
 
             break;
@@ -518,15 +514,12 @@ void EditPageWidget::switchPage(int index)
         {
             m_pAlbumPage->m_bgdLabel->loadPixmap(QPixmap(":/images/canvas.png"));
             m_pAlbumPage->m_bgdLabel->move(QPoint((ui->mainFrame->width() - m_pAlbumPage->m_bgdLabel->getSize().width()) / 2, 0));
-            qDebug() << __FILE__ << __LINE__ << "load layers failed:" << m_pAlbumPage->m_layers.size() << m_pAlbumPage->m_photoLayers.size();
+            qDebug() << __FILE__ << __LINE__ << "load layers failed, the count of all layers is" << m_pAlbumPage->m_layers.size()
+                     << ", the count of photo layers is" << m_pAlbumPage->m_photoLayers.size();
         }
         else
         {
-            pid = m_pAlbumPage->loadPhotos(*m_pAlbumWidget,
-                                           photosInfo,
-                                           m_pAlbumWidget->getTotalUsedTimes()
-                                           //m_pAlbumWidget->getPhotosNum()
-                                           );
+            pid = m_pAlbumPage->loadPhotos(*m_pAlbumWidget, photosInfo, m_pAlbumWidget->getTotalUsedTimes());
             //qDebug() << __FILE__ << __LINE__ << pid;
             m_pAlbumPage->compose(pid);
         }
@@ -608,7 +601,7 @@ void EditPageWidget::on_backPushButton_clicked()
 {
     Q_ASSERT(m_pAlbumWidget);
 
-    m_pAlbumWidget->unselectSelf();
+    m_pAlbumWidget->switchView(false);
     m_container->m_photosScene->clearFocusSelection(false);
 
     emit editEntered(false);
