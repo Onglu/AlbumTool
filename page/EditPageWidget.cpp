@@ -40,11 +40,11 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
     }
 
     // 添加视图
-    m_pThumbsScene = new PictureGraphicsScene(Qt::gray,
-                                              PictureGraphicsScene::LayoutMode_Horizontality,
-                                              PictureGraphicsScene::SceneType_Thumbs,
-                                              ui->thumbsGraphicsView,
-                                              m_container);
+    m_thumbsScene = new PictureGraphicsScene(Qt::gray,
+                                             PictureGraphicsScene::LayoutMode_Horizontality,
+                                             PictureGraphicsScene::SceneType_Thumbs,
+                                             ui->thumbsGraphicsView,
+                                             m_container);
     m_container->m_scensVector.insert(PictureGraphicsScene::SceneType_Thumbs, m_thumbsScene);
 
     ui->photosGraphicsView->setScene(m_container->m_photosScene);

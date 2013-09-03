@@ -43,7 +43,7 @@ public:
 
     void clearBanners(void);
 
-    void switchView(void);
+    void switchView(bool enter);
 
     void updateViews(void)
     {

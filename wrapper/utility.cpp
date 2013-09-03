@@ -294,25 +294,3 @@ bool LoaderThread::loadFiles()
 
     return true;
 }
-
-void CryptThread::run()
-{
-    QString args = m_pkgFile + " " + m_arg;
-    //qDebug() << __FILE__ << __LINE__ << m_decrypt << args;
-
-    if (m_decrypt && !m_arg.isEmpty())
-    {
-//        TemplateChildWidget::useZip(TemplateChildWidget::ZipUsageDecrypt,
-//                                    args,
-//                                    true);
-//        emit done(m_pkgFile);
-
-//        TemplateChildWidget::useZip(TemplateChildWidget::ZipUsageEncrypt,
-//                                    args,
-//                                    true);
-
-//        m_decrypt = false;
-//        m_arg.clear();
-//        emit finished();
-    }
-}

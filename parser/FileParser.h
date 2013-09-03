@@ -167,7 +167,7 @@ public:
         return getFileMd5(m_fileName, md5);
     }
 
-    bool isCompleted(void) const {return m_complete;}
+    bool &isCompleted(void){return m_complete;}
 
 private:
     void verifyList(QVariantList &records, bool isPhoto, bool &complete);

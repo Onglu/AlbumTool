@@ -30,7 +30,7 @@ public:
     int getViewWidth(void) const;
 
     // 获取视图控件
-    PictureGraphicsScene *getThumbsView(void) const {return m_pThumbsScene;}
+    PictureGraphicsScene *getThumbsView(void) const {return m_thumbsScene;}
 
     // 移除视图控件
     void removeThumbs(const QString &picFile);

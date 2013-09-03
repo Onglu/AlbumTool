@@ -320,12 +320,14 @@ void TaskPageWidget::ok(uchar state)
                     countLocations(PictureGraphicsScene::SceneType_Photos);
                     countLocations(PictureGraphicsScene::SceneType_Albums);
 
-                    if (!m_taskParser.isCompleted())
+                    bool &complete = m_taskParser.isCompleted();
+                    if (!complete)
                     {
                         QMessageBox::information(this,
                                                  tr("操作提示"),
                                                  tr("部分文件加载失败，造成的原因可能为文件路径发生了更改！"),
                                                  tr("确定"));
+                        complete = true;
                     }
                 }
             }
