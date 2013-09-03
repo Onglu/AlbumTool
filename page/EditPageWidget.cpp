@@ -28,6 +28,7 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
     ui->resetPushButton->hide();
     ui->angleLineEdit->setValidator(new QIntValidator(-180, 180, this));
 
+    // 初始化编辑页
     m_pAlbumPage = new AlbumPageWidget(PhotoLayer::VisiableImgTypeScreen, ui->mainFrame);
     ui->mainHorizontalLayout->insertWidget(0, m_pAlbumPage);
 
@@ -38,7 +39,8 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
         connect(layer, SIGNAL(replaced(QString,QString)), SLOT(onReplaced(QString,QString)));
     }
 
-    m_thumbsScene = new PictureGraphicsScene(Qt::gray,
+    // 添加视图
+    m_pThumbsScene = new PictureGraphicsScene(Qt::gray,
                                               PictureGraphicsScene::LayoutMode_Horizontality,
                                               PictureGraphicsScene::SceneType_Thumbs,
                                               ui->thumbsGraphicsView,
@@ -47,6 +49,7 @@ EditPageWidget::EditPageWidget(TaskPageWidget *container) :
 
     ui->photosGraphicsView->setScene(m_container->m_photosScene);
 
+    // 添加模板页
     m_templatePage = new TemplatePageWidget(true, m_container);
     m_templatePage->getView()->setScene(m_container->m_templatesScene);
     ui->mainHorizontalLayout->addWidget(m_templatePage);
@@ -127,6 +130,7 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
             return;
         }
 
+        // 响应并处理相册编辑页的照片替换操作
         QString layerId = m_layerLabel->getLayerId();
         QVariantList &photosInfo = m_pAlbumWidget->getPhotosInfo();
         bool replaceable = false;
@@ -201,6 +205,7 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
             return;
         }
 
+        // 响应并处理相册照片页的替换操作
         m_pAlbumPage->replace(*m_pAlbumWidget, childWidget);
         m_pAlbumWidget->replace(current, childWidget->getBelongings());
         m_container->replace(PictureGraphicsScene::SceneType_Photos, current, replaced);
@@ -208,6 +213,7 @@ void EditPageWidget::onReplaced(const QString &current, const QString &replaced)
     }
     else if (m_templatePage->isVisible())
     {
+        // 响应并处理相册模板页的替换操作
         m_container->replace(PictureGraphicsScene::SceneType_Templates, current, replaced);
         m_pAlbumWidget->changeTemplate(m_templatePage->getBelongings());
         switchPage(m_current);
@@ -218,6 +224,7 @@ void EditPageWidget::clickPicture(QPoint wpos, QPoint epos)
 {
     m_startPos = QPoint(0, 0);
 
+    // 响应并处理照片控件的点击动作
     for (int i = PHOTOS_NUMBER - 1; i >= 0; i--)
     {
         PhotoLayer *layer = m_pAlbumPage->m_layerLabels[i];
@@ -247,6 +254,7 @@ void EditPageWidget::clickPicture(QPoint wpos, QPoint epos)
         }
     }
 
+    // 更新界面
     if (m_startPos.isNull())
     {
         m_pAlbumPage->m_bgdLabel->updateBorder(BgdLayer::Leave);
@@ -262,6 +270,7 @@ void EditPageWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
 
+    // 处理外部的鼠标点击操作
     QPoint pos = event->pos();
 
     m_layerLabel = NULL;
@@ -286,6 +295,7 @@ void EditPageWidget::mousePressEvent(QMouseEvent *event)
         }
     }
 
+    // 根据点击作用控件来决定如何来更新当前编辑界面
     if (!m_layerLabel)
     {
         setCursor(Qt::ArrowCursor);
@@ -304,6 +314,7 @@ void EditPageWidget::mousePressEvent(QMouseEvent *event)
 
 void EditPageWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    // 处理外部的鼠标移动操作
     QPoint pos = event->pos();
     if (QApplication::startDragDistance() <= (pos - m_startPos).manhattanLength()
         && m_layerLabel && m_layerLabel->isMoveable())
@@ -316,6 +327,7 @@ void EditPageWidget::mouseMoveEvent(QMouseEvent *event)
 
 void EditPageWidget::mouseReleaseEvent(QMouseEvent *event)
 {
+    // 处理外部的鼠标释放操作
     if (m_pAlbumWidget && Qt::LeftButton == event->button() && m_layerLabel && m_layerLabel->isMoveable())
     {
         bool moved = m_layerLabel->hasMoved();
@@ -334,6 +346,7 @@ void EditPageWidget::mouseReleaseEvent(QMouseEvent *event)
 
 int EditPageWidget::getViewWidth() const
 {
+    // 根据当前视图页类型来获取相应视图的宽度
     if (ui->photosGraphicsView->isVisible())
     {
         return ui->mainFrame->width();
@@ -402,6 +415,7 @@ void EditPageWidget::removeThumbs(const QString &picFile)
     DraggableLabel *thumbLabel = NULL;
     ProxyWidgetsMap &proxyWidgets = m_thumbsScene->getProxyWidgets();
 
+    // 移除指定文件名称的视图控件
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
         if ((thumbLabel = proxyWidget->getChildWidget().getPictureLabel())
@@ -424,6 +438,7 @@ void EditPageWidget::removeThumbs(const QString &picFile)
 
 void EditPageWidget::updateViews(const ChildWidgetsMap &albumsMap, int current)
 {
+    // 更新当前相册编辑页的界面
     bool enable = 1 != albumsMap.size();
     ui->previousPushButton->setEnabled(enable);
     ui->nextPushButton->setEnabled(enable);
@@ -435,6 +450,7 @@ const ThumbChildWidget *EditPageWidget::getThumbWidget(const QString &picFile) c
 {
     ProxyWidgetsMap proxyWidgets = m_thumbsScene->getProxyWidgets();
 
+    // 获取指定文件名的视图控件
     foreach (PictureProxyWidget *proxyWidget, proxyWidgets)
     {
         const ThumbChildWidget *childWidget = static_cast<ThumbChildWidget *>(proxyWidget->getChildWidgetPtr());
@@ -451,6 +467,7 @@ const ThumbChildWidget *EditPageWidget::getThumbWidget(const QString &picFile) c
 
 void EditPageWidget::updatePage()
 {
+    // 当外部发生编辑操作时，更新可视区域，并对照片层进行重新合成，同时更新照片属性信息
     if (m_pAlbumWidget && m_layerLabel)
     {
         m_layerLabel->updateRect();
@@ -478,6 +495,7 @@ void EditPageWidget::switchPage(int index)
         return;
     }
 
+    // 清理操作
     m_pAlbumPage->clearLayers();
     m_layerLabel = NULL;
 
@@ -524,6 +542,7 @@ void EditPageWidget::switchPage(int index)
             m_pAlbumPage->compose(pid);
         }
 
+        // 创建视图控件
         for (int i = 0; i < PHOTOS_NUMBER; i++)
         {
             QVariantMap info = photosInfo[i].toMap();
@@ -553,6 +572,7 @@ void EditPageWidget::switchPage(int index)
             m_thumbsScene->adjustViewLayout();
         }
 
+        // 更新模板数据
         ThumbChildWidget::updateList(photosList);
         m_templatePage->changeTemplate(m_pAlbumWidget->getTmplLabel().getBelongings());
 
@@ -567,6 +587,7 @@ void EditPageWidget::switchPage(int index)
 
 void EditPageWidget::on_editPushButton_clicked()
 {
+    // 切换到编辑页
     ui->verticalLayout->setContentsMargins(9, 9, 9, 9);
     ui->editPushButton->setCheckable(true);
     m_pAlbumPage->show();
@@ -577,6 +598,7 @@ void EditPageWidget::on_editPushButton_clicked()
 
 void EditPageWidget::on_photoPushButton_clicked()
 {
+    // 切换到照片页
     ui->verticalLayout->setContentsMargins(9, 9, 9, 9);
     ui->photoPushButton->setCheckable(true);
     m_pAlbumPage->hide();
@@ -588,6 +610,7 @@ void EditPageWidget::on_photoPushButton_clicked()
 
 void EditPageWidget::on_templatePushButton_clicked()
 {
+    // 切换到模板页
     ui->verticalLayout->setContentsMargins(9, 9, 9, 0);
     ui->templatePushButton->setCheckable(true);
     m_pAlbumPage->hide();
@@ -663,6 +686,7 @@ void EditPageWidget::on_nextPushButton_clicked()
 
 void EditPageWidget::on_deletePushButton_clicked()
 {
+    // 删除相册页操作
     if (QMessageBox::AcceptRole == QMessageBox::question(this, tr("删除确认"), tr("确定要从当前相册集当中删除掉此相册页吗？"), tr("确定"), tr("取消")))
     {
         m_container->m_albumsScene->removeProxyWidget(m_current);
@@ -769,6 +793,7 @@ inline void EditPageWidget::releaseButton(const QPushButton &button)
 
 inline void EditPageWidget::enableButtons(bool enable)
 {
+    // 更新控件按钮的使能状态
     ui->zoomInPushButton->setEnabled(enable);
     ui->zoomOutPushButton->setEnabled(enable);
     ui->mirroredPushButton->setEnabled(enable);
@@ -787,6 +812,7 @@ inline void EditPageWidget::enableButtons(bool enable)
 
 inline void EditPageWidget::zoomAction(QPushButton &button, bool in)
 {
+    // 处理照片层的缩放操作
     if (m_layerLabel && m_layerLabel->zoomAction(in ? 1.10 : 0.90))
     {
         m_layerLabel->updateRect();
@@ -824,6 +850,7 @@ inline void EditPageWidget::zoomAction(QPushButton &button, bool in)
 
 void EditPageWidget::on_angleLineEdit_returnPressed()
 {
+    // 处理照片层的旋转操作
     if (m_layerLabel)
     {
         m_layerLabel->rotateAction(ui->angleLineEdit->text().toInt());

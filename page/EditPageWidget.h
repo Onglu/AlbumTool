@@ -1,4 +1,4 @@
-#ifndef EDITPAGEWIDGET_H
+﻿#ifndef EDITPAGEWIDGET_H
 #define EDITPAGEWIDGET_H
 
 #include <QWidget>
@@ -26,15 +26,19 @@ public:
     explicit EditPageWidget(TaskPageWidget *container);
     ~EditPageWidget();
 
+    // 获取视图控件宽度
     int getViewWidth(void) const;
 
-    PictureGraphicsScene *getThumbsView(void) const {return m_thumbsScene;}
+    // 获取视图控件
+    PictureGraphicsScene *getThumbsView(void) const {return m_pThumbsScene;}
 
+    // 移除视图控件
     void removeThumbs(const QString &picFile);
 
     /* Update the edit page views with the persent albums list */
     void updateViews(const ChildWidgetsMap &albumsMap, int current);
 
+    // 打开编辑窗口
     void exec(bool open = true);
 
 signals:
@@ -101,14 +105,19 @@ private:
 
     void zoomAction(QPushButton &button, bool in);
 
+    // 切换相册页
     void switchPage(int index);
 
+    // 更新相册页
     void updatePage(void);
 
+    // 调整视图布局
     void adjustViewLayout(void);
 
+    // 调整视图高度
     void adjustThumbsHeight(void);
 
+    // 获取指定文件名的视图控件
     const ThumbChildWidget *getThumbWidget(const QString &picFile) const;
 
     Ui::EditPageWidget *ui;
@@ -123,6 +132,7 @@ private:
     TemplatePageWidget *m_templatePage;
     PictureGraphicsScene *m_thumbsScene;
 
+    // 相册编辑页基础数据
     bool m_thumbsSceneFocused;
     int m_current;
     QPoint m_startPos;

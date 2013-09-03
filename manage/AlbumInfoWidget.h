@@ -1,4 +1,4 @@
-#ifndef ALBUMINFOWIDGET_H
+﻿#ifndef ALBUMINFOWIDGET_H
 #define ALBUMINFOWIDGET_H
 
 #include <QWidget>
@@ -18,22 +18,31 @@ public:
     explicit AlbumInfoWidget(bool editing, AlbumManageDialog *parent = 0);
     ~AlbumInfoWidget();
 
+    // 打开用户信息设置窗口
     void openWnd(const QStringList &businesses);
 
+    // 打开用户信息设置窗口
     void openWnd(void);
 
+    // 绑定指定用户的错误码
     void bindUser(const QVariantMap &user, int code);
 
+    // 绑定指定用户的基本信息
     void bindUser(const QVariantMap &user){addUser(user);}
 
+    // 移除用户
     void removeUser(int row);
 
+    // 获取用户列表ID
     QString getUsersId(QString &ids);
 
+    // 获取影楼商家列表
     QString getBusinessName(void) const;
 
+    // 检查当前相册是否为样册
     bool isSampleAlbum(void) const;
 
+    // 检查当前相册是否可编辑
     bool isEditing(void) const {return m_editing;}
 
 signals:
@@ -67,8 +76,10 @@ private slots:
     void on_previewPushButton_clicked();
 
 private:
+    // 显示用户信息列表
     void showUsers(bool visiable = true);
 
+    // 添加用户信息
     void addUser(const QVariantMap &user);
 
     Ui::AlbumInfoWidget *ui;
@@ -84,11 +95,14 @@ class UserInfoWidget : public QWidget
 public:
     UserInfoWidget(int index, int id, const QString &info, AlbumInfoWidget &container);
 
+    // 设置/获取用户索引
     void setIndex(int index){m_index = index;}
     int getIndex() const {return m_index;}
 
+    // 获取用户ID
     int getId() const {return m_id;}
 
+    // 获取用户信息
     QString getInfo(void) const {return m_info;}
 
 private slots:

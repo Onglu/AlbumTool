@@ -134,20 +134,6 @@ void AlbumChildWidget::setupWidgets(const QVariantList &photosInfo,
     m_picLabel = m_photoLabels.last();
     m_tmplLabel = new DraggableLabel(QSize(96, 144), DRAGGABLE_TEMPLATE, ui->templateLabel);
 
-//    if (QFile::exists(tmplFile))
-//    {
-//        QString tmplPic;
-//        TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel);
-//        if (tmplWidget.getTmplPic(tmplPic))
-//        {
-//            m_tmplFile = tmplFile;
-//            m_tmplLabel->setContentsMargins(1, 1, 2, 2);
-//            m_tmplLabel->loadPicture(QPixmap(tmplPic), QSize(92, 142));
-//            QVariantMap belongings = m_tmplLabel->getBelongings();
-//            TemplateChildWidget::getLocations(belongings["page_data"].toMap(), m_locations);
-//        }
-//    }
-
     if (!tmplFile.isEmpty())
     {
         TemplateChildWidget tmplWidget(tmplFile, m_tmplLabel, m_container);

@@ -1,4 +1,4 @@
-#ifndef THUMBCHILDWIDGET_H
+﻿#ifndef THUMBCHILDWIDGET_H
 #define THUMBCHILDWIDGET_H
 
 #include "child/PictureChildWidget.h"
@@ -20,9 +20,11 @@ public:
 
     const QVariantMap &getBelongings(void) const {return m_belongings;}
 
+    // 设置/获取图片的索引
     void setId(int id){m_id = id;/* zero-based index */}
     int getId(void) const {return m_id;}
 
+    // 更新照片列表
     static void updateList(const QStringList &photosList){m_photosList = photosList;}
 
 signals:

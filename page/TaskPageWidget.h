@@ -103,7 +103,6 @@ public:
 
 signals:
     void changed(int index);
-    void maxShow(bool max);
 
 protected:
     void resizeEvent(QResizeEvent *event);
@@ -150,7 +149,7 @@ private:
     void addAlbumRecord(int pagesNum, int photosNum, int blankNum);
 
     Ui::TaskPageWidget *ui;
-    int m_tabId;
+    int m_tabId;    // tab page id
     bool m_collapsed, m_changed;
 
     PreviewDialog *m_previewDlg;

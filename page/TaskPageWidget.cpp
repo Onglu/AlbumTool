@@ -1164,7 +1164,6 @@ void TaskPageWidget::onPreview(const QStringList &pictures, int current)
 
 void TaskPageWidget::onEdit(const ChildWidgetsMap &albumsMap, int current)
 {
-    //StartupPageWidget::getWnd()->showMinimized();
     StartupPageWidget::getWnd()->hide();
     enterEdit(true);
     m_editPage->updateViews(albumsMap, current);
@@ -1174,35 +1173,16 @@ void TaskPageWidget::enterEdit(bool enter)
 {
     if (enter)
     {
-//        ui->collapsePushButton->hide();
-//        ui->photosGroupBox->hide();
-//        ui->templatesGroupBox->hide();
-//        ui->albumsGroupBox->hide();
-//        emit maxShow(true);
-//        m_editPage->adjustViewLayout();
-
         m_editPage->exec();
         m_editPage->m_templatePage->setTags(m_templatePage->isImmediate(), m_templatePage->getTags());
-        //hide();
     }
     else
     {
-//        emit maxShow(false);
-//        ui->collapsePushButton->show();
-//        ui->photosGroupBox->show();
-//        ui->templatesGroupBox->show();
-//        ui->albumsGroupBox->show();
         m_templatePage->setTags(m_editPage->m_templatePage->isImmediate(), m_editPage->m_templatePage->getTags());
-        //m_editPage->hide();
         m_editPage->close();
-        //show();
-
-        //StartupPageWidget::getWnd()->showNormal();
         StartupPageWidget::getWnd()->show();
         m_photosScene->adjustViewLayout();
         m_templatesScene->adjustViewLayout();
-
-        //adjustSize();
     }
 }
 

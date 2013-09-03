@@ -1,4 +1,4 @@
-#ifndef PHOTOITEMWIDGET_H
+﻿#ifndef PHOTOITEMWIDGET_H
 #define PHOTOITEMWIDGET_H
 
 #include "child/PictureChildWidget.h"
@@ -21,12 +21,15 @@ public:
                               TaskPageWidget *parent = 0);
     ~PhotoChildWidget();
 
+    // 显示按钮
     void showButtons(bool bVisible);
 
     const QVariantMap &getChanges(void);
 
+    // 获取当前使用次数
     int usedTimes(void) const;
 
+    // 设置照片信息
     static void setPhotoInfo(DraggableLabel &label,
                              const QString &file,
                             qreal angle = 0,

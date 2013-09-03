@@ -15,8 +15,6 @@ class Converter
 public:
     Converter(){}
 
-    static const QStringList &v2l(const QVector<QString> strVector, QStringList &strList);
-
     static qreal rotation(qreal &current, qreal degree)
     {
         if (degree)
@@ -145,39 +143,5 @@ namespace TaskLoader
         ViewType m_viewType;
     };
 }
-
-class CryptThread : public QThread
-{
-    Q_OBJECT
-
-public:
-    CryptThread() : m_decrypt(false){}
-
-//    CryptThread &operator =(const CryptThread &ct)
-//    {
-//        m_decrypt = ct.m_decrypt;
-//        m_pkgFile = ct.m_pkgFile;
-//        m_arg = ct.m_arg;
-//    }
-
-    void crypt(bool decrypt, const QString &pkgFile, const QString &arg)
-    {
-        m_decrypt = decrypt;
-        m_pkgFile = pkgFile;
-        m_arg = arg;
-    }
-
-    const QString &getPkgFile(void) const {return m_pkgFile;}
-
-signals:
-    void done(const QString &pkgFile);
-
-protected:
-    void run();
-
-private:
-    bool m_decrypt;
-    QString m_pkgFile, m_arg;
-};
 
 #endif // UTILITY_H

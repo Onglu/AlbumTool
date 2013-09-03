@@ -4,15 +4,6 @@
 
 using namespace TaskLoader;
 
-const QStringList &Converter::v2l(const QVector<QString> strVector, QStringList &strList)
-{
-    int size = strVector.size();
-    for (int i = 0; i < size; i++)
-    {
-        strList << strVector.at(i);
-    }
-}
-
 const QString &Converter::getFileName(QString fullPath, QString &fileName, bool suffix)
 {
     if (!fullPath.isEmpty())

@@ -185,14 +185,6 @@ void TemplateChildWidget::processFinished(int ret, QProcess::ExitStatus exitStat
 {
     Q_UNUSED(ret);
 
-#if PKG_ENCRYPT
-    //qDebug() << __FILE__ << __LINE__ << &m_parser << m_parser.isFinished() << m_pkgFile << m_parser.getPkgFile();
-    if (m_parser.isFinished())
-    {
-        return;
-    }
-#endif
-
     if (QProcess::CrashExit == exitStatus)
     {
         QMessageBox::critical(m_container, tr("解析失败"), tr("错误信息：tmaker.exe has crashed!"), tr("确定"));

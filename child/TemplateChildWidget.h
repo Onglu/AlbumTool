@@ -1,4 +1,4 @@
-#ifndef TEMPLATECHILDWIDGET_H
+﻿#ifndef TEMPLATECHILDWIDGET_H
 #define TEMPLATECHILDWIDGET_H
 
 #include "child/PictureChildWidget.h"
@@ -41,27 +41,6 @@ namespace TemplateEngine
         QVariantMap m_data;
         TemplateChildWidget *m_widget;
     };
-
-    class LoaderThread : public QThread
-    {
-        Q_OBJECT
-
-    public:
-        LoaderThread() : m_abort(false){}
-
-        void begin(const QVariantMap &data)
-        {
-            m_data = data;
-            start();
-        }
-
-    protected:
-        void run(){}
-
-    private:
-        bool m_abort;
-        QVariantMap m_data;
-    };
 }
 
 class TemplateChildWidget : public PictureChildWidget
@@ -80,15 +59,19 @@ public:
 
     const QVariantMap &getChanges(void);
 
+    // 获取模板文件
     const QString &getTmplFile(void) const {return m_tmplFile;}
 
+    // 获取模板图片
     bool getTmplPic(QString &tmplPic);
 
+    // 检查模板是否为封面
     static bool isCover(const QVariantMap &data)
     {
         return (1 == data["pagetype"].toInt());
     }
 
+    // 获取模板大小
     static QSize getSize(const QVariantMap &data)
     {
         QVariantMap size = data["size"].toMap();
@@ -99,8 +82,10 @@ public:
 
     const QVariantMap &getFrame(const QString &lid, QVariantMap &frame);
 
+    // 获取模板相位
     uchar getLocations(void) const;
 
+    // 获取模板相位
     static const uchar *getLocations(const QVariantMap &data, uchar locations[])
     {
         memset(locations, 2, 0);
@@ -170,15 +155,16 @@ private slots:
     void processFinished(int, QProcess::ExitStatus);
 
 private:
+    // 加载模板图片
     void loadPicture(QVariantMap &data, QString tmplPic = QString());
 
+    // 获取模板ID
     int getId(void);
 
+    // 移除模板
     void remove(int tid);
 
-    CryptThread m_parser;
     QProcess m_tmaker;
-
     QString m_tmplFile, m_tmplPic, m_currFile;
 
 #if LOAD_FROM_MEMORY

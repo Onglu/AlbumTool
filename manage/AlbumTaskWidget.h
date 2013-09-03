@@ -1,4 +1,4 @@
-#ifndef ALBUMTASKWIDGET_H
+﻿#ifndef ALBUMTASKWIDGET_H
 #define ALBUMTASKWIDGET_H
 
 #include <QWidget>
@@ -38,22 +38,31 @@ public:
     enum TaskState{Pause, Initialize, Start, Finished, Published};
     TaskState getState(void) const {return m_state;}
 
+    // 设置相册名称
     void setName(const QString &name);
 
+    // 获取相册名称
     QString getName(void) const;
 
+    // 获取相册UUID
     QString getUuid(void) const {return m_uuid;}
 
+    // 获取相册MD5
     QString getMd5(void) const {return m_md5;}
 
+    // 获取相册页数
     int getPagesNum(void) const {return m_pagesNum;}
 
+    // 获取相册照片数
     int getPhotosNum(void) const {return m_photosNum;}
 
+    // 获取相册空位数
     int getBlankNum(void) const {return m_blankNum;}
 
+    // 获取相册大小
     quint64 getSize(void) const {return m_totalBytes;}
 
+    // 设置相册可访问用户
     void setUsers(const UserInfoItems &users)
     {
         if (m_users != users)
@@ -62,12 +71,16 @@ public:
         }
     }
 
+    // 获取相册可访问用户
     const UserInfoItems &getUsers(void){return m_users;}
 
+    // 获取相册可访问用户的ID
     QString getUsersId(QString &ids);
 
+    // 获取相册ID
     int getAlbumId(void) const {return m_aid;}
 
+    // 获取相册类型
     uchar getAlbumType(void)
     {
         if (!m_atype)
@@ -78,10 +91,13 @@ public:
         return m_atype;
     }
 
+    // 获取相册所属影楼名称
     QString getBusinessName(void) const {return m_business.isEmpty() ? tr("无") : m_business;}
 
+    // 设置相册的关联信息
     void setRelevance(uchar atype, const QString &business);
 
+    // 获取相册的关联信息
     void getRelevance(uchar &atype, QString &business)
     {
         atype = m_atype;
@@ -96,10 +112,13 @@ public:
         }
     }
 
+    // 开始传输相册
     void start(int aid = 0);
 
+    // 设置相册信息
     void setAlbumInfo(const QVariantMap &records);
 
+    // 预览相册
     void onPreview(void);
 
 protected:
@@ -128,10 +147,13 @@ private slots:
 private:
     void moveOver();
 
+    // 客户端提交动作
     bool postData(const QByteArray &binary, quint64 offset = 0);
 
+    // 获取已上传大小
     void getUploadFileSize(void);
 
+    // 加载相册记录信息
     void loadRecords(void);
 
     Ui::AlbumTaskWidget *ui;
@@ -141,10 +163,12 @@ private:
     UserInfoItems m_users;
     int m_pagesNum, m_photosNum, m_blankNum;
 
+    // 传输管理监视对象
     QProcess m_tmaker;
     QTimer m_sender, m_watcher;
     QTime m_time;
 
+    // 相册文件属性信息
     FileParser *m_file;
     QString m_name, m_uuid, m_md5, m_business;
     int m_tid, m_aid;
@@ -153,6 +177,7 @@ private:
     uchar m_atype;
     bool m_changed;
 
+    // 传输管理控制对象
     QHttp *m_http;
     QNetworkAccessManager *m_manager;
     QNetworkReply *m_reply;

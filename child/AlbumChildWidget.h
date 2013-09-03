@@ -1,4 +1,4 @@
-#ifndef ALBUMCHILDWIDGET_H
+﻿#ifndef ALBUMCHILDWIDGET_H
 #define ALBUMCHILDWIDGET_H
 
 #include "child/PictureChildWidget.h"
@@ -43,7 +43,7 @@ public:
 
     void clearBanners(void);
 
-    void switchView(bool enter);
+    void switchView(void);
 
     void updateViews(void)
     {
@@ -80,7 +80,6 @@ public:
         return m_locations[PORTRAIT_PICTURE] + m_locations[LANDSCAPE_PICTURE];
     }
 
-    /* Get the available photo locations of this abum */
     uchar getLocations(uchar locations[]) const;
 
     QSize getSize(void) const;

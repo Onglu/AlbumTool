@@ -151,6 +151,7 @@ void AlbumManageDialog::switchPage()
         }
         else
         {
+            // 根据当前切换页面显示相册列表
             AlbumTaskWidget::TaskState state = taskItem->getWidget()->getState();
             if (ui->uploadingPushButton->isChecked())
             {
@@ -170,6 +171,7 @@ void AlbumManageDialog::switchPage()
 
 void AlbumManageDialog::updateList()
 {
+    // 更新相册列表
     if (ui->uploadingPushButton->isChecked())
     {
         on_uploadingPushButton_clicked();
@@ -193,6 +195,7 @@ void AlbumManageDialog::setAlbumInfo(AlbumTaskWidget &task, bool view)
 
     ui->mainFrame->hide();
 
+    // 设置相册信息
     if (!view)
     {
         QStringList businesses;
@@ -222,7 +225,7 @@ int AlbumManageDialog::getBusinessId(const QString &name) const
         QVariantMap values = businesse.toMap();
         if (name == values["name"].toString())
         {
-            return values["id"].toInt();
+            return values["id"].toInt();// 获取商家ID
         }
     }
 
@@ -236,7 +239,7 @@ QString AlbumManageDialog::getBusinessName(int id, QString &name) const
         QVariantMap values = businesse.toMap();
         if (id == values["id"].toInt())
         {
-            name = values["name"].toString();
+            name = values["name"].toString();// 获取商家名称
             break;
         }
     }
@@ -246,6 +249,7 @@ QString AlbumManageDialog::getBusinessName(int id, QString &name) const
 
 const QStringList &AlbumManageDialog::getBusinesses(QStringList &businesses) const
 {
+    // 获取商家列表
     foreach (const QVariant &businesse, m_businessesList)
     {
         QVariantMap values = businesse.toMap();
@@ -265,6 +269,7 @@ void AlbumManageDialog::on_loginPushButton_clicked()
 
     if (!m_logined)
     {
+        // 处理用户的登录认证操作
         QString name = ui->nameLineEdit->text();
         QString pwd = ui->passwdLineEdit->text();
         if (name.isEmpty() || pwd.isEmpty())
@@ -297,7 +302,7 @@ void AlbumManageDialog::on_loginPushButton_clicked()
         ui->passwdLabel->show();
         ui->passwdLineEdit->clear();
         ui->passwdLineEdit->show();
-        ui->loginPushButton->setText(tr("登陆"));
+        ui->loginPushButton->setText(tr("登录"));
         ui->mainFrame->setEnabled(false);
     }
 }
@@ -355,6 +360,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
     qDebug() << __FILE__ << __LINE__ << m_url;
     reply->deleteLater();
 
+    // 根据服务器端返回的响应码来分阶段处理客户端业务
     if (m_url.startsWith(USER_LOGIN_URL))
     {
         if (!m_logined && !m_watcher.isActive())
@@ -419,6 +425,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
         {
             QVariantMap value = result["retValue"].toMap();
 
+            // 设置相册基本信息
             if (m_url.startsWith(GET_ALBUMSAMPLE_URL))
             {
                 if (SERVER_REPLY_SUCCESS == code)
@@ -429,6 +436,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
                 m_editPage->openWnd();
             }
 
+            // 创建相册
             if (m_url.startsWith(CREATE_ALBUM_URL) || m_url.startsWith(CREATE_SAMPLE_URL) || m_url.startsWith(UPDATE_ALBUMSAMPLE_URL))
             {
                 if (SERVER_REPLY_SUCCESS != code)
@@ -444,6 +452,7 @@ void AlbumManageDialog::replyFinished(QNetworkReply *reply)
                 }
             }
 
+            // 进行用户绑定
             if (m_url.startsWith(FIND_USER_URL))
             {
                 m_watcher.stop();
@@ -469,6 +478,7 @@ void AlbumManageDialog::accept(bool ok, const QString &business, bool sample)
     int bid = 0;
     bool editing = m_editPage->isEditing();
 
+    // 接受提交的表单数据，并发送给服务器端
     if (ok && m_currTask && (bid = getBusinessId(business)))
     {
         QString ids(QChar(0));

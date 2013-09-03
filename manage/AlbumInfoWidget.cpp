@@ -86,6 +86,7 @@ void AlbumInfoWidget::openWnd(const QStringList &businesses)
         index++;
     }
 
+    // 根据当前相册的类型来决定是否显示用户信息列表
     if (USER_ALBUM == atype)
     {
         ui->userRadioButton->setChecked(true);
@@ -167,6 +168,7 @@ void AlbumInfoWidget::bindUser(const QVariantMap &user, int code)
     }
     else if (SERVER_REPLY_SUCCESS == code)
     {
+        // 添加现有的用户
         UserInfoDialog dlg(true, user["telephone"].toString(), user["realname"].toString(), (uchar)user["male"].toUInt());
         if (QDialog::Accepted == dlg.exec())
         {
@@ -182,6 +184,7 @@ void AlbumInfoWidget::bindUser(const QVariantMap &user, int code)
     }
     else if (NO_RESULT == code)
     {
+        // 添加一个新的用户
         UserInfoDialog dlg(false, ui->telnoLineEdit->text());
         if (QDialog::Accepted == dlg.exec())
         {
@@ -234,6 +237,7 @@ void AlbumInfoWidget::addUser(const QVariantMap &user)
 
 void AlbumInfoWidget::removeUser(int row)
 {
+    // 处理移除用户的操作
     QListWidgetItem *item = ui->usersListWidgets1->item(row);
     if (!item)
     {
@@ -261,6 +265,7 @@ void AlbumInfoWidget::removeUser(int row)
 
 void AlbumInfoWidget::showUsers(bool visiable)
 {
+    // 根据条件来判断是否要显示用户列表信息
     if (ui->setFrame->isVisible())
     {
         ui->setLabel->setVisible(visiable);
@@ -286,6 +291,7 @@ QString AlbumInfoWidget::getUsersId(QString &ids)
         QListWidgetItem *item = NULL;
         int num = ui->usersListWidgets1->count();
 
+        // 获取用户的ID
         for (int i = 0; i < num; i++)
         {
             if ((item = ui->usersListWidgets1->item(i))
@@ -337,6 +343,7 @@ void AlbumInfoWidget::on_okPushButton_clicked()
     UserInfoItems users;
     bool sample = ui->sampleRadioButton->isChecked();
 
+    // 当用户设置完相册的基本信息以后，客户端提交本次设置信息给服务器
     if (sample)
     {
         ui->usersListWidgets1->clear();

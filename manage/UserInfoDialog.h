@@ -1,4 +1,4 @@
-#ifndef FINDUSERDIALOG_H
+﻿#ifndef FINDUSERDIALOG_H
 #define FINDUSERDIALOG_H
 
 #include <QDialog>
@@ -19,8 +19,10 @@ public:
                             QWidget *parent = 0);
     ~UserInfoDialog();
 
+    // 获取用户名称
     QString getName(void) const {return m_name;}
 
+    // 获取用户性别
     uchar getSex(void) const {return m_sex;}
 
     bool hasReset(void) const {return m_reset;}
@@ -36,6 +38,8 @@ private slots:
 
 private:
     Ui::UserInfoDialog *ui;
+
+    // 用户基本信息
     QString m_telno, m_name;
     uchar m_sex;
     bool m_reset;

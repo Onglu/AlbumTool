@@ -58,6 +58,7 @@ AlbumTaskWidget::AlbumTaskWidget(const QString &album, AlbumManageDialog *contai
     QString name;
     ui->nameLabel->setText(Converter::getFileName(album, name, false));
 
+    // 加载记录信息
     loadRecords();
 
     m_manager = new QNetworkAccessManager(this);
@@ -120,6 +121,7 @@ void AlbumTaskWidget::onPreview()
         return;
     }
 
+    // 预览相册
     if (m_pagesNum != m_pictures.size() - 1)
     {
         QString album = QDir::toNativeSeparators(m_file->fileName());
@@ -158,6 +160,7 @@ void AlbumTaskWidget::processFinished(int ret, QProcess::ExitStatus exitStatus)
 
         if (!ui->coverLabel->pixmap())
         {
+            // 加载预览图片
             if (!pix.isNull())
             {
                 ui->coverLabel->setPixmap(pix.scaled(ui->coverLabel->size(),
@@ -172,6 +175,7 @@ void AlbumTaskWidget::processFinished(int ret, QProcess::ExitStatus exitStatus)
 
         if (!pix.isNull())
         {
+            // 显示预览图片
             m_pictures << pix;
             if (m_pagesNum && m_pagesNum == m_pictures.size() - 1)
             {
@@ -205,6 +209,7 @@ void AlbumTaskWidget::loadRecords()
         return;
     }
 
+    // 加载相册记录信息
     QSqlQuery query;
     QString album = QDir::toNativeSeparators(m_file->fileName());
     QString sql = tr("select fileguid,pagesnum,photosnum,blanknum from album_info where fileurl='%1'").arg(album);
@@ -238,6 +243,7 @@ void AlbumTaskWidget::loadRecords()
         m_totalBytes = query.value(4).toULongLong();
         m_state = (TaskState)query.value(5).toInt();
 
+        // 根据传输状态来设置相册传输列表状态
         if (Pause == m_state)
         {
             ui->stateLabel->setText(tr("已暂停"));
@@ -329,6 +335,7 @@ void AlbumTaskWidget::start(int aid)
         m_aid = aid;
     }
 
+    // 开始传输相册
     if (Initialize == m_state)
     {
         m_error = m_times = 0;
@@ -591,6 +598,7 @@ void AlbumTaskWidget::replyFinished(QNetworkReply *reply)
         m_changed = true;
     }
 
+    // 根据服务器端返回的响应码来分阶段处理当前的传输任务
     if (url.startsWith(UPDATE_NAME_URL))
     {
         if (SERVER_REPLY_SUCCESS != code)
@@ -742,6 +750,7 @@ QString AlbumTaskWidget::getUsersId(QString &ids)
 
     ids.clear();
 
+    // 获取相册可访问用户的ID
     while (iter != m_users.constEnd())
     {
         if (!i)

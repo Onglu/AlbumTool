@@ -165,7 +165,6 @@ inline void MainWindow::addPage(AddMethod method, QString taskFile, QString task
         }
 
         connect(taskPage, SIGNAL(changed(int)), SLOT(onChanged(int)));
-        connect(taskPage, SIGNAL(maxShow(bool)), SLOT(showMax(bool)));
     }
 }
 
@@ -215,19 +214,8 @@ void MainWindow::on_tabWidget_tabCloseRequested(int index)
         if (taskPage)
         {
             taskPage->setTabId(i);
-//            if (!taskPage->isEditing())
-//            {
-//                n++;
-//            }
         }
     }
-
-//    if (!count || n == count - 1)
-//    {
-//        setMinimumSize(MINI_WIDTH, MINI_HEIGHT);
-//        setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-//        setGeometry(this->geometry());
-//    }
 }
 
 void MainWindow::on_newAction_triggered()
